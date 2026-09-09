@@ -1,0 +1,624 @@
+/**
+ * BaleWoo — admin styles (RTL)
+ */
+
+.balewoo-wrap {
+	--bw-primary: #0d6efd;
+	--bw-primary-dark: #0b5ed7;
+	--bw-primary-soft: rgba(13, 110, 253, 0.12);
+	--bw-bg: #f4f6fb;
+	--bw-card: #ffffff;
+	--bw-text: #1f2937;
+	--bw-muted: #6b7280;
+	--bw-border: #e5e7eb;
+	--bw-success: #22c55e;
+	--bw-warning: #f59e0b;
+	--bw-danger: #ef4444;
+	--bw-radius: 14px;
+	direction: rtl;
+	margin: 20px 20px 20px 0;
+	font-family: "Vazirmatn", "IRANSans", Tahoma, system-ui, -apple-system, "Segoe UI", sans-serif;
+	color: var(--bw-text);
+}
+
+/* تم‌ها */
+.balewoo-wrap.balewoo-theme-blue      { --bw-primary: #0d6efd; --bw-primary-dark: #0b5ed7; }
+.balewoo-wrap.balewoo-theme-green     { --bw-primary: #198754; --bw-primary-dark: #146c43; }
+.balewoo-wrap.balewoo-theme-purple    { --bw-primary: #6f42c1; --bw-primary-dark: #563d7c; }
+.balewoo-wrap.balewoo-theme-orange    { --bw-primary: #fd7e14; --bw-primary-dark: #e8590c; }
+.balewoo-wrap.balewoo-theme-red       { --bw-primary: #dc3545; --bw-primary-dark: #b02a37; }
+.balewoo-wrap.balewoo-theme-gold      { --bw-primary: #d4a017; --bw-primary-dark: #b8860b; }
+.balewoo-wrap.balewoo-theme-turquoise { --bw-primary: #0dcaf0; --bw-primary-dark: #0aa2c0; }
+.balewoo-wrap .balewoo-theme-blue      { --bw-primary: #0d6efd; }
+.balewoo-wrap .balewoo-theme-green     { --bw-primary: #198754; }
+.balewoo-wrap .balewoo-theme-purple    { --bw-primary: #6f42c1; }
+.balewoo-wrap .balewoo-theme-orange    { --bw-primary: #fd7e14; }
+.balewoo-wrap .balewoo-theme-red       { --bw-primary: #dc3545; }
+.balewoo-wrap .balewoo-theme-gold      { --bw-primary: #d4a017; }
+.balewoo-wrap .balewoo-theme-turquoise { --bw-primary: #0dcaf0; }
+
+.balewoo-wrap.balewoo-dark {
+	--bw-bg: #0f172a;
+	--bw-card: #111c30;
+	--bw-text: #e5e7eb;
+	--bw-muted: #94a3b8;
+	--bw-border: #1f2a44;
+}
+
+.balewoo-shell {
+	display: grid;
+	grid-template-columns: 250px 1fr;
+	gap: 20px;
+	align-items: start;
+}
+
+/* سایدبار */
+.balewoo-sidebar {
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	border-radius: var(--bw-radius);
+	padding: 18px;
+	position: sticky;
+	top: 52px;
+}
+
+.balewoo-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+.balewoo-brand strong {
+	display: block;
+	font-size: 17px;
+}
+.balewoo-brand small {
+	color: var(--bw-muted);
+	font-size: 12px;
+}
+.balewoo-logo {
+	font-size: 26px;
+	background: var(--bw-primary-soft);
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	border-radius: 12px;
+}
+
+.balewoo-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.balewoo-nav-item {
+	padding: 9px 12px;
+	border-radius: 10px;
+	color: var(--bw-text);
+	text-decoration: none;
+	font-size: 14px;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.balewoo-nav-item:hover {
+	background: var(--bw-primary-soft);
+	color: var(--bw-primary-dark);
+}
+.balewoo-nav-item.is-active {
+	background: var(--bw-primary);
+	color: #fff;
+	font-weight: 600;
+}
+
+.balewoo-sidebar-status {
+	margin-top: 20px;
+	border-top: 1px solid var(--bw-border);
+	padding-top: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+}
+.balewoo-status-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: var(--bw-muted);
+}
+.balewoo-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+	background: var(--bw-muted);
+}
+.balewoo-dot.is-ok { background: var(--bw-success); }
+.balewoo-dot.is-off { background: var(--bw-danger); }
+.balewoo-sidebar-foot {
+	margin-top: 18px;
+	font-size: 11px;
+	color: var(--bw-muted);
+}
+
+/* اصلی */
+.balewoo-main {
+	min-width: 0;
+}
+.balewoo-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+}
+.balewoo-topbar h1 {
+	font-size: 22px;
+	margin: 0;
+}
+.balewoo-subtitle {
+	margin: 2px 0 0;
+	color: var(--bw-muted);
+	font-size: 13px;
+}
+.balewoo-topbar-actions {
+	display: flex;
+	gap: 8px;
+}
+.balewoo-content {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+/* دکمه‌ها */
+.balewoo-btn {
+	border: 1px solid transparent;
+	border-radius: 10px;
+	padding: 8px 16px;
+	font-size: 13px;
+	cursor: pointer;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	line-height: 1.7;
+}
+.balewoo-btn-primary {
+	background: var(--bw-primary);
+	color: #fff;
+}
+.balewoo-btn-primary:hover { background: var(--bw-primary-dark); color: #fff; }
+.balewoo-btn-ghost {
+	background: transparent;
+	border-color: var(--bw-border);
+	color: var(--bw-text);
+}
+.balewoo-btn-ghost:hover { border-color: var(--bw-primary); color: var(--bw-primary); }
+.balewoo-btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* کارت‌ها */
+.balewoo-card {
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	border-radius: var(--bw-radius);
+	padding: 18px;
+}
+.balewoo-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.balewoo-card-head h2 {
+	margin: 0;
+	font-size: 15px;
+}
+.balewoo-card-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.balewoo-link {
+	color: var(--bw-primary);
+	text-decoration: none;
+	font-size: 13px;
+}
+.balewoo-muted { color: var(--bw-muted); }
+.balewoo-empty { text-align: center; color: var(--bw-muted); padding: 22px 0; }
+
+.balewoo-grid { display: grid; gap: 18px; }
+.balewoo-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1100px) {
+	.balewoo-shell { grid-template-columns: 1fr; }
+	.balewoo-sidebar { position: static; }
+	.balewoo-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* آمار */
+.balewoo-stats {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 14px;
+}
+@media (max-width: 900px) {
+	.balewoo-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.balewoo-stat-card {
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	border-radius: var(--bw-radius);
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.balewoo-stat-label { font-size: 12px; color: var(--bw-muted); }
+.balewoo-stat-value { font-size: 22px; }
+.balewoo-stat-trend { font-size: 11px; color: var(--bw-muted); }
+.balewoo-stat-trend.is-up { color: var(--bw-success); }
+.balewoo-stat-trend.is-down { color: var(--bw-warning); }
+
+/* نمودار */
+.balewoo-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+	height: 190px;
+	padding-top: 10px;
+}
+.balewoo-bar-wrap {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	align-items: center;
+	height: 100%;
+	gap: 6px;
+}
+.balewoo-bar {
+	width: 100%;
+	max-width: 42px;
+	background: linear-gradient(180deg, var(--bw-primary), var(--bw-primary-dark));
+	border-radius: 8px 8px 0 0;
+	min-height: 6px;
+	transition: height 0.4s ease;
+}
+.balewoo-bar-label { font-size: 11px; color: var(--bw-muted); }
+.balewoo-bar-value { font-size: 10px; color: var(--bw-muted); }
+
+.balewoo-donut-wrap {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+.balewoo-donut { width: 130px; height: 130px; transform: rotate(-90deg); }
+.balewoo-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.balewoo-legend li { display: flex; align-items: center; gap: 8px; }
+.balewoo-legend strong { margin-right: auto; }
+.balewoo-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* جدول */
+.balewoo-table-wrap { overflow-x: auto; }
+.balewoo-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.balewoo-table th,
+.balewoo-table td {
+	padding: 10px 8px;
+	border-bottom: 1px solid var(--bw-border);
+	text-align: right;
+	white-space: nowrap;
+}
+.balewoo-table th { color: var(--bw-muted); font-weight: 600; font-size: 12px; }
+.balewoo-table tbody tr:hover { background: var(--bw-primary-soft); }
+.balewoo-actions { display: flex; gap: 4px; }
+
+.balewoo-badge {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 11px;
+	background: var(--bw-primary-soft);
+	color: var(--bw-primary-dark);
+}
+.balewoo-badge-approved { background: rgba(34, 197, 94, 0.14); color: #16a34a; }
+.balewoo-badge-pending { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+.balewoo-badge-rejected { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+.balewoo-badge-refunded { background: rgba(139, 92, 246, 0.14); color: #7c3aed; }
+.balewoo-badge-expired { background: rgba(148, 163, 184, 0.2); color: #64748b; }
+
+.balewoo-chip {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 6px;
+	font-size: 11px;
+	background: rgba(13, 110, 253, 0.1);
+	color: var(--bw-primary-dark);
+}
+.balewoo-chip-telegram { background: rgba(42, 171, 238, 0.14); color: #0284c7; }
+.balewoo-chip-card { background: rgba(100, 116, 139, 0.14); color: #475569; }
+
+/* فرم‌ها */
+.balewoo-form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 14px;
+}
+.balewoo-block-form { grid-template-columns: 1fr; }
+.balewoo-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 13px;
+}
+.balewoo-form label:has(input[type="checkbox"]) {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+.balewoo-form input[type="text"],
+.balewoo-form input[type="number"],
+.balewoo-form input[type="url"],
+.balewoo-form input[type="password"],
+.balewoo-form input[type="date"],
+.balewoo-form input[type="time"],
+.balewoo-form input[type="search"],
+.balewoo-form select,
+.balewoo-form textarea {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--bw-border);
+	border-radius: 9px;
+	background: var(--bw-bg);
+	color: var(--bw-text);
+	font-family: inherit;
+	font-size: 13px;
+}
+.balewoo-form h3 {
+	grid-column: 1 / -1;
+	margin: 8px 0 0;
+	font-size: 13px;
+	color: var(--bw-muted);
+}
+.balewoo-hint { font-size: 11px; color: var(--bw-muted); }
+.balewoo-form-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+/* تب‌ها */
+.balewoo-tabs {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-bottom: 14px;
+}
+.balewoo-tab {
+	padding: 8px 16px;
+	border-radius: 999px;
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	color: var(--bw-text);
+	text-decoration: none;
+	font-size: 13px;
+}
+.balewoo-tab.is-active { background: var(--bw-primary); color: #fff; border-color: var(--bw-primary); }
+
+.balewoo-settings-form { display: flex; flex-direction: column; gap: 18px; }
+.balewoo-sticky-actions {
+	position: sticky;
+	bottom: 12px;
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	border-radius: 12px;
+	padding: 12px 16px;
+}
+.balewoo-save-result { font-size: 12px; color: var(--bw-success); }
+
+/* کارت بانکی */
+.balewoo-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.balewoo-card-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 8px; }
+.balewoo-card-row input { padding: 8px 10px; border: 1px solid var(--bw-border); border-radius: 9px; background: var(--bw-bg); color: var(--bw-text); }
+
+/* وب‌هوک */
+.balewoo-webhook-box {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	background: var(--bw-bg);
+	border: 1px dashed var(--bw-border);
+	border-radius: 10px;
+	padding: 10px 12px;
+	margin-bottom: 12px;
+}
+.balewoo-webhook-url { display: block; font-size: 12px; word-break: break-all; margin-top: 4px; }
+.balewoo-webhook-response {
+	margin-top: 12px;
+	background: #0f172a;
+	color: #7dd3fc;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 12px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	direction: ltr;
+	text-align: left;
+	white-space: pre-wrap;
+}
+.balewoo-debug {
+	background: #0f172a;
+	color: #e2e8f0;
+	font-size: 12px;
+	padding: 14px;
+	border-radius: 10px;
+	direction: ltr;
+	text-align: left;
+	overflow-x: auto;
+	margin: 0;
+}
+
+/* پیش‌نمایش موبایل */
+.balewoo-phone {
+	max-width: 340px;
+	background: var(--bw-bg);
+	border: 1px solid var(--bw-border);
+	border-radius: 18px;
+	overflow: hidden;
+}
+.balewoo-phone-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--bw-border);
+	background: var(--bw-primary-soft);
+}
+.balewoo-phone-head strong { display: block; font-size: 13px; }
+.balewoo-phone-head small { color: var(--bw-muted); font-size: 11px; }
+.balewoo-phone-body { padding: 14px; font-size: 13px; line-height: 1.9; min-height: 120px; }
+.balewoo-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; direction: rtl; }
+
+/* سناریو */
+.balewoo-scenario-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.balewoo-chats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .balewoo-chats { grid-template-columns: 1fr; } }
+.balewoo-chat {
+	border: 1px solid var(--bw-border);
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--bw-bg);
+}
+.balewoo-chat header {
+	padding: 7px 12px;
+	font-size: 12px;
+	background: var(--bw-primary-soft);
+	color: var(--bw-primary-dark);
+}
+.balewoo-chat-body {
+	padding: 12px;
+	min-height: 180px;
+	max-height: 260px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 12px;
+}
+.balewoo-msg {
+	background: var(--bw-card);
+	border: 1px solid var(--bw-border);
+	border-radius: 12px;
+	padding: 8px 10px;
+	white-space: pre-wrap;
+	line-height: 1.8;
+}
+.balewoo-msg.is-admin { border-color: var(--bw-primary); }
+.balewoo-msg.is-system {
+	background: transparent;
+	border-style: dashed;
+	font-size: 11px;
+	color: var(--bw-muted);
+}
+
+/* مدیر */
+.balewoo-manager { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.balewoo-avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: var(--bw-primary);
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-weight: 700;
+}
+.balewoo-manager-form { gap: 12px; }
+
+/* لاگ‌ها */
+.balewoo-logs {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-height: 520px;
+	overflow-y: auto;
+	font-size: 12px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.balewoo-log-line {
+	display: flex;
+	gap: 8px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	background: var(--bw-bg);
+	border-right: 3px solid var(--bw-muted);
+	direction: rtl;
+}
+.balewoo-log-success { border-right-color: var(--bw-success); }
+.balewoo-log-warning { border-right-color: var(--bw-warning); }
+.balewoo-log-error { border-right-color: var(--bw-danger); }
+.balewoo-log-time { color: var(--bw-muted); }
+.balewoo-log-context { color: var(--bw-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+
+/* درباره */
+.balewoo-hero { display: flex; gap: 16px; align-items: center; }
+.balewoo-hero-icon { font-size: 40px; }
+.balewoo-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.balewoo-feature { background: var(--bw-bg); border-radius: 12px; padding: 14px; }
+.balewoo-feature-icon { font-size: 22px; }
+.balewoo-feature strong { display: block; margin: 6px 0 4px; font-size: 13px; }
+.balewoo-feature p { margin: 0; font-size: 12px; }
+.balewoo-roadmap { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.balewoo-roadmap li { background: var(--bw-bg); border-radius: 10px; padding: 12px; }
+.balewoo-roadmap p { margin: 4px 0 0; font-size: 12px; }
+
+/* تم */
+.balewoo-theme-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.balewoo-theme-option {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: var(--bw-bg);
+	border: 1px solid var(--bw-border);
+	border-radius: 10px;
+	padding: 10px;
+	cursor: pointer;
+	font-size: 13px;
+}
+.balewoo-theme-swatch { width: 26px; height: 26px; border-radius: 8px; }
+.balewoo-placeholders { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.balewoo-placeholders code { background: var(--bw-bg); border: 1px solid var(--bw-border); border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+.balewoo-priority { margin: 0 0 12px 0; padding-right: 20px; font-size: 13px; color: var(--bw-muted); }
+.balewoo-priority li { margin-bottom: 4px; }
+
+/* صفحه‌بندی */
+.balewoo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; }
+
+/* فوتر */
+.balewoo-footer {
+	margin-top: 22px;
+	padding-top: 14px;
+	border-top: 1px solid var(--bw-border);
+	color: var(--bw-muted);
+	font-size: 12px;
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+/* پیام‌های درون‌برگه‌ای */
+.balewoo-toast {
+	position: fixed;
+	bottom: 24px;
+	left: 24px;
+	background: #111827;
+	color: #fff;
+	padding: 12px 18px;
+	border-radius: 10px;
+	font-size: 13px;
+	z-index: 99999;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.balewoo-toast.is-error { background: var(--bw-danger); }
+.balewoo-toast.is-success { background: var(--bw-success); }
+
+/* متاباکس سفارش */
+.balewoo-metabox p { margin: 0 0 8px; }

@@ -1,0 +1,227 @@
+/**
+ * BaleWoo — front-end styles (RTL)
+ */
+
+.balewoo-pay-body {
+	margin: 0;
+	background: #f4f6fb;
+	font-family: "Vazirmatn", "IRANSans", Tahoma, system-ui, sans-serif;
+	color: #1f2937;
+	direction: rtl;
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px 14px;
+}
+
+.balewoo-pay-page { width: 100%; max-width: 460px; }
+
+.balewoo-pay-card {
+	background: #fff;
+	border-radius: 18px;
+	box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+	padding: 26px 22px;
+	text-align: center;
+}
+
+.balewoo-pay-brand { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: 18px; }
+.balewoo-pay-logo { font-size: 34px; }
+.balewoo-pay-brand h1 { font-size: 19px; margin: 0; }
+.balewoo-pay-brand p { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
+
+.balewoo-pay-amount {
+	background: #f8fafc;
+	border: 1px dashed #dbe3ef;
+	border-radius: 14px;
+	padding: 14px;
+	margin-bottom: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.balewoo-pay-amount strong { font-size: 24px; }
+.balewoo-pay-order { font-size: 12px; color: #6b7280; }
+
+.balewoo-pay-button {
+	display: block;
+	background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+	color: #fff;
+	text-decoration: none;
+	border: none;
+	border-radius: 12px;
+	padding: 14px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	width: 100%;
+}
+.balewoo-pay-button:hover { color: #fff; opacity: 0.94; }
+
+.balewoo-pay-secondary {
+	display: inline-block;
+	margin-top: 12px;
+	color: #0d6efd;
+	text-decoration: none;
+	font-size: 13px;
+}
+
+.balewoo-pay-notice {
+	background: rgba(13, 110, 253, 0.08);
+	border: 1px solid rgba(13, 110, 253, 0.2);
+	color: #0b5ed7;
+	border-radius: 12px;
+	padding: 10px 12px;
+	font-size: 13px;
+	margin-bottom: 14px;
+}
+.balewoo-pay-warning {
+	background: rgba(239, 68, 68, 0.08);
+	border: 1px solid rgba(239, 68, 68, 0.25);
+	color: #dc2626;
+	border-radius: 12px;
+	padding: 10px 12px;
+	font-size: 13px;
+	margin-bottom: 14px;
+}
+
+.balewoo-pay-status {
+	margin-top: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	font-size: 13px;
+	color: #6b7280;
+}
+.balewoo-pay-status.is-paid { color: #16a34a; }
+.balewoo-pay-status.is-failed { color: #dc2626; }
+
+.balewoo-spinner {
+	width: 16px;
+	height: 16px;
+	border: 2px solid #cbd5e1;
+	border-top-color: #0d6efd;
+	border-radius: 50%;
+	display: inline-block;
+	animation: balewoo-spin 0.8s linear infinite;
+}
+@keyframes balewoo-spin { to { transform: rotate(360deg); } }
+
+.balewoo-pay-actions { margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.balewoo-pay-check {
+	background: #fff;
+	border: 1px solid #dbe3ef;
+	border-radius: 10px;
+	padding: 9px 14px;
+	font-size: 13px;
+	cursor: pointer;
+}
+.balewoo-pay-cancel { font-size: 13px; color: #6b7280; }
+.balewoo-pay-foot { margin: 16px 0 0; font-size: 11px; color: #94a3b8; }
+
+/* بلوک اینلاین در صفحه پرداخت ووکامرس */
+.balewoo-pay-inline {
+	background: #f8fafc;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	padding: 18px;
+	text-align: center;
+	direction: rtl;
+	margin-bottom: 16px;
+}
+.balewoo-pay-inline h3 { margin-top: 0; }
+.balewoo-pay-inline-amount { font-size: 15px; }
+.balewoo-pay-inline .balewoo-pay-button { max-width: 320px; margin: 12px auto 0; }
+
+/* کارت به کارت */
+.balewoo-card-block {
+	background: #f8fafc;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	padding: 18px;
+	direction: rtl;
+	margin: 16px 0;
+	font-family: inherit;
+}
+.balewoo-card-block h3 { margin-top: 0; font-size: 16px; }
+.balewoo-card-guide { font-size: 13px; color: #4b5563; line-height: 2; }
+
+.balewoo-card-numbers { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.balewoo-card-numbers li {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 10px 12px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	font-size: 14px;
+}
+.balewoo-card-number { font-weight: 700; letter-spacing: 1px; }
+.balewoo-card-bank { color: #0d6efd; font-size: 12px; }
+.balewoo-card-holder { color: #6b7280; font-size: 12px; }
+.balewoo-copy-card,
+.balewoo-card-list + .balewoo-copy-card {
+	margin-right: auto;
+	background: #0d6efd;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	padding: 5px 12px;
+	font-size: 12px;
+	cursor: pointer;
+}
+.balewoo-card-sheba, .balewoo-card-deadline { font-size: 12px; color: #6b7280; }
+.balewoo-card-deadline { color: #b45309; }
+
+.balewoo-receipt-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.balewoo-file-label { position: relative; overflow: hidden; display: inline-block; }
+.balewoo-file-label input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.balewoo-file-label span {
+	display: inline-block;
+	background: #fff;
+	border: 1px dashed #94a3b8;
+	border-radius: 10px;
+	padding: 9px 14px;
+	font-size: 13px;
+}
+.balewoo-submit-receipt {
+	background: #16a34a;
+	color: #fff;
+	border: none;
+	border-radius: 10px;
+	padding: 10px 18px;
+	font-size: 13px;
+	cursor: pointer;
+}
+.balewoo-receipt-message { font-size: 12px; color: #6b7280; }
+.balewoo-receipt-message.is-error { color: #dc2626; }
+.balewoo-receipt-message.is-ok { color: #16a34a; }
+
+.balewoo-receipt-preview { margin-top: 14px; }
+.balewoo-receipt-preview img { max-width: 220px; border-radius: 10px; border: 1px solid #e5e7eb; }
+
+.balewoo-bot-link {
+	display: inline-block;
+	margin-top: 14px;
+	background: #0d6efd;
+	color: #fff;
+	text-decoration: none;
+	border-radius: 10px;
+	padding: 10px 16px;
+	font-size: 13px;
+}
+.balewoo-bot-link:hover { color: #fff; }
+
+/* صفحه تسویه حساب */
+.balewoo-card-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.balewoo-card-list li { background: #f8fafc; border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.balewoo-gateway-warning {
+	background: rgba(245, 158, 11, 0.1);
+	border-right: 3px solid #f59e0b;
+	padding: 8px 12px;
+	font-size: 13px;
+}
+.balewoo-gateway-description { font-size: 13px; color: #4b5563; }

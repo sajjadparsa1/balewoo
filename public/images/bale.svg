@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="30" viewBox="0 0 46 30" role="img" aria-label="Bale">
+  <rect x="0.5" y="0.5" width="45" height="29" rx="5" fill="#ffffff" stroke="#dbe3ef"/>
+  <path d="M10 9h14a5 5 0 0 1 0 10h-4l6 6v-3" fill="none" stroke="#0d6efd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 9v13" fill="none" stroke="#0d6efd" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پیش‌نمایش پنل بله‌وو | BaleWoo</title>
+<link rel="stylesheet" href="../admin/css/balewoo-admin.css">
+<style>
+	body { margin: 0; background: #f4f6fb; font-family: "Vazirmatn", Tahoma, system-ui, sans-serif; }
+	.preview-banner {
+		background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+		color: #fff; padding: 10px 18px; font-size: 13px;
+		display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+	}
+	.preview-banner code { background: rgba(255,255,255,.18); padding: 2px 8px; border-radius: 6px; }
+	.preview-nav { display: flex; gap: 6px; justify-content: center; padding: 12px; flex-wrap: wrap; }
+	.preview-nav button {
+		border: 1px solid #dbe3ef; background: #fff; border-radius: 999px; padding: 6px 16px;
+		font: inherit; font-size: 13px; cursor: pointer;
+	}
+	.preview-nav button.is-active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+	.preview-tab { display: none; }
+	.preview-tab.is-active { display: block; }
+	/* المان‌های تعاملیِ پیش‌نمایش */
+	[data-scenario] { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+	<span>این یک پیش‌نمایش ایستا از پنل مدیریت بله‌وو است (داده‌ها نمونه هستند). نسخه واقعی داخل وردپرس اجرا می‌شود.</span>
+	<code>balewoo/admin/views/dashboard.php</code>
+</div>
+
+<div class="preview-nav">
+	<button class="is-active" data-tab="dashboard">داشبورد</button>
+	<button data-tab="transactions">تراکنش‌ها</button>
+	<button data-tab="broadcast">ارسال گروهی</button>
+	<button data-tab="settings">تنظیمات</button>
+</div>
+
+<!-- ============================ داشبورد ============================ -->
+<div class="preview-tab is-active" id="tab-dashboard">
+<div class="balewoo-wrap balewoo-theme-blue">
+	<div class="balewoo-shell">
+		<aside class="balewoo-sidebar">
+			<div class="balewoo-brand">
+				<span class="balewoo-logo">💙</span>
+				<div><strong>بله‌وو</strong><small>نسخه 1.0.0</small></div>
+			</div>
+			<nav class="balewoo-nav">
+				<a class="balewoo-nav-item is-active">داشبورد</a>
+				<a class="balewoo-nav-item">تراکنش‌ها</a>
+				<a class="balewoo-nav-item">ارسال گروهی</a>
+				<a class="balewoo-nav-item">گزارشات</a>
+				<a class="balewoo-nav-item">تنظیمات</a>
+				<a class="balewoo-nav-item">لاگ‌ها</a>
+				<a class="balewoo-nav-item">درباره</a>
+			</nav>
+			<div class="balewoo-sidebar-status">
+				<div class="balewoo-status-row"><span>ربات بله</span><span class="balewoo-dot is-ok"></span></div>
+				<div class="balewoo-status-row"><span>ربات تلگرام</span><span class="balewoo-dot is-off"></span></div>
+				<div class="balewoo-status-row"><span>کارت‌های بانکی</span><strong>2</strong></div>
+			</div>
+			<div class="balewoo-sidebar-foot">پرداخت امن با بله برای ووکامرس</div>
+		</aside>
+
+		<main class="balewoo-main">
+			<header class="balewoo-topbar">
+				<div>
+					<h1>داشبورد</h1>
+					<p class="balewoo-subtitle">فروشگاه نمونه · چهارشنبه ۱۹ خرداد ۱۴۰۳</p>
+				</div>
+				<div class="balewoo-topbar-actions">
+					<button class="balewoo-btn balewoo-btn-ghost">🌙</button>
+					<a class="balewoo-btn balewoo-btn-primary">تنظیمات</a>
+				</div>
+			</header>
+
+			<div class="balewoo-content">
+				<div class="balewoo-stats">
+					<div class="balewoo-stat-card"><span class="balewoo-stat-label">سفارش امروز</span><strong class="balewoo-stat-value">۳۸</strong><span class="balewoo-stat-trend is-up">نسبت به دیروز</span></div>
+					<div class="balewoo-stat-card"><span class="balewoo-stat-label">تأیید شده</span><strong class="balewoo-stat-value">۲۹</strong><span class="balewoo-stat-trend is-up">امروز</span></div>
+					<div class="balewoo-stat-card"><span class="balewoo-stat-label">در انتظار</span><strong class="balewoo-stat-value">۶</strong><span class="balewoo-stat-trend is-down">نیاز به بررسی</span></div>
+					<div class="balewoo-stat-card"><span class="balewoo-stat-label">فروش امروز (تومان)</span><strong class="balewoo-stat-value">۲۸,۴۰۰,۰۰۰</strong><span class="balewoo-stat-trend is-up">تأیید شده</span></div>
+				</div>
+
+				<div class="balewoo-grid balewoo-grid-2">
+					<section class="balewoo-card">
+						<header class="balewoo-card-head"><h2>فروش ۷ روز اخیر</h2></header>
+						<div class="balewoo-chart">
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:45%"></div><span class="balewoo-bar-label">جمعه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:62%"></div><span class="balewoo-bar-label">شنبه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:38%"></div><span class="balewoo-bar-label">یکشنبه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:74%"></div><span class="balewoo-bar-label">دوشنبه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:55%"></div><span class="balewoo-bar-label">سه‌شنبه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:88%"></div><span class="balewoo-bar-label">چهارشنبه</span></div>
+							<div class="balewoo-bar-wrap"><div class="balewoo-bar" style="height:100%"></div><span class="balewoo-bar-label">پنجشنبه</span></div>
+						</div>
+					</section>
+
+					<section class="balewoo-card">
+						<header class="balewoo-card-head"><h2>وضعیت سفارشات</h2></header>
+						<div class="balewoo-donut-wrap">
+							<svg viewBox="0 0 42 42" class="balewoo-donut">
+								<circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#22c55e" stroke-width="6" stroke-dasharray="62 38" stroke-dashoffset="25"></circle>
+								<circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#f59e0b" stroke-dasharray="18 82" stroke-dashoffset="-37"></circle>
+								<circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#ef4444" stroke-dasharray="12 88" stroke-dashoffset="-55"></circle>
+								<circle cx="21" cy="21" r="15.91549431" fill="none" stroke="#8b5cf6" stroke-dasharray="8 92" stroke-dashoffset="-67"></circle>
+							</svg>
+							<ul class="balewoo-legend">
+								<li><span class="balewoo-legend-dot" style="background:#22c55e"></span>تأیید شده<strong>۲۹</strong></li>
+								<li><span class="balewoo-legend-dot" style="background:#f59e0b"></span>در انتظار<strong>۶</strong></li>
+								<li><span class="balewoo-legend-dot" style="background:#ef4444"></span>رد شده<strong>۳</strong></li>
+								<li><span class="balewoo-legend-dot" style="background:#8b5cf6"></span>بازگشت خورده<strong>۲</strong></li>
+								<li><span class="balewoo-legend-dot" style="background:#94a3b8"></span>منقضی شده<strong>۰</strong></li>
+							</ul>
+						</div>
+					</section>
+				</div>
+
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>آخرین تراکنش‌ها</h2><a class="balewoo-link">مشاهده همه</a></header>
+					<div class="balewoo-table-wrap">
+						<table class="balewoo-table">
+							<thead><tr><th>#</th><th>سفارش</th><th>مشتری</th><th>مبلغ</th><th>پلتفرم</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+							<tbody>
+								<tr><td>۱</td><td>#۱۲۵۰</td><td>علی محمدی</td><td>۸۵۰,۰۰۰</td><td><span class="balewoo-chip">بله</span></td><td><span class="balewoo-badge balewoo-badge-approved">تأیید شده</span></td><td>۱۴۰۳/۰۶/۲۰</td></tr>
+								<tr><td>۲</td><td>#۱۲۴۹</td><td>سارا رضایی</td><td>۴۲۰,۰۰۰</td><td><span class="balewoo-chip balewoo-chip-telegram">تلگرام</span></td><td><span class="balewoo-badge balewoo-badge-pending">در انتظار</span></td><td>۱۴۰۳/۰۶/۲۰</td></tr>
+								<tr><td>۳</td><td>#۱۲۴۸</td><td>رضا کریمی</td><td>۱,۲۵۰,۰۰۰</td><td><span class="balewoo-chip">بله</span></td><td><span class="balewoo-badge balewoo-badge-rejected">رد شده</span></td><td>۱۴۰۳/۰۶/۱۹</td></tr>
+								<tr><td>۴</td><td>#۱۲۴۷</td><td>مریم حسینی</td><td>۳۳۰,۰۰۰</td><td><span class="balewoo-chip balewoo-chip-telegram">تلگرام</span></td><td><span class="balewoo-badge balewoo-badge-approved">تأیید شده</span></td><td>۱۴۰۳/۰۶/۱۹</td></tr>
+								<tr><td>۵</td><td>#۱۲۴۶</td><td>حسین رحیمی</td><td>۶۸۰,۰۰۰</td><td><span class="balewoo-chip">بله</span></td><td><span class="balewoo-badge balewoo-badge-refunded">بازگشت خورده</span></td><td>۱۴۰۳/۰۶/۱۸</td></tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+
+				<div class="balewoo-grid balewoo-grid-2">
+					<section class="balewoo-card">
+						<header class="balewoo-card-head"><h2>مدیر اعلان‌ها</h2><button class="balewoo-btn balewoo-btn-ghost balewoo-btn-sm">تعیین مدیر</button></header>
+						<div class="balewoo-manager">
+							<div class="balewoo-avatar">ع</div>
+							<div>
+								<strong>علی محمدی</strong>
+								<p class="balewoo-muted">بله · chat_id: <code>123456789</code></p>
+							</div>
+						</div>
+						<form class="balewoo-form balewoo-manager-form" onsubmit="return false;">
+							<label>آیدی مدیر بله<input type="text" value="1260583615"></label>
+							<label>آیدی مدیر تلگرام<input type="text" placeholder="123456789"></label>
+							<button class="balewoo-btn balewoo-btn-primary balewoo-btn-sm">ذخیره</button>
+						</form>
+					</section>
+
+					<section class="balewoo-card balewoo-scenario">
+						<header class="balewoo-card-head"><h2>شبیه‌ساز سناریو</h2><span class="balewoo-muted" id="demo-status"></span></header>
+						<div class="balewoo-scenario-actions">
+							<button class="button" onclick="demo('new_order')">ثبت سفارش</button>
+							<button class="button" onclick="demo('receipt')">آپلود رسید</button>
+							<button class="button" onclick="demo('approve')">تأیید مدیر</button>
+							<button class="button" onclick="demo('reject')">رد مدیر</button>
+							<button class="button" onclick="demo('undo')">بازگشت Undo</button>
+							<button class="button button-primary" onclick="demo('full')">سناریوی کامل</button>
+							<button class="button" onclick="demo('reset')">ریست</button>
+						</div>
+						<div class="balewoo-chats">
+							<div class="balewoo-chat">
+								<header>چت مشتری · <span>بله</span></header>
+								<div class="balewoo-chat-body" id="chat-customer"><p class="balewoo-muted">روی یکی از سناریوها کلیک کنید</p></div>
+							</div>
+							<div class="balewoo-chat">
+								<header>چت مدیر · <span>پنل تأیید</span></header>
+								<div class="balewoo-chat-body" id="chat-admin"><p class="balewoo-muted">پیام‌های مدیر اینجا نمایش داده می‌شود</p></div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+
+			<footer class="balewoo-footer">
+				<span>بله‌وو — پرداخت با بله برای ووکامرس</span><span class="balewoo-footer-sep">·</span><span>نسخه 1.0.0</span>
+			</footer>
+		</main>
+	</div>
+</div>
+</div>
+
+<!-- ========================= تراکنش‌ها ========================= -->
+<div class="preview-tab" id="tab-transactions">
+<div class="balewoo-wrap balewoo-theme-blue">
+	<div class="balewoo-shell">
+		<aside class="balewoo-sidebar"><div class="balewoo-brand"><span class="balewoo-logo">💙</span><div><strong>بله‌وو</strong><small>نسخه 1.0.0</small></div></div>
+		<nav class="balewoo-nav"><a class="balewoo-nav-item">داشبورد</a><a class="balewoo-nav-item is-active">تراکنش‌ها</a><a class="balewoo-nav-item">ارسال گروهی</a><a class="balewoo-nav-item">گزارشات</a><a class="balewoo-nav-item">تنظیمات</a><a class="balewoo-nav-item">لاگ‌ها</a><a class="balewoo-nav-item">درباره</a></nav></aside>
+		<main class="balewoo-main">
+			<header class="balewoo-topbar"><div><h1>تراکنش‌ها</h1><p class="balewoo-subtitle">فروشگاه نمونه</p></div></header>
+			<div class="balewoo-content">
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>فیلتر تراکنش‌ها</h2><a class="balewoo-btn balewoo-btn-ghost balewoo-btn-sm">خروجی CSV</a></header>
+					<form class="balewoo-form balewoo-filter-form" onsubmit="return false;">
+						<label>از تاریخ<input type="date"></label>
+						<label>تا تاریخ<input type="date"></label>
+						<label>وضعیت<select><option>همه</option><option>در انتظار</option><option>تأیید شده</option><option>رد شده</option><option>بازگشت خورده</option></select></label>
+						<label>پلتفرم<select><option>همه پلتفرم‌ها</option><option>بله</option><option>تلگرام</option><option>کارت‌به‌کارت</option></select></label>
+						<label>جستجو<input type="search" placeholder="شماره سفارش، نام یا تلفن"></label>
+						<button class="balewoo-btn balewoo-btn-primary balewoo-btn-sm">فیلتر</button>
+						<button class="balewoo-btn balewoo-btn-ghost balewoo-btn-sm">پاک کردن</button>
+					</form>
+				</section>
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>لیست تراکنش‌ها</h2><span class="balewoo-muted">۵ مورد</span></header>
+					<div class="balewoo-table-wrap">
+						<table class="balewoo-table">
+							<thead><tr><th>#</th><th>سفارش</th><th>مشتری</th><th>تلفن</th><th>مبلغ</th><th>پلتفرم</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+							<tbody>
+								<tr><td>۱</td><td>#۱۲۵۰</td><td>علی محمدی</td><td>09123456789</td><td>۸۵۰,۰۰۰</td><td><span class="balewoo-chip">بله</span></td><td><span class="balewoo-badge balewoo-badge-pending">در انتظار</span></td><td>۱۴۰۳/۰۶/۲۰ ۱۴:۲۰</td><td><button class="button button-small button-primary">تأیید</button> <button class="button button-small">رد</button> <button class="button button-small">بازگشت</button></td></tr>
+								<tr><td>۲</td><td>#۱۲۴۹</td><td>سارا رضایی</td><td>09129876543</td><td>۴۲۰,۰۰۰</td><td><span class="balewoo-chip balewoo-chip-telegram">تلگرام</span></td><td><span class="balewoo-badge balewoo-badge-pending">در انتظار</span></td><td>۱۴۰۳/۰۶/۲۰ ۱۳:۰۵</td><td><button class="button button-small button-primary">تأیید</button> <button class="button button-small">رد</button></td></tr>
+								<tr><td>۳</td><td>#۱۲۴۸</td><td>رضا کریمی</td><td>09121112222</td><td>۱,۲۵۰,۰۰۰</td><td><span class="balewoo-chip">بله</span></td><td><span class="balewoo-badge balewoo-badge-rejected">رد شده</span></td><td>۱۴۰۳/۰۶/۱۹ ۱۸:۴۰</td><td><button class="button button-small">بازگشت</button></td></tr>
+								<tr><td>۴</td><td>#۱۲۴۷</td><td>مریم حسینی</td><td>09135556666</td><td>۳۳۰,۰۰۰</td><td><span class="balewoo-chip balewoo-chip-telegram">تلگرام</span></td><td><span class="balewoo-badge balewoo-badge-approved">تأیید شده</span></td><td>۱۴۰۳/۰۶/۱۹ ۱۱:۱۰</td><td><button class="button button-small">بازگشت</button></td></tr>
+								<tr><td>۵</td><td>#۱۲۴۶</td><td>حسین رحیمی</td><td>09167778888</td><td>۶۸۰,۰۰۰</td><td><span class="balewoo-chip balewoo-chip-card">کارت‌به‌کارت</span></td><td><span class="balewoo-badge balewoo-badge-refunded">بازگشت خورده</span></td><td>۱۴۰۳/۰۶/۱۸ ۲۰:۳۰</td><td><button class="button button-small">بازگشت</button></td></tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="balewoo-pagination"><button class="button">قبلی</button><span class="balewoo-muted">صفحه ۱ از ۱</span><button class="button">بعدی</button></div>
+				</section>
+			</div>
+		</main>
+	</div>
+</div>
+</div>
+
+<!-- ========================= ارسال گروهی ========================= -->
+<div class="preview-tab" id="tab-broadcast">
+<div class="balewoo-wrap balewoo-theme-blue">
+	<div class="balewoo-shell">
+		<aside class="balewoo-sidebar"><div class="balewoo-brand"><span class="balewoo-logo">💙</span><div><strong>بله‌وو</strong><small>نسخه 1.0.0</small></div></div>
+		<nav class="balewoo-nav"><a class="balewoo-nav-item">داشبورد</a><a class="balewoo-nav-item">تراکنش‌ها</a><a class="balewoo-nav-item is-active">ارسال گروهی</a><a class="balewoo-nav-item">گزارشات</a><a class="balewoo-nav-item">تنظیمات</a><a class="balewoo-nav-item">لاگ‌ها</a><a class="balewoo-nav-item">درباره</a></nav></aside>
+		<main class="balewoo-main">
+			<header class="balewoo-topbar"><div><h1>ارسال گروهی</h1></div></header>
+			<div class="balewoo-content">
+				<div class="balewoo-grid balewoo-grid-2">
+					<section class="balewoo-card">
+						<header class="balewoo-card-head"><h2>ارسال پیام گروهی</h2></header>
+						<form class="balewoo-form balewoo-block-form" onsubmit="return false;">
+							<label>ارسال به<select><option>همه کاربران (۱۲۴)</option><option>کاربران بله (۹۸)</option><option>کاربران تلگرام (۲۶)</option><option>فعال در ۳۰ روز اخیر (۷۴)</option></select></label>
+							<label>پلتفرم<select><option>بله</option><option>تلگرام</option></select></label>
+							<label>زمان ارسال<select><option>فوری (هم‌اکنون)</option><option>زمان‌بندی‌شده</option></select></label>
+							<label>عنوان پیام<input type="text" placeholder="مثل: تخفیف تابستانه"></label>
+							<label>متن پیام<textarea rows="6" placeholder="متن پیام خود را بنویسید…" oninput="document.getElementById('bc-prev').innerHTML='<b>'+this.form.title.value+'</b><br>'+this.value.replace(/\n/g,'<br>')"></textarea></label>
+							<div class="balewoo-form-actions"><button class="balewoo-btn balewoo-btn-primary">ارسال</button><button class="balewoo-btn balewoo-btn-ghost">ارسال تست</button><span class="balewoo-muted">۱۲۴ گیرنده</span></div>
+						</form>
+					</section>
+					<section class="balewoo-card">
+						<header class="balewoo-card-head"><h2>پیش‌نمایش زنده</h2></header>
+						<div class="balewoo-phone">
+							<div class="balewoo-phone-head"><span>💙</span><div><strong>فروشگاه نمونه</strong><small>اکنون</small></div></div>
+							<div class="balewoo-phone-body" id="bc-prev"><b>عنوان پیام اینجا…</b><br>متن پیام اینجا نمایش داده می‌شود…</div>
+						</div>
+					</section>
+				</div>
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>تاریخچه پیام‌های گروهی</h2></header>
+					<div class="balewoo-table-wrap">
+						<table class="balewoo-table">
+							<thead><tr><th>عنوان</th><th>تعداد گیرنده</th><th>پلتفرم</th><th>تاریخ</th><th>وضعیت</th></tr></thead>
+							<tbody>
+								<tr><td>تخفیف تابستانه</td><td>۱۲۴ (۱۲۰ ✓ / ۴ ✗)</td><td><span class="balewoo-chip">بله</span></td><td>۱۴۰۳/۰۶/۱۸</td><td><span class="balewoo-badge balewoo-badge-approved">ارسال شد</span></td></tr>
+								<tr><td>اطلاع‌رسانی تعطیلی</td><td>۹۸ (۹۸ ✓ / ۰ ✗)</td><td><span class="balewoo-chip balewoo-chip-telegram">تلگرام</span></td><td>۱۴۰۳/۰۶/۱۵</td><td><span class="balewoo-badge balewoo-badge-approved">ارسال شد</span></td></tr>
+								<tr><td>محصولات جدید</td><td>۱۵۰ (۸۲ ✓ / ۶۸ ✗)</td><td><span class="balewoo-chip">بله</span></td><td>۱۴۰۳/۰۶/۱۰</td><td><span class="balewoo-badge balewoo-badge-pending">در حال ارسال</span></td></tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+			</div>
+		</main>
+	</div>
+</div>
+</div>
+
+<!-- ========================= تنظیمات ========================= -->
+<div class="preview-tab" id="tab-settings">
+<div class="balewoo-wrap balewoo-theme-blue">
+	<div class="balewoo-shell">
+		<aside class="balewoo-sidebar"><div class="balewoo-brand"><span class="balewoo-logo">💙</span><div><strong>بله‌وو</strong><small>نسخه 1.0.0</small></div></div>
+		<nav class="balewoo-nav"><a class="balewoo-nav-item">داشبورد</a><a class="balewoo-nav-item">تراکنش‌ها</a><a class="balewoo-nav-item">ارسال گروهی</a><a class="balewoo-nav-item">گزارشات</a><a class="balewoo-nav-item is-active">تنظیمات</a><a class="balewoo-nav-item">لاگ‌ها</a><a class="balewoo-nav-item">درباره</a></nav></aside>
+		<main class="balewoo-main">
+			<header class="balewoo-topbar"><div><h1>تنظیمات</h1></div></header>
+			<div class="balewoo-content">
+				<div class="balewoo-tabs">
+					<a class="balewoo-tab is-active">عمومی</a><a class="balewoo-tab">پرداخت</a><a class="balewoo-tab">پیام‌رسانی</a><a class="balewoo-tab">قالب پیام</a><a class="balewoo-tab">ظاهر</a><a class="balewoo-tab">ابزارها</a>
+				</div>
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>اتصال بله</h2><button class="balewoo-btn balewoo-btn-ghost balewoo-btn-sm">تست اتصال</button></header>
+					<div class="balewoo-form balewoo-block-form">
+						<label>توکن ربات بله<input type="text" value="1234567890:AAF*********************" autocomplete="off"><span class="balewoo-hint">توکن را از @botfather در بله دریافت کنید.</span></label>
+						<label>آدرس API بله<input type="url" value="https://tapi.bale.ai"></label>
+						<label>آیدی مدیر بله (chat_id)<input type="text" value="1260583615"><span class="balewoo-hint">اگر خالی باشد، اولین کسی که /start را بزند به عنوان مدیر ثبت می‌شود.</span></label>
+					</div>
+				</section>
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>آیدی مدیر و وب‌هوک</h2></header>
+					<div class="balewoo-form balewoo-block-form">
+						<label>شماره همراه مدیر (برای پیامک/سفیر)<input type="text" placeholder="09123456789"></label>
+						<div class="balewoo-webhook-box">
+							<div><span class="balewoo-muted">URL وب‌هوک بله</span><code class="balewoo-webhook-url">https://shop.com/wp-json/balewoo/v1/webhook/bale/A1b2C3d4E5f6</code></div>
+							<div class="balewoo-form-actions"><button class="balewoo-btn balewoo-btn-ghost balewoo-btn-sm">کپی</button><button class="balewoo-btn balewoo-btn-primary balewoo-btn-sm">ثبت</button></div>
+						</div>
+					</div>
+				</section>
+				<section class="balewoo-card">
+					<header class="balewoo-card-head"><h2>دیباگ وضعیت تنظیمات</h2></header>
+					<pre class="balewoo-debug">=== BaleWoo Settings Status ===
+gateway_enabled: yes
+bale_token: set
+bale_admin_chat_id: 1260583615
+admin_phone: (empty — optional)
+notify_customer_bale: ON
+notify_admin_bale: ON
+sms_enabled: no
+safir_enabled: no
+active_cards: 2
+
+همه تنظیمات ضروری درست هستند</pre>
+				</section>
+			</div>
+		</main>
+	</div>
+</div>
+</div>
+
+<script>
+document.querySelectorAll('.preview-nav button').forEach(function (btn) {
+	btn.addEventListener('click', function () {
+		document.querySelectorAll('.preview-nav button').forEach(function (b) { b.classList.remove('is-active'); });
+		document.querySelectorAll('.preview-tab').forEach(function (t) { t.classList.remove('is-active'); });
+		btn.classList.add('is-active');
+		document.getElementById('tab-' + btn.dataset.tab).classList.add('is-active');
+		window.scrollTo(0, 0);
+	});
+});
+
+function push(side, text) {
+	var box = document.getElementById(side === 'admin' ? 'chat-admin' : 'chat-customer');
+	var muted = box.querySelector('.balewoo-muted');
+	if (muted) { muted.remove(); }
+	var el = document.createElement('div');
+	el.className = 'balewoo-msg' + (side === 'admin' ? ' is-admin' : '');
+	el.textContent = text;
+	box.appendChild(el);
+	box.scrollTop = box.scrollHeight;
+}
+
+var n = 1250;
+function demo(step) {
+	if (step === 'reset') {
+		document.getElementById('chat-customer').innerHTML = '<p class="balewoo-muted">روی یکی از سناریوها کلیک کنید</p>';
+		document.getElementById('chat-admin').innerHTML = '<p class="balewoo-muted">پیام‌های مدیر اینجا نمایش داده می‌شود</p>';
+		document.getElementById('demo-status').textContent = '';
+		n = 1250;
+		return;
+	}
+	if (step === 'new_order' || step === 'full') {
+		push('customer', 'سلام علی محمدی عزیز 🙏\nسفارش شما با شماره #' + n + ' ثبت شد.\n\n🧾 اقلام: • محصول نمونه × 1\n💰 مبلغ قابل پرداخت: ۸۵۰,۰۰۰ تومان\n\n💳 کارت‌های بانکی:\n» 6219-8610-1234-5678 — ملت (علی محمدی)\nپس از واریز، تصویر رسید را همین‌جا ارسال کنید.');
+		push('admin', '🆕 سفارش جدید #' + n + '\n\n👤 مشتری: علی محمدی\n📞 تلفن: 09123456789\n💰 مبلغ: ۸۵۰,۰۰۰ تومان\n🛍 اقلام: • محصول نمونه × 1\n📅 تاریخ: ۱۴۰۳/۰۶/۲۰ ۱۴:۲۰\n\n[✅ تأیید پرداخت] [❌ رد پرداخت] [↩️ بازگشت ۳۰ ثانیه]');
+	}
+	if (step === 'receipt' || step === 'full') {
+		push('customer', '🧾 رسید پرداخت ارسال شد.');
+		push('admin', 'رسید جدید برای سفارش #' + n + ' دریافت شد.\n\n[✅ تأیید] [❌ رد] [🧾 مشاهده رسید]');
+	}
+	if (step === 'approve' || step === 'full') {
+		push('admin', '✅ سفارش #' + n + ' تأیید شد — کد پیگیری BW-' + n + '-A7F3K1');
+		push('customer', '✅ پرداخت سفارش #' + n + ' تأیید شد.\n\n💰 مبلغ: ۸۵۰,۰۰۰ تومان\n📦 وضعیت: در حال پردازش\n🔢 کد پیگیری: BW-' + n + '-A7F3K1\n\nاز خرید شما سپاسگزاریم ❤️');
+	}
+	if (step === 'reject') {
+		push('admin', '❌ سفارش #' + n + ' رد شد.');
+		push('customer', '❌ پرداخت سفارش #' + n + ' تأیید نشد.\n\n💰 مبلغ: ۸۵۰,۰۰۰ تومان\nدر صورت کسر وجه، تا ۷۲ ساعت به حساب شما بازمی‌گردد.');
+	}
+	if (step === 'undo') { push('admin', '↩️ عملیات برگشت داده شد — وضعیت: در انتظار پرداخت'); }
+	document.getElementById('demo-status').textContent = 'سفارش #' + n;
+	if (step === 'new_order' || step === 'reject') { n++; }
+}
+</script>
+</body>
+</html>

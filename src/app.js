@@ -49,6 +49,16 @@ function createApp() {
   app.use('/js', express.static(path.join(config.publicDir, 'js'), { maxAge: '1d' }));
   app.use('/fonts', express.static(path.join(config.publicDir, 'fonts'), { maxAge: '30d' }));
 
+  // فاوآیکون — مرورگرها به‌صورت خودکار /favicon.ico را درخواست می‌کنند
+  app.get(['/favicon.ico', '/apple-touch-icon.png'], (req, res) => {
+    const fav = String(loadSettings().site_favicon || '/img/favicon.svg').replace(/^\/+/, '');
+    const file = path.join(config.publicDir, fav);
+    if (!fs.existsSync(file)) return res.status(204).end();
+    res.setHeader('Content-Type', fav.endsWith('.svg') ? 'image/svg+xml' : 'image/x-icon');
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    res.sendFile(file);
+  });
+
   // متغیرهای سراسری قالب
   app.use((req, res, next) => {
     const s = loadSettings();

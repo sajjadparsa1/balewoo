@@ -87,7 +87,28 @@ function collectLinks() {
     }
   }
 
-  // ۳) اسکریپت سمت کلاینت
+  // ۳) پیوندهای اعلان‌ها در کد سمت سرور (link: '…')
+  const serverFiles = [];
+  (function walkJs(dir) {
+    for (const f of fs.readdirSync(dir)) {
+      const fp = path.join(dir, f);
+      const st = fs.statSync(fp);
+      if (st.isDirectory()) { if (!['views', 'public'].includes(f)) walkJs(fp); }
+      else if (f.endsWith('.js')) serverFiles.push(fp);
+    }
+  })(path.join(ROOT, 'src'));
+  for (const file of serverFiles) {
+    const src = fs.readFileSync(file, 'utf8');
+    const re = /link:\s*([`'"])(\/[^`'"\s]*)\1(\s*\+)?/g;
+    let m;
+    while ((m = re.exec(src))) {
+      // مسیرهایی که با الحاق یا قالب ساخته می‌شوند کامل نیستند — نادیده گرفته می‌شوند
+      if (m[3] || m[2].includes('${') || m[2].includes('<%')) continue;
+      push(file, m[2].split('?')[0], m.index, src);
+    }
+  }
+
+  // ۴) اسکریپت سمت کلاینت
   const jsFile = path.join(ROOT, 'src', 'public', 'js', 'app.js');
   if (fs.existsSync(jsFile)) {
     const src = fs.readFileSync(jsFile, 'utf8');

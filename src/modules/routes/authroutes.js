@@ -158,7 +158,7 @@ router.post('/auth/seller/register', media.upload.array('documents', 6), async (
   });
   run('UPDATE users SET seller_id=@s, role=\'seller\', status=@st WHERE id=@u', { s: sellerId, st: setting('seller_auto_approve', '0') === '1' ? 'active' : 'pending', u: user.id });
 
-  notify.pushToStaff({ type: 'seller', icon: 'store', title: 'درخواست فروشنده جدید', body: `فروشگاه «${shopName}» درخواست همکاری ثبت کرد.`, link: '/admin/sellers?status=pending' }, 'sellers.view');
+  notify.pushToStaff({ type: 'seller', icon: 'store', title: 'درخواست فروشنده جدید', body: `فروشگاه «${shopName}» درخواست همکاری ثبت کرد.`, link: '/admin/people/sellers?status=pending' }, 'sellers.view');
   activity.log(user, 'seller_register', { ip: req.ip, subjectType: 'seller', subjectId: sellerId, description: `ثبت فروشگاه ${shopName}` });
 
   if (setting('seller_auto_approve', '0') === '1') {

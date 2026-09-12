@@ -271,11 +271,11 @@ function recordPriceHistory(productId, variantId, price, oldPrice) {
 function notifyPriceChange(productId, after) {
   try {
     const notify = require('./notify');
-    const p = get('SELECT title FROM products WHERE id=@id', { id: productId });
+    const p = get('SELECT title, slug FROM products WHERE id=@id', { id: productId });
     if (!p) return;
     const onSale = all(`SELECT user_id FROM product_alerts WHERE product_id=@id AND kind='on_sale' AND status='active'`, { id: productId });
     for (const r of onSale) {
-      notify.push(r.user_id, { ...notify.T.onSale(p.title), link: '/product/' + productId });
+      notify.push(r.user_id, { ...notify.T.onSale(p.title), link: '/product/' + (p.slug || productId) });
       run(`UPDATE product_alerts SET status='fired' WHERE product_id=@id AND kind='on_sale' AND user_id=@u`, { id: productId, u: r.user_id });
     }
   } catch { /* ignore */ }

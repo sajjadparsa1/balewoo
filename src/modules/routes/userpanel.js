@@ -317,7 +317,7 @@ router.post('/withdrawals', (req, res) => {
   const bal = get('SELECT wallet FROM users WHERE id=@id', { id: req.user.id });
   const id = insert('withdrawals', { owner_type: 'user', owner_id: req.user.id, bank_account_id: acc.id, amount, status: 'pending', created_at: now() });
   insert('transactions', { user_id: req.user.id, owner_type: 'user', owner_id: req.user.id, type: 'withdraw_request', amount: -amount, balance: bal.wallet, gateway: 'system', reference: 'WD-' + randomCode('', 6), status: 'pending', description: 'درخواست برداشت وجه', created_at: now() });
-  notify.pushToStaff({ type: 'wallet', icon: 'bank', title: 'درخواست برداشت جدید', body: `کاربر ${req.user.name || req.user.phone} درخواست برداشت ${numberFormat(amount)} تومان دارد.`, link: '/admin/withdrawals' }, 'users.wallet');
+  notify.pushToStaff({ type: 'wallet', icon: 'bank', title: 'درخواست برداشت جدید', body: `کاربر ${req.user.name || req.user.phone} درخواست برداشت ${numberFormat(amount)} تومان دارد.`, link: '/admin/people/withdrawals' }, 'users.wallet');
   activity.logReq(req, 'withdraw_request', { subjectType: 'withdrawal', subjectId: id, description: `${numberFormat(amount)} تومان` });
   auth.flash(req, 'success', 'درخواست برداشت ثبت شد و پس از بررسی پرداخت می‌گردد.');
   res.redirect('/user/withdrawals');
@@ -347,7 +347,7 @@ router.post('/tickets', media.upload.single('attachment'), (req, res) => {
   });
   const attach = req.file ? media.register(req.file, { userId: req.user.id, ownerType: 'user', folder: '/tickets' }).url : null;
   insert('ticket_messages', { ticket_id: id, user_id: req.user.id, role_label: 'user', body: req.body.body, attachment: attach, created_at: now() });
-  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'تیکت جدید', body: `${req.user.name || req.user.phone}: ${truncate(req.body.subject, 60)}`, link: `/admin/tickets/${code}` }, 'tickets.view');
+  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'تیکت جدید', body: `${req.user.name || req.user.phone}: ${truncate(req.body.subject, 60)}`, link: `/admin/system/tickets/${code}` }, 'tickets.view');
   activity.logReq(req, 'ticket_create', { subjectType: 'ticket', subjectId: id, description: code });
   auth.flash(req, 'success', `تیکت با کد ${code} ثبت شد.`);
   res.redirect('/user/tickets/' + code);
@@ -369,7 +369,7 @@ router.post('/tickets/:code/reply', media.upload.single('attachment'), (req, res
   const attach = req.file ? media.register(req.file, { userId: req.user.id, ownerType: 'user', folder: '/tickets' }).url : null;
   insert('ticket_messages', { ticket_id: t.id, user_id: req.user.id, role_label: req.user.role === 'seller' ? 'seller' : 'user', body: req.body.body, attachment: attach, created_at: now() });
   run(`UPDATE tickets SET status='answered', last_message_at=@t, messages_count=messages_count+1, updated_at=@t WHERE id=@id`, { t: now(), id: t.id });
-  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'پاسخ تیکت', body: `${t.code}: ${truncate(req.body.body, 60)}`, link: `/admin/tickets/${t.code}` }, 'tickets.view');
+  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'پاسخ تیکت', body: `${t.code}: ${truncate(req.body.body, 60)}`, link: `/admin/system/tickets/${t.code}` }, 'tickets.view');
   activity.logReq(req, 'ticket_reply', { subjectType: 'ticket', subjectId: t.id });
   res.redirect('/user/tickets/' + t.code);
 });

@@ -363,7 +363,7 @@ router.post('/settlements/withdraw', (req, res) => {
   if ((req.seller.wallet || 0) < amount) { auth.flash(req, 'danger', 'موجودی قابل برداشت کافی نیست.'); return res.redirect('/seller/settlements'); }
   run('UPDATE sellers SET wallet = wallet - @a WHERE id=@id', { a: amount, id: req.seller.id });
   insert('withdrawals', { owner_type: 'seller', owner_id: req.seller.id, bank_account_id: acc.id, amount, status: 'pending', created_at: now() });
-  notify.pushToStaff({ type: 'wallet', icon: 'bank', title: 'درخواست برداشت فروشنده', body: `فروشگاه «${req.seller.shop_name}» درخواست برداشت ${numberFormat(amount)} تومان دارد.`, link: '/admin/withdrawals' }, 'sellers.manage');
+  notify.pushToStaff({ type: 'wallet', icon: 'bank', title: 'درخواست برداشت فروشنده', body: `فروشگاه «${req.seller.shop_name}» درخواست برداشت ${numberFormat(amount)} تومان دارد.`, link: '/admin/people/withdrawals' }, 'sellers.manage');
   auth.flash(req, 'success', 'درخواست برداشت ثبت شد.');
   res.redirect('/seller/settlements');
 });
@@ -430,7 +430,10 @@ router.post('/questions/:id/answer', (req, res) => {
   if (!q) return res.redirect('/seller/questions');
   insert('answers', { question_id: q.id, user_id: req.user.id, role_label: 'seller', body: req.body.body, created_at: now() });
   run(`UPDATE questions SET status='approved' WHERE id=@id`, { id: q.id });
-  if (q.user_id) notify.push(q.user_id, { type: 'question', icon: 'help', title: 'پرسش شما پاسخ داده شد', body: truncate(req.body.body, 100), link: `/product/${q.product_id}` });
+  if (q.user_id) {
+    const slug = get('SELECT slug FROM products WHERE id=@id', { id: q.product_id })?.slug || q.product_id;
+    notify.push(q.user_id, { type: 'question', icon: 'help', title: 'پرسش شما پاسخ داده شد', body: truncate(req.body.body, 100), link: `/product/${slug}` });
+  }
   res.redirect('/seller/questions');
 });
 
@@ -456,7 +459,7 @@ router.post('/tickets', media.upload.single('attachment'), (req, res) => {
   });
   const attach = req.file ? media.register(req.file, { userId: req.user.id, ownerType: 'seller', folder: '/tickets' }).url : null;
   insert('ticket_messages', { ticket_id: id, user_id: req.user.id, role_label: 'seller', body: req.body.body, attachment: attach, created_at: now() });
-  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'تیکت فروشنده', body: `${req.seller.shop_name}: ${truncate(req.body.subject, 60)}`, link: `/admin/tickets/${code}` }, 'tickets.view');
+  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'تیکت فروشنده', body: `${req.seller.shop_name}: ${truncate(req.body.subject, 60)}`, link: `/admin/system/tickets/${code}` }, 'tickets.view');
   auth.flash(req, 'success', 'تیکت ارسال شد.');
   res.redirect('/seller/tickets');
 });
@@ -474,7 +477,7 @@ router.post('/tickets/:code/reply', media.upload.single('attachment'), (req, res
   const attach = req.file ? media.register(req.file, { userId: req.user.id, ownerType: 'seller', folder: '/tickets' }).url : null;
   insert('ticket_messages', { ticket_id: t.id, user_id: req.user.id, role_label: 'seller', body: req.body.body, attachment: attach, created_at: now() });
   run(`UPDATE tickets SET status='answered', last_message_at=@t, messages_count=messages_count+1 WHERE id=@id`, { t: now(), id: t.id });
-  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'پاسخ تیکت فروشنده', body: `${t.code}: ${truncate(req.body.body, 60)}`, link: `/admin/tickets/${t.code}` }, 'tickets.view');
+  notify.pushToStaff({ type: 'ticket', icon: 'message', title: 'پاسخ تیکت فروشنده', body: `${t.code}: ${truncate(req.body.body, 60)}`, link: `/admin/system/tickets/${t.code}` }, 'tickets.view');
   res.redirect('/seller/tickets/' + t.code);
 });
 

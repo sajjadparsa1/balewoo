@@ -61,7 +61,7 @@ const T = {
   ticketReply: (code) => ({ type: 'ticket', icon: 'message', title: 'پاسخ تیکت', body: `تیکت ${code} پاسخ داده شد.`, link: `/user/tickets/${code}` }),
   sellerApproved: (name) => ({ type: 'seller', icon: 'store', title: 'فروشگاه شما تایید شد', body: `فروشگاه «${name}» فعال شد. اکنون می‌توانید محصول ثبت کنید.`, link: '/seller/dashboard' }),
   sellerRejected: () => ({ type: 'seller', icon: 'x', title: 'درخواست فروشندگی', body: 'متاسفانه درخواست شما تایید نشد. برای جزئیات با پشتیبانی در ارتباط باشید.', link: '/user/tickets' }),
-  newSellerRequest: (name) => ({ type: 'seller', icon: 'store', title: 'درخواست فروشنده جدید', body: `فروشگاه «${name}» درخواست همکاری ثبت کرده است.`, link: '/admin/sellers?status=pending' }),
+  newSellerRequest: (name) => ({ type: 'seller', icon: 'store', title: 'درخواست فروشنده جدید', body: `فروشگاه «${name}» درخواست همکاری ثبت کرده است.`, link: '/admin/people/sellers?status=pending' }),
   productApproved: (title) => ({ type: 'product', icon: 'check', title: 'محصول تایید شد', body: `محصول «${title}» تایید و منتشر شد.`, link: '/seller/products' }),
   productRejected: (title) => ({ type: 'product', icon: 'x', title: 'محصول تایید نشد', body: `محصول «${title}» نیاز به اصلاح دارد.`, link: '/seller/products' }),
   newProductPending: (title) => ({ type: 'product', icon: 'alert', title: 'محصول در انتظار تایید', body: `محصول «${title}» توسط فروشنده ثبت شد.`, link: '/admin/products?status=pending' }),

@@ -1,0 +1,138 @@
+<%
+  const ROLE = { customer: 'مشتری', staff: 'کارمند', admin: 'مدیر', seller: 'فروشنده' };
+  const USTATUS = { active: ['فعال', 'badge-success'], blocked: ['مسدود', 'badge-danger'], pending: ['در انتظار', 'badge-warning'] };
+  const LEVEL = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">کاربران</h2>
+    <div class="text-xs text-muted mt-4">مدیریت حساب‌ها، نقش‌ها، کیف پول و امتیاز باشگاه مشتریان.</div>
+  </div>
+  <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> کاربر</span>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <form method="get" action="/admin/people/users" class="table-toolbar">
+      <input class="input input-sm" type="search" name="search" value="<%= query.search || '' %>" placeholder="نام، موبایل یا ایمیل…" style="min-width:200px">
+      <select class="select input-sm" name="role" style="width:auto">
+        <option value="">همه نقش‌ها</option>
+        <% Object.keys(ROLE).forEach(function (k) { %>
+          <option value="<%= k %>" <%= query.role === k ? 'selected' : '' %>><%= ROLE[k] %></option><% }) %>
+      </select>
+      <select class="select input-sm" name="status" style="width:auto">
+        <option value="">همه وضعیت‌ها</option>
+        <% Object.keys(USTATUS).forEach(function (k) { %>
+          <option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= USTATUS[k][0] %></option><% }) %>
+      </select>
+      <select class="select input-sm" name="level" style="width:auto">
+        <option value="">همه سطوح باشگاه</option>
+        <% levels.forEach(function (l) { %>
+          <option value="<%= l.level %>" <%= query.level === l.level ? 'selected' : '' %>><%= l.title || LEVEL[l.level] || l.level %></option><% }) %>
+      </select>
+      <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-filter"/></svg> فیلتر</button>
+      <a class="btn btn-sm btn-ghost" href="/admin/people/users">پاکسازی</a>
+    </form>
+  </div>
+
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th></th><th>کاربر</th><th>تماس</th><th>نقش</th><th>سطح باشگاه</th><th>کیف پول</th><th>امتیاز</th><th>سفارش‌ها</th><th>مجموع خرید</th><th>عضویت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (u) { %>
+            <% const st = USTATUS[u.status] || [u.status, 'badge-outline']; %>
+            <tr>
+              <td><span class="avatar sm" style="width:32px;height:32px;font-size:.74rem">
+                <% if (u.avatar) { %><img src="<%= u.avatar %>" alt=""><% } else { %><%= h.toPersianDigits(String(u.name || u.phone || 'ک').trim().charAt(0)) %><% } %></span></td>
+              <td>
+                <a class="text-sm bold" href="/admin/people/users/<%= u.id %>"><%= u.name || 'بدون نام' %></a>
+                <div class="text-2xs text-muted mono" dir="ltr">#<%= h.toPersianDigits(u.id) %><% if (u.shop_name) { %> · <%= u.shop_name %><% } %></div>
+              </td>
+              <td class="text-xs">
+                <span class="mono" dir="ltr"><%= h.toPersianDigits(u.phone || '—') %></span>
+                <% if (u.email) { %><div class="text-2xs text-muted mono" dir="ltr"><%= u.email %></div><% } %>
+              </td>
+              <td class="text-xs"><%= u.role_name || ROLE[u.role] || u.role %></td>
+              <td class="text-xs"><%= LEVEL[u.club_level] || u.club_level %></td>
+              <td class="mono text-xs"><%= h.fa(u.wallet) %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(u.points) %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(u.orders_count) %></td>
+              <td class="mono text-xs bold"><%= h.fa(u.spending) %></td>
+              <td class="text-2xs"><%= h.formatJalali(u.created_at) %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/admin/people/users/<%= u.id %>" title="پروفایل"><svg><use href="#i-eye"/></svg></a>
+                <% if (can('users.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش" data-modal-open="userModal-<%= u.id %>"><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/people/users/<%= u.id %>/block" class="m-0">
+                    <input type="hidden" name="status" value="<%= u.status === 'blocked' ? 'active' : 'blocked' %>">
+                    <button class="btn btn-sm btn-ghost <%= u.status === 'blocked' ? 'text-success' : 'text-danger' %>" type="submit"
+                            data-confirm-click="<%= u.status === 'blocked' ? 'مسدودسازی این کاربر لغو شود؟' : 'این کاربر مسدود و همه نشست‌های او خاتمه یابد؟' %>"
+                            title="<%= u.status === 'blocked' ? 'لغو مسدودسازی' : 'مسدودسازی' %>">
+                      <svg><use href="#i-<%= u.status === 'blocked' ? 'check' : 'ban' %>"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/people/users', extraQuery: query }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-users"/></svg>
+      <h4>کاربری یافت نشد</h4>
+      <p class="text-sm">فیلترها را تغییر دهید.</p>
+      <a class="btn btn-primary btn-sm" href="/admin/people/users">همه کاربران</a></div>
+  <% } %>
+</section>
+
+<% if (can('users.manage')) { %>
+  <% rows.forEach(function (u) { %>
+  <div class="modal-backdrop" id="userModal-<%= u.id %>">
+    <div class="modal">
+      <div class="modal-head"><h3>ویرایش کاربر — <%= u.name || u.phone %></h3>
+        <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+      <form method="post" action="/admin/people/users/<%= u.id %>">
+        <div class="modal-body">
+          <div class="grid g-2">
+            <div class="field"><label for="u_name_<%= u.id %>">نام</label>
+              <input class="input" id="u_name_<%= u.id %>" name="name" value="<%= u.name || '' %>"></div>
+            <div class="field"><label for="u_email_<%= u.id %>">ایمیل</label>
+              <input class="input mono" id="u_email_<%= u.id %>" name="email" dir="ltr" value="<%= u.email || '' %>"></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="u_role_<%= u.id %>">نقش</label>
+              <select class="select" id="u_role_<%= u.id %>" name="role">
+                <% Object.keys(ROLE).forEach(function (k) { %>
+                  <option value="<%= k %>" <%= u.role === k ? 'selected' : '' %>><%= ROLE[k] %></option><% }) %>
+              </select></div>
+            <div class="field"><label for="u_rid_<%= u.id %>">نقش ACL</label>
+              <select class="select" id="u_rid_<%= u.id %>" name="role_id">
+                <option value="">بدون نقش خاص</option>
+                <% roles.forEach(function (r) { %>
+                  <option value="<%= r.id %>" <%= u.role_id === r.id ? 'selected' : '' %>><%= r.name %></option><% }) %>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="u_status_<%= u.id %>">وضعیت</label>
+              <select class="select" id="u_status_<%= u.id %>" name="status">
+                <% Object.keys(USTATUS).forEach(function (k) { %>
+                  <option value="<%= k %>" <%= u.status === k ? 'selected' : '' %>><%= USTATUS[k][0] %></option><% }) %>
+              </select></div>
+            <div class="field"><label for="u_pass_<%= u.id %>">گذرواژه جدید</label>
+              <input class="input" id="u_pass_<%= u.id %>" name="password" type="password" autocomplete="new-password" placeholder="خالی = بدون تغییر"></div>
+          </div>
+        </div>
+        <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+          <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+      </form>
+    </div>
+  </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

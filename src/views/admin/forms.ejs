@@ -1,0 +1,66 @@
+<%
+  const canManage = can('forms.manage');
+  const totalSubs = rows.reduce(function (s, f) { return s + (f.submissions || 0); }, 0);
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">فرم‌ساز <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> فرم</span></h2>
+  <% if (canManage) { %><a class="btn btn-sm btn-primary" href="/admin/content/forms/create"><svg><use href="#i-plus"/></svg> فرم جدید</a><% } %>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-form"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.length) %></div><div class="l">فرم ساخته شده</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-send"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totalSubs) %></div><div class="l">مجموع ارسال‌ها</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.filter(function (f) { return f.status === 'active'; }).length) %></div><div class="l">فرم فعال</div></div></div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>فرم</th><th>آدرس</th><th>فیلدها</th><th>ارسال‌ها</th><th>اطلاع‌رسانی</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (f) { %>
+            <tr>
+              <td>
+                <b class="text-sm block"><%= f.title %></b>
+                <% if (f.description) { %><span class="text-2xs text-muted block truncate" style="max-width:300px"><%= h.truncate(f.description, 70) %></span><% } %>
+              </td>
+              <td><a class="mono text-2xs" dir="ltr" href="/form/<%= f.slug %>" target="_blank" rel="noopener">/form/<%= f.slug %></a></td>
+              <td>
+                <span class="badge badge-outline text-2xs"><%= h.toPersianDigits(f.fields.length) %> فیلد</span>
+                <div class="text-2xs text-muted mt-4"><%= f.fields.slice(0, 4).map(function (x) { return x.label; }).join('، ') %><%= f.fields.length > 4 ? '…' : '' %></div>
+              </td>
+              <td class="mono text-xs bold"><%= h.toPersianDigits(f.submissions || 0) %></td>
+              <td class="text-2xs"><%= f.notify_email ? f.notify_email : '—' %></td>
+              <td><span class="badge <%= f.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= f.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/form/<%= f.slug %>" target="_blank" rel="noopener" title="مشاهده فرم"><svg><use href="#i-eye"/></svg></a>
+                <% if (canManage) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/content/forms/<%= f.id %>/edit" title="ویرایش و ارسال‌ها"><svg><use href="#i-edit"/></svg></a>
+                  <form method="post" action="/admin/content/forms/<%= f.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف فرم"
+                            data-confirm-click="فرم «<%= h.truncate(f.title, 24) %>» به همراه <%= h.toPersianDigits(f.submissions || 0) %> ارسال آن حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-form"/></svg></span>
+      <h3>فرمی ساخته نشده است</h3>
+      <p>فرم‌های «تماس با ما»، «استخدام»، «درخواست نمایندگی» یا «استعلام قیمت» را بدون کدنویسی بسازید.</p>
+      <% if (canManage) { %><a class="btn btn-sm btn-primary" href="/admin/content/forms/create"><svg><use href="#i-plus"/></svg> ساخت اولین فرم</a><% } %>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

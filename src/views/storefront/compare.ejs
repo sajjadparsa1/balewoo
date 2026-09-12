@@ -1,0 +1,15 @@
+<%- include('../layouts/head', { bodyClass: 'page-compare' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'مقایسه محصولات' }] }) %>
+  <div class="section-head">
+    <h2>مقایسه محصولات</h2>
+    <span class="badge badge-outline"><%= h.toPersianDigits(products.length) %> از ۴ محصول</span>
+  </div>
+  <%- include('../partials/compare-table', { products: products, groups: groups }) %>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

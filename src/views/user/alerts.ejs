@@ -1,0 +1,38 @@
+<%- include('../partials/panel-head') %>
+
+<section class="card">
+  <div class="card-head"><h3>اعلان موجودی و تخفیف</h3>
+    <span class="text-xs text-muted">برای کالاهای ناموجود یا بدون تخفیف اعلان ثبت کرده‌اید.</span></div>
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کالا</th><th>نوع اعلان</th><th>وضعیت کالا</th><th>قیمت فعلی</th><th>تاریخ ثبت</th><th>وضعیت اعلان</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td><a class="text-sm text-brand" href="/product/<%= r.slug %>"><%= h.truncate(r.title, 50) %></a></td>
+              <td><span class="badge <%= r.kind === 'on_sale' ? 'badge-danger' : 'badge-info' %>"><%= r.kind === 'on_sale' ? 'اعلام تخفیف' : 'اعلام موجودی' %></span></td>
+              <td><span class="badge <%= r.stock > 0 ? 'badge-success' : 'badge-warning' %>"><%= r.stock > 0 ? 'موجود (' + h.toPersianDigits(r.stock) + ')' : 'ناموجود' %></span></td>
+              <td class="mono"><%= h.fa(r.price) %> <span class="text-xs text-muted"><%= site.currency %></span></td>
+              <td class="text-xs"><%= h.formatJalali(r.created_at) %></td>
+              <td><span class="badge <%= r.status === 'active' ? 'badge-outline' : 'badge-success' %>"><%= r.status === 'active' ? 'فعال' : 'ارسال شد' %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/product/<%= r.slug %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a>
+                <form method="post" action="/user/alerts/<%= r.id %>/remove" class="m-0">
+                  <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="این اعلان حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-bell"/></svg>
+      <h4>اعلانی ثبت نکرده‌اید</h4>
+      <p class="text-sm">در صفحه هر کالای ناموجود می‌توانید دکمه «به من خبر بده» را بزنید.</p>
+      <a class="btn btn-primary btn-sm" href="/products">مشاهده محصولات</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

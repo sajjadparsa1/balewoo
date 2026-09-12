@@ -1,0 +1,101 @@
+<%
+  const v = values || {};
+  const val = function (k, d) { return v[k] !== undefined && v[k] !== null && v[k] !== '' ? v[k] : (d || ''); };
+  const SMS_DRIVERS = [
+    { k: 'mock', t: 'حالت آزمایشی (بدون ارسال واقعی)', d: 'برای راه‌اندازی اولیه و محیط تست' },
+    { k: 'kavenegar', t: 'کاوه‌نگار', d: 'نیاز به API Key در بخش پیامک‌ها' },
+    { k: 'melipayamak', t: 'ملی‌پیامک', d: 'نیاز به نام کاربری و گذرواژه پنل' },
+    { k: 'smsir', t: 'اس‌ام‌اس‌آی‌آر', d: 'نیاز به توکن API' },
+    { k: 'faraz', t: 'فراز اس‌ام‌اس', d: 'نیاز به نام کاربری و گذرواژه' },
+    { k: 'ghasedak', t: 'قاصدک', d: 'نیاز به API Key' },
+  ];
+%>
+<%- include('_head', { step: step, title: 'ساخت حساب مدیر کل', subtitle: 'این حساب به همه بخش‌های پنل مدیریت، فروشنده و کاربران دسترسی کامل دارد.' }) %>
+
+<form method="post" action="/install/admin" autocomplete="off">
+  <input type="hidden" name="site_name" value="<%= val('site_name', 'بالی‌وو') %>">
+
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">مشخصات ورود</h3></div>
+    <div class="card-body">
+      <div class="grid g-2">
+        <div class="field">
+          <label for="f-phone">شماره موبایل <span class="req">*</span></label>
+          <input class="input mono" dir="ltr" id="f-phone" name="phone" value="<%= val('phone') %>" required
+                 placeholder="09121234567" maxlength="11" inputmode="numeric">
+          <div class="help">نام کاربری ورود شما به پنل است.</div>
+        </div>
+        <div class="field">
+          <label for="f-name">نام و نام خانوادگی</label>
+          <input class="input" id="f-name" name="name" value="<%= val('name', 'مدیر کل') %>" maxlength="60">
+        </div>
+        <div class="field">
+          <label for="f-password">گذرواژه <span class="req">*</span></label>
+          <div class="input-group">
+            <input class="input mono" dir="ltr" id="f-password" name="password" type="password" required minlength="6" placeholder="حداقل ۶ کاراکتر">
+            <button class="btn btn-ghost btn-sm" type="button" id="pwToggle" aria-label="نمایش گذرواژه"><svg><use href="#i-eye"/></svg></button>
+          </div>
+          <div class="help">گذرواژه به‌صورت هش‌شده ذخیره می‌شود.</div>
+        </div>
+        <div class="field">
+          <label for="f-email">ایمیل (اختیاری)</label>
+          <input class="input mono" dir="ltr" id="f-email" name="email" type="email" value="<%= val('email') %>" placeholder="admin@example.com">
+          <div class="help">برای اعلان‌های سیستمی و بازیابی حساب.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">تنظیمات اولیه سرویس‌ها</h3></div>
+    <div class="card-body">
+      <div class="grid g-2">
+      </div>
+      <div class="field">
+        <label for="f-sms_driver">سرویس پیامک</label>
+          <select class="input" id="f-sms_driver" name="sms_driver">
+            <% SMS_DRIVERS.forEach(function (d) { %>
+              <option value="<%= d.k %>" <%= val('sms_driver', 'mock') === d.k ? 'selected' : '' %>><%= d.t %></option>
+            <% }) %>
+          </select>
+          <div class="help">کلیدها و شناسه‌ها بعداً از بخش «تنظیمات ← پیامک‌ها» وارد می‌شوند.</div>
+        </div>
+        <div class="field">
+          <label for="f-vat">مالیات بر ارزش افزوده (درصد)</label>
+          <input class="input mono" dir="ltr" id="f-vat" name="vat" value="<%= val('vat', '0') %>" type="number" min="0" max="30" step="1">
+          <div class="help">اگر مشمول مالیات نیستید، صفر بگذارید.</div>
+        </div>
+        <div class="field">
+          <label>درگاه‌های پرداخت</label>
+          <div class="input mono text-2xs" style="background:var(--surface-2);min-height:38px;display:flex;align-items:center" dir="ltr">
+            zarinpal · zibal · nextpay · snappay · torobpay · card2card · wallet · cod
+          </div>
+          <div class="help">همه در حالت آزمایشی (sandbox) فعال می‌شوند؛ کلیدها را بعداً وارد کنید.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="alert alert-info mb-20"><svg><use href="#i-info"/></svg><div class="body text-xs">
+    اگر کاربری با همین شماره موبایل وجود داشته باشد، نقش آن به «مدیر کل» ارتقا می‌یابد و گذرواژه بازنشانی می‌شود.
+  </div></div>
+
+  <div class="flex justify-between gap-10">
+    <a class="btn btn-outline btn-sm" href="/install/store"><svg><use href="#i-arrow-right"/> مرحله قبل</a>
+    <button class="btn btn-primary" type="submit">ساخت حساب و ادامه <svg><use href="#i-arrow-left"/></svg></button>
+  </div>
+</form>
+
+<script>
+  (function () {
+    var btn = document.getElementById('pwToggle');
+    var inp = document.getElementById('f-password');
+    if (!btn || !inp) return;
+    btn.addEventListener('click', function () {
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.setAttribute('aria-label', inp.type === 'password' ? 'نمایش گذرواژه' : 'پنهان کردن گذرواژه');
+    });
+  })();
+</script>
+
+<%- include('_foot') %>

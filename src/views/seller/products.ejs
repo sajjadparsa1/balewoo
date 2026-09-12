@@ -1,0 +1,86 @@
+<%
+  const STATUS = { active: ['فعال', 'badge-success'], pending: ['در انتظار تایید', 'badge-warning'], inactive: ['غیرفعال', 'badge-outline'], rejected: ['رد شده', 'badge-danger'], draft: ['پیش‌نویس', 'badge-outline'] };
+  const chips = [
+    { key: '', label: 'همه' },
+    { key: 'active', label: 'فعال' },
+    { key: 'pending', label: 'در انتظار تایید' },
+    { key: 'inactive', label: 'غیرفعال' },
+  ];
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">محصولات من</h2>
+    <div class="text-xs text-muted mt-4">مدیریت کالاها، موجودی و وضعیت انتشار در فروشگاه.</div>
+  </div>
+  <a class="btn btn-primary btn-sm" href="/seller/products/create"><svg><use href="#i-plus"/></svg> افزودن محصول جدید</a>
+</div>
+
+<section class="card">
+  <div class="card-head flex-wrap gap-10">
+    <div class="chips">
+      <% chips.forEach(function (c) { %>
+        <a class="chip <%= (query.status || '') === c.key ? 'active' : '' %>"
+           href="/seller/products<%= c.key ? '?status=' + c.key : '' %><%= query.search ? (c.key ? '&' : '?') + 'search=' + encodeURIComponent(query.search) : '' %>"><%= c.label %></a>
+      <% }) %>
+    </div>
+    <form method="get" action="/seller/products" class="ms-auto flex gap-8" style="max-width:340px;width:100%">
+      <% if (query.status) { %><input type="hidden" name="status" value="<%= query.status %>"><% } %>
+      <input class="input input-sm grow" type="search" name="search" value="<%= query.search || '' %>" placeholder="جستجو در عنوان محصول…">
+      <button class="btn btn-sm btn-ghost" type="submit"><svg><use href="#i-search"/></svg></button>
+    </form>
+  </div>
+
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th></th><th>محصول</th><th>دسته</th><th>قیمت</th><th>موجودی</th><th>بازدید</th><th>امتیاز</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (p) { %>
+            <% const st = STATUS[p.status] || [p.status, 'badge-outline']; %>
+            <tr>
+              <td><span class="thumb-sm"><img src="<%= p.cover %>" alt="<%= p.title %>" loading="lazy"></span></td>
+              <td>
+                <a class="text-sm bold line-2" href="/product/<%= p.slug %>" target="_blank"><%= h.truncate(p.title, 52) %></a>
+                <div class="text-2xs text-muted mt-4">
+                  <% if (p.sku) { %>کد کالا: <span class="mono" dir="ltr"><%= p.sku %></span> · <% } %>
+                  <% if (p.brand_name) { %><%= p.brand_name %> · <% } %>
+                  <% if (p.is_inquiry) { %><span class="badge badge-info">استعلامی</span><% } %>
+                  <% if (p.is_special) { %><span class="badge badge-primary">ویژه</span><% } %>
+                </div>
+              </td>
+              <td class="text-xs"><%= p.category_name || '—' %></td>
+              <td class="mono text-xs">
+                <%= h.fa(p.price) %>
+                <% if (p.old_price > p.price) { %><div class="text-2xs text-muted"><s><%= h.fa(p.old_price) %></s></div><% } %>
+              </td>
+              <td><span class="badge <%= p.stock > 5 ? 'badge-success' : p.stock > 0 ? 'badge-warning' : 'badge-danger' %>"><%= h.toPersianDigits(p.stock) %></span></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(p.views || 0) %></td>
+              <td class="mono text-xs"><%= p.rating_count ? h.toPersianDigits(p.rating.toFixed(1)) + ' (' + h.toPersianDigits(p.rating_count) + ')' : '—' %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/seller/products/<%= p.id %>/edit" title="ویرایش"><svg><use href="#i-edit"/></svg></a>
+                <form method="post" action="/seller/products/<%= p.id %>/toggle" class="m-0">
+                  <button class="btn btn-sm btn-ghost" type="submit" title="<%= p.status === 'active' ? 'غیرفعال کردن' : 'فعال کردن' %>">
+                    <svg><use href="#i-<%= p.status === 'active' ? 'eye-off' : 'eye' %>"/></svg></button>
+                </form>
+                <form method="post" action="/seller/products/<%= p.id %>/delete" class="m-0">
+                  <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="محصول به سطل زباله منتقل شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/seller/products', extraQuery: { status: query.status || '', search: query.search || '' } }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-box"/></svg>
+      <h4><%= query.search || query.status ? 'نتیجه‌ای یافت نشد' : 'هنوز محصولی ثبت نکرده‌اید' %></h4>
+      <p class="text-sm"><%= query.search || query.status ? 'فیلترها را تغییر دهید یا محصول جدیدی اضافه کنید.' : 'اولین محصول خود را اضافه کنید تا در فروشگاه عمومی نمایش داده شود.' %></p>
+      <a class="btn btn-primary btn-sm" href="/seller/products/create"><svg><use href="#i-plus"/></svg> افزودن محصول</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

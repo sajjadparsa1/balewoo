@@ -1,0 +1,104 @@
+<%
+  const STATUS = { draft: ['پیش‌نویس', 'badge-warning'], pending: ['در انتظار تایید', 'badge-info'], published: ['منتشر شده', 'badge-success'] };
+  const KIND = { text: 'متن', video: 'ویدیو', podcast: 'پادکست' };
+  const canManage = can('posts.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">مقالات و مجله <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> مقاله</span></h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/content/post-categories"><svg><use href="#i-layers"/></svg> دسته‌بندی مقالات</a>
+    <a class="btn btn-sm" href="/admin/content/comments"><svg><use href="#i-comment"/></svg> دیدگاه‌های مجله</a>
+    <% if (canManage) { %><a class="btn btn-sm btn-primary" href="/admin/content/posts/create"><svg><use href="#i-plus"/></svg> مقاله جدید</a><% } %>
+  </div>
+</div>
+
+<section class="card mb-20">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/content/posts">
+      <div class="field grow"><label for="f_search">جستجو در عنوان</label>
+        <input class="input input-sm" id="f_search" type="search" name="search" value="<%= query.search || '' %>" placeholder="عنوان مقاله"></div>
+      <div class="field"><label for="f_status">وضعیت</label>
+        <select class="select" id="f_status" name="status">
+          <option value="">همه</option>
+          <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option><% }) %>
+        </select></div>
+      <div class="flex gap-8 align-end">
+        <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg> فیلتر</button>
+        <a class="btn btn-sm btn-ghost" href="/admin/content/posts">پاکسازی</a>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th>مقاله</th><th>دسته</th><th>نویسنده</th><th>نوع</th><th>برچسب‌ها</th>
+          <th>بازدید</th><th>انتشار</th><th>وضعیت</th><th>عملیات</th>
+        </tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { const st = STATUS[r.status] || [r.status, 'badge-outline']; %>
+            <tr>
+              <td>
+                <div class="flex items-center gap-10">
+                  <% if (r.cover) { %><img class="thumb-sm" src="<%= r.cover %>" alt=""><% } else { %><span class="thumb-sm" style="display:inline-flex;align-items:center;justify-content:center"><svg style="width:16px;height:16px;opacity:.4"><use href="#i-file"/></svg></span><% } %>
+                  <div class="min-0">
+                    <a class="text-sm bold block truncate" href="/admin/content/posts/<%= r.id %>/edit"><%= r.title %></a>
+                    <% if (r.excerpt) { %><span class="text-2xs text-muted block truncate" style="max-width:320px"><%= h.truncate(r.excerpt, 70) %></span><% } %>
+                    <span class="text-2xs text-muted mono" dir="ltr">/blog/<%= r.slug %></span>
+                  </div>
+                </div>
+              </td>
+              <td class="text-xs"><%= r.cat_name || '—' %></td>
+              <td class="text-xs">
+                <%= r.author_name || 'مدیر سایت' %>
+                <% if (r.seller_name) { %><span class="badge badge-info text-2xs"><%= r.seller_name %></span><% } %>
+                <% if (r.author_type === 'seller') { %><span class="badge badge-outline text-2xs">فروشنده</span><% } %>
+              </td>
+              <td class="text-2xs"><%= KIND[r.kind] || r.kind %></td>
+              <td class="text-2xs"><% (h.jparse(r.tags, []) || []).slice(0, 3).forEach(function (t) { %><span class="badge badge-outline"><%= t %></span> <% }) %>
+                <% if ((h.jparse(r.tags, []) || []).length > 3) { %><span class="text-muted">+<%= h.toPersianDigits(h.jparse(r.tags, []).length - 3) %></span><% } %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.views || 0) %></td>
+              <td class="text-2xs"><%= r.published_at ? h.formatJalali(r.published_at) : '—' %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/blog/<%= r.slug %>" target="_blank" rel="noopener" title="مشاهده"><svg><use href="#i-eye"/></svg></a>
+                <% if (canManage) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/content/posts/<%= r.id %>/edit" title="ویرایش"><svg><use href="#i-edit"/></svg></a>
+                  <% if (r.status !== 'published') { %>
+                    <form method="post" action="/admin/content/posts/<%= r.id %>/status" class="m-0">
+                      <input type="hidden" name="status" value="published">
+                      <button class="btn btn-sm btn-ghost text-success" type="submit" title="انتشار"><svg><use href="#i-check"/></svg></button>
+                    </form>
+                  <% } else { %>
+                    <form method="post" action="/admin/content/posts/<%= r.id %>/status" class="m-0">
+                      <input type="hidden" name="status" value="draft">
+                      <button class="btn btn-sm btn-ghost" type="submit" title="بازگشت به پیش‌نویس"><svg><use href="#i-edit"/></svg></button>
+                    </form>
+                  <% } %>
+                  <form method="post" action="/admin/content/posts/<%= r.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف" data-confirm-click="مقاله «<%= h.truncate(r.title, 26) %>» به سطل زباله منتقل شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/content/posts', extraQuery: query }) %>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-book"/></svg></span>
+      <h3>مقاله‌ای یافت نشد</h3>
+      <p>با تولید محتوا، سئوی فروشگاه و اعتماد مشتریان را تقویت کنید.</p>
+      <% if (canManage) { %><a class="btn btn-sm btn-primary" href="/admin/content/posts/create"><svg><use href="#i-plus"/></svg> نوشتن اولین مقاله</a><% } %>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

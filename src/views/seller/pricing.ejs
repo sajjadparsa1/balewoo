@@ -1,0 +1,89 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">قیمت‌گذاری روی محصولات دیگران</h2>
+    <div class="text-xs text-muted mt-4">در مدل مارکت‌پلیس می‌توانید روی کالای سایر فروشندگان قیمت بگذارید و در جعبه فروشندگان همان کالا دیده شوید.</div>
+  </div>
+  <form method="get" action="/seller/pricing" class="flex gap-8" style="max-width:320px;width:100%">
+    <input class="input input-sm grow" type="search" name="search" value="<%= query.search || '' %>" placeholder="جستجوی محصول…">
+    <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg></button>
+  </form>
+</div>
+
+<div class="alert alert-info mb-20"><svg><use href="#i-info"/></svg>
+  <div class="body">قیمت پیشنهادی شما پس از <% if (String(setting('seller_products_need_approval', '1')) === '1') { %>تایید مدیریت<% } else { %>ثبت<% } %> در صفحه محصول نمایش داده می‌شود. برنده جعبه خرید، فروشندگانی با بهترین قیمت و امتیاز هستند.</div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>محصول</th><th>فروشنده اصلی</th><th>قیمت فعلی</th><th>موجودی</th><th>قیمت من</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td><a class="text-sm bold line-2" href="/product/<%= r.slug %>" target="_blank"><%= h.truncate(r.title, 48) %></a>
+                <div class="text-2xs text-muted mt-4 mono" dir="ltr">#<%= h.toPersianDigits(r.id) %></div></td>
+              <td class="text-xs"><%= r.shop_name || '—' %></td>
+              <td class="mono text-xs bold"><%= h.fa(r.price) %> <span class="text-muted"><%= site.currency %></span></td>
+              <td><span class="badge <%= r.stock > 0 ? 'badge-success' : 'badge-danger' %>"><%= r.stock > 0 ? h.toPersianDigits(r.stock) + ' عدد' : 'ناموجود' %></span></td>
+              <td><% if (r.my_price) { %><span class="badge badge-primary mono"><%= h.fa(r.my_price) %></span> <span class="text-2xs text-muted">(<%= h.toPersianDigits(r.my_variants) %> متغیر)</span><% } else { %><span class="text-xs text-muted">قیمت نگذاشته‌اید</span><% } %></td>
+              <td class="actions"><button class="btn btn-sm <%= r.my_price ? 'btn-outline' : 'btn-primary' %>" type="button" data-modal-open="priceModal-<%= r.id %>">
+                <%= r.my_price ? 'ویرایش قیمت' : 'قیمت بگذارید' %></button></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/seller/pricing', extraQuery: { search: query.search || '' } }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-tag"/></svg>
+      <h4>محصولی برای قیمت‌گذاری نیست</h4>
+      <p class="text-sm">وقتی فروشندگان دیگر کالایی منتشر کنند، اینجا نمایش داده می‌شود.</p>
+      <a class="btn btn-primary btn-sm" href="/seller/products">محصولات من</a></div>
+  <% } %>
+</section>
+
+<% rows.forEach(function (r) { %>
+<div class="modal-backdrop" id="priceModal-<%= r.id %>">
+  <div class="modal">
+    <div class="modal-head"><h3>قیمت‌گذاری: <%= h.truncate(r.title, 42) %></h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <% if (r.my_variant_id) { %>
+      <form method="post" action="/seller/pricing/<%= r.my_variant_id %>/delete" onsubmit="return confirm('قیمت‌گذاری شما برای این محصول حذف شود؟');">
+        <div class="modal-body" style="padding-bottom:0">
+          <button class="btn btn-sm btn-ghost text-danger" type="submit"><svg><use href="#i-trash"/></svg> حذف قیمت‌گذاری فعلی من</button>
+        </div>
+      </form>
+    <% } %>
+    <form method="post" action="/seller/pricing">
+      <input type="hidden" name="product_id" value="<%= r.id %>">
+      <div class="modal-body">
+        <div class="alert alert-info" style="padding:10px 12px"><div class="body text-xs">قیمت فروشنده اصلی: <b class="mono"><%= h.fa(r.price) %> <%= site.currency %></b> — برای برنده‌شدن در جعبه خرید، قیمتی رقابتی وارد کنید.</div></div>
+        <div class="field"><label for="pv_title_<%= r.id %>">عنوان پیشنهاد شما</label>
+          <input class="input" id="pv_title_<%= r.id %>" name="variant_title" value="<%= seller.shop_name %>" placeholder="<%= seller.shop_name %>">
+          <div class="help">این عنوان به‌عنوان نام فروشنده در جعبه خرید نمایش داده می‌شود.</div></div>
+        <div class="grid g-2">
+          <div class="field"><label for="pv_price_<%= r.id %>">قیمت شما <span class="req">*</span></label>
+            <input class="input mono" id="pv_price_<%= r.id %>" name="price" dir="ltr" inputmode="numeric" required data-money-input value="<%= r.my_price || r.price %>"></div>
+          <div class="field"><label for="pv_old_<%= r.id %>">قیمت قبل از تخفیف</label>
+            <input class="input mono" id="pv_old_<%= r.id %>" name="old_price" dir="ltr" inputmode="numeric" data-money-input></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="pv_stock_<%= r.id %>">موجودی <span class="req">*</span></label>
+            <input class="input mono" id="pv_stock_<%= r.id %>" name="stock" dir="ltr" inputmode="numeric" required value="1"></div>
+          <div class="field"><label for="pv_sku_<%= r.id %>">کد کالا (SKU)</label>
+            <input class="input mono" id="pv_sku_<%= r.id %>" name="sku" dir="ltr"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت قیمت</button>
+      </div>
+    </form>
+  </div>
+</div>
+<% }) %>
+
+<%- include('../partials/panel-foot') %>

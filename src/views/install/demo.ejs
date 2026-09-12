@@ -1,0 +1,62 @@
+<%
+  const VOLUMES = [
+    { k: 'small', t: 'سبک', d: '۲ فروشنده، حدود ۱۵ محصول و ۲ مقاله — مناسب شروع سریع', time: 'چند ثانیه' },
+    { k: 'medium', t: 'متوسط (پیشنهادی)', d: '۶ فروشنده، حدود ۶۰ محصول، نظر و پرسش نمونه، ۲۰ سفارش و ۳ مقاله', time: 'کمتر از یک دقیقه' },
+    { k: 'large', t: 'کامل (دموی نمایشی)', d: '۱۲ فروشنده، بیش از ۱۵۰ محصول، تخفیف‌ها، تسویه، تیکت و آمار بازدید', time: 'یک تا دو دقیقه' },
+  ];
+%>
+<%- include('_head', { step: step, title: 'داده نمونه', subtitle: 'می‌توانید فروشگاه را با محتوای آماده راه‌اندازی کنید یا کاملاً خالی تحویل بگیرید.' }) %>
+
+<form method="post" action="/install/demo">
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">حالت راه‌اندازی</h3></div>
+    <div class="card-body">
+      <label class="switch-row">
+        <input type="checkbox" name="seed" value="1" id="seedToggle" checked>
+        <span>ساخت داده نمونه (دسته‌بندی، محصول، فروشنده، کاربر، سفارش، مقاله و تنظیمات پیش‌فرض)</span>
+      </label>
+      <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body text-xs">
+        داده نمونه فقط برای آشنایی با پنل‌ها و قالب storefront است. پس از بررسی، از «تنظیمات ← نگهداری» یا با اجرای
+        <span class="mono" dir="ltr">npm run reset</span> پاکسازی و از ابتدا شروع کنید.
+      </div></div>
+    </div>
+  </section>
+
+  <section class="card mb-20" id="volumeCard">
+    <div class="card-head"><h3 class="text-sm">حجم داده نمونه</h3></div>
+    <div class="card-body">
+      <div class="grid g-3" data-choice-group="volume">
+        <% VOLUMES.forEach(function (opt, i) { %>
+          <label class="address-item <%= i === 1 ? 'active' : '' %>" data-choice-item>
+            <input type="radio" name="volume" value="<%= opt.k %>" <%= i === 1 ? 'checked' : '' %>>
+            <span class="grow">
+              <span class="semibold text-sm flex items-center gap-8"><%= opt.t %>
+                <% if (i === 1) { %><span class="badge badge-success text-2xs">پیشنهادی</span><% } %>
+                <span class="badge badge-outline text-2xs mono"><%= opt.time %></span>
+              </span>
+              <span class="text-xs text-muted" style="display:block;margin-top:5px;line-height:2"><%= opt.d %></span>
+            </span>
+          </label>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-between gap-10">
+    <a class="btn btn-outline btn-sm" href="/install/admin"><svg><use href="#i-arrow-right"/> مرحله قبل</a>
+    <button class="btn btn-primary" type="submit" id="finishBtn">
+      <svg><use href="#i-zap"/></svg> پایان نصب و ورود به پنل</button>
+  </div>
+</form>
+
+<script>
+  (function () {
+    var t = document.getElementById('seedToggle');
+    var card = document.getElementById('volumeCard');
+    function sync() { if (card) card.style.display = t && t.checked ? '' : 'none'; }
+    if (t) t.addEventListener('change', sync);
+    sync();
+  })();
+</script>
+
+<%- include('_foot') %>

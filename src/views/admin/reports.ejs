@@ -1,0 +1,216 @@
+<%
+  const jalaliShort = function (d) { try { const x = jalali.toJalali(new Date(String(d).slice(0, 10) + 'T00:00:00Z')); return h.toPersianDigits(x.jm) + '/' + h.toPersianDigits(x.jd); } catch { return String(d).slice(5); } };
+  const salesLabels = sales.map(function (r) { return jalaliShort(r.d); });
+  const revenueSeries = sales.map(function (r) { return r.revenue; });
+  const orderSeries = sales.map(function (r) { return r.c; });
+  const visitLabels = visits.map(function (r) { return jalaliShort(r.d); });
+  const visitSeries = visits.map(function (r) { return r.c; });
+  const uniqSeries = visits.map(function (r) { return r.uniq; });
+  const growthLabels = usersGrowth.map(function (r) { return jalaliShort(r.d); });
+  const growthSeries = usersGrowth.map(function (r) { return r.c; });
+  const maxFunnel = Math.max(1, funnel.visits, funnel.carts, funnel.orders, funnel.paid);
+  const pct = function (n) { return Math.max(2, Math.round((n / maxFunnel) * 100)); };
+  const conversion = funnel.visits ? ((funnel.paid / funnel.visits) * 100).toFixed(2) : '0';
+  const avgOrder = totals.paid ? Math.round(totals.revenue / totals.paid) : 0;
+  const gwTotal = byGateway.reduce(function (s, g) { return s + g.s; }, 0) || 1;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">آمار و گزارش‌ها <span class="badge badge-outline"><%= h.toPersianDigits(days) %> روز اخیر</span></h2>
+  <div class="flex gap-8 flex-wrap">
+    <% [7, 30, 90, 180].forEach(function (d) { %>
+      <a class="btn btn-sm <%= days === d ? 'btn-primary' : 'btn-ghost' %>" href="/admin/system/reports?days=<%= d %>"><%= h.toPersianDigits(d) %> روز</a>
+    <% }) %>
+    <button class="btn btn-sm btn-outline no-print" type="button" onclick="window.print()"><svg><use href="#i-print"/></svg> چاپ گزارش</button>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(totals.revenue) %></div><div class="l">درآمد کل موفق</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totals.total) %></div><div class="l">کل سفارش‌ها</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totals.paid) %></div><div class="l">سفارش پرداخت‌شده</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totals.pending) %></div><div class="l">در انتظار پرداخت</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-x"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totals.canceled) %></div><div class="l">لغو شده</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-target"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(avgOrder) %></div><div class="l">میانگین ارزش سفارش</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="chart-box">
+      <h4>درآمد و تعداد سفارش — <%= h.toPersianDigits(days) %> روز اخیر</h4>
+      <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'line', labels: salesLabels, series: [{ name: 'درآمد', data: revenueSeries }, { name: 'سفارش', data: orderSeries, color: '#16a34a' }] }) %>'></canvas>
+      <div class="flex gap-14 text-2xs text-muted mt-10">
+        <span><span class="color-dot" style="background:#4f46e5"></span> درآمد (<%= site.currency %>)</span>
+        <span><span class="color-dot" style="background:#16a34a"></span> تعداد سفارش</span>
+      </div>
+    </section>
+
+    <section class="chart-box">
+      <h4>بازدید صفحات</h4>
+      <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'bar', labels: visitLabels, series: [{ name: 'بازدید', data: visitSeries, color: '#8b5cf6' }, { name: 'کاربر یکتا', data: uniqSeries, color: '#0ea5e9' }] }) %>'></canvas>
+      <div class="flex gap-14 text-2xs text-muted mt-10">
+        <span><span class="color-dot" style="background:#8b5cf6"></span> کل بازدیدها</span>
+        <span><span class="color-dot" style="background:#0ea5e9"></span> کاربران یکتا</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">قیف تبدیل</h3>
+        <span class="text-2xs text-muted">نرخ تبدیل نهایی: <b class="mono"><%= h.toPersianDigits(Number(conversion)) %>٪</b></span></div>
+      <div class="card-body">
+        <% [
+             ['بازدید صفحات', funnel.visits, 'eye', '#4f46e5'],
+             ['سبد خرید ساخته‌شده', funnel.carts, 'cart', '#8b5cf6'],
+             ['سفارش ثبت‌شده', funnel.orders, 'order', '#f59e0b'],
+             ['سفارش پرداخت‌شده', funnel.paid, 'check', '#16a34a'],
+           ].forEach(function (row, i) { %>
+          <div class="mb-14">
+            <div class="flex items-center justify-between text-xs mb-6">
+              <span class="flex items-center gap-8"><svg style="width:14px;height:14px;color:<%= row[3] %>"><use href="#i-<%= row[2] %>"/></svg> <%= row[0] %></span>
+              <span class="mono bold"><%= h.toPersianDigits(row[1]) %></span>
+            </div>
+            <div class="progress" style="height:9px"><i style="width:<%= pct(row[1]) %>%;background:<%= row[3] %>"></i></div>
+            <% if (i > 0) { %>
+              <div class="text-2xs text-muted mt-4">
+                <% const prev = [funnel.visits, funnel.carts, funnel.orders][i - 1]; %>
+                نرخ گذار از مرحله قبل: <span class="mono"><%= prev ? h.toPersianDigits(Number(((row[1] / prev) * 100).toFixed(1))) : '۰' %>٪</span>
+              </div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="chart-box">
+      <h4>رشد کاربران</h4>
+      <% if (usersGrowth.length) { %>
+        <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'line', labels: growthLabels, series: [{ name: 'کاربر جدید', data: growthSeries, color: '#14b8a6' }] }) %>'></canvas>
+      <% } else { %>
+        <div class="empty" style="padding:20px"><p class="text-sm">کاربر جدیدی در این بازه ثبت‌نام نکرده است.</p></div>
+      <% } %>
+    </section>
+
+    <div class="grid g-2">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">پرفروش‌ترین محصولات</h3></div>
+        <% if (topProducts.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>محصول</th><th>فروش</th><th>بازدید</th><th>قیمت</th></tr></thead>
+            <tbody><% topProducts.forEach(function (p, i) { %>
+              <tr>
+                <td class="text-xs"><span class="mono text-2xs text-muted"><%= h.toPersianDigits(i + 1) %>.</span> <%= h.truncate(p.title, 38) %></td>
+                <td class="mono text-xs bold"><%= h.toPersianDigits(p.sold || 0) %></td>
+                <td class="mono text-2xs"><%= h.toPersianDigits(p.views || 0) %></td>
+                <td class="mono text-2xs"><%= h.fa(p.price) %></td>
+              </tr>
+            <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:20px"><p class="text-sm">فروشی ثبت نشده است.</p></div><% } %>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">عملکرد دسته‌بندی‌ها</h3></div>
+        <% if (byCategory.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>دسته</th><th>محصول</th><th>فروش</th><th>سهم</th></tr></thead>
+            <tbody><% const catMax = Math.max.apply(null, byCategory.map(function (c) { return c.sold || 0; }).concat([1])); %>
+              <% byCategory.forEach(function (c) { %>
+                <tr>
+                  <td class="text-xs"><%= c.name %></td>
+                  <td class="mono text-2xs"><%= h.toPersianDigits(c.products) %></td>
+                  <td class="mono text-xs bold"><%= h.toPersianDigits(c.sold || 0) %></td>
+                  <td style="width:90px"><div class="progress" style="height:6px"><i style="width:<%= Math.round(((c.sold || 0) / catMax) * 100) %>%"></i></div></td>
+                </tr>
+              <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:20px"><p class="text-sm">دسته‌بندی وجود ندارد.</p></div><% } %>
+      </section>
+    </div>
+
+    <div class="grid g-2">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">پربازدیدترین صفحات</h3></div>
+        <% if (topPages.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>مسیر</th><th>بازدید</th><th></th></tr></thead>
+            <tbody><% topPages.forEach(function (p) { %>
+              <tr>
+                <td class="mono text-2xs" dir="ltr"><%= p.path %></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(p.c) %></td>
+                <td class="actions"><a class="btn btn-sm btn-ghost" href="<%= p.path %>" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg></a></td>
+              </tr>
+            <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:20px"><p class="text-sm">بازدید صفحات ثبت نشده است.</p></div><% } %>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">برترین فروشندگان</h3></div>
+        <% if (sellers.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>فروشگاه</th><th>درآمد</th><th>سفارش</th><th>سهم</th></tr></thead>
+            <tbody><% const sMax = Math.max.apply(null, sellers.map(function (s) { return s.revenue || 0; }).concat([1])); %>
+              <% sellers.forEach(function (s, i) { %>
+                <tr>
+                  <td class="text-xs"><span class="mono text-2xs text-muted"><%= h.toPersianDigits(i + 1) %>.</span>
+                    <% if (can('sellers.view')) { %><a href="/admin/people/sellers?search=<%= encodeURIComponent(s.shop_name) %>"><%= h.truncate(s.shop_name, 26) %></a>
+                    <% } else { %><%= h.truncate(s.shop_name, 26) %><% } %></td>
+                  <td class="mono text-xs bold"><%= h.fa(s.revenue) %></td>
+                  <td class="mono text-2xs"><%= h.toPersianDigits(s.orders) %></td>
+                  <td style="width:80px"><div class="progress" style="height:6px"><i style="width:<%= Math.round(((s.revenue || 0) / sMax) * 100) %>%"></i></div></td>
+                </tr>
+              <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:20px"><p class="text-sm">فروشنده‌ای وجود ندارد.</p></div><% } %>
+      </section>
+    </div>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">سهم درگاه‌های پرداخت</h3></div>
+      <div class="card-body">
+        <% if (byGateway.length) { %>
+          <canvas class="chart" style="max-height:180px" data-chart='<%- JSON.stringify({ type: 'donut', labels: byGateway.map(function (g) { return g.m; }), values: byGateway.map(function (g) { return g.s; }) }) %>'></canvas>
+          <div class="stack mt-14" style="gap:6px">
+            <% byGateway.forEach(function (g) { %>
+              <div class="flex items-center justify-between gap-8 text-2xs">
+                <span class="mono" dir="ltr"><%= g.m %></span>
+                <span class="mono"><%= h.toPersianDigits(g.c) %> سفارش · <%= h.toPersianDigits(Math.round((g.s / gwTotal) * 100)) %>٪</span>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %><div class="empty" style="padding:18px"><p class="text-xs">پرداختی ثبت نشده است.</p></div><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">وضعیت سفارش‌ها</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th>کل</th><td class="mono"><%= h.toPersianDigits(totals.total) %></td></tr>
+          <tr><th>پرداخت‌شده</th><td class="mono text-success"><%= h.toPersianDigits(totals.paid) %></td></tr>
+          <tr><th>تحویل‌شده</th><td class="mono"><%= h.toPersianDigits(totals.delivered) %></td></tr>
+          <tr><th>در انتظار</th><td class="mono text-warning"><%= h.toPersianDigits(totals.pending) %></td></tr>
+          <tr><th>لغوشده</th><td class="mono text-danger"><%= h.toPersianDigits(totals.canceled) %></td></tr>
+        </tbody></table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">گزارش‌های مرتبط</h3></div>
+      <div class="card-body stack" style="gap:8px">
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/orders"><svg><use href="#i-order"/></svg> فهرست سفارش‌ها</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/abandoned-carts"><svg><use href="#i-cart"/></svg> سبدهای رها شده</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/people/settlements"><svg><use href="#i-bank"/></svg> تسویه فروشندگان</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/people/affiliates"><svg><use href="#i-share"/></svg> همکاری در فروش</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/activities"><svg><use href="#i-activity"/></svg> گزارش فعالیت‌ها</a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

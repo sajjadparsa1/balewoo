@@ -1,0 +1,226 @@
+<%- include('../layouts/head', { bodyClass: 'page-home' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+
+<% sections.forEach(function (sec) { const rows = data[sec.id] || []; %>
+
+  <% /* ---------------- اسلایدر ---------------- */ %>
+  <% if (sec.type === 'slider' && rows.length) { %>
+    <section class="section-sm" data-reveal>
+      <div class="slider" data-slider="<%= sec.interval || 6000 %>">
+        <div class="slider-track">
+          <% rows.forEach(function (b) { %>
+            <div class="slider-slide">
+              <% if (b.link) { %><a href="<%= b.link %>"><% } %>
+                <img src="<%= b.image %>" alt="<%= b.title || 'بنر' %>" loading="lazy">
+                <% if (b.image_dark) { %><img class="dark" src="<%= b.image_dark %>" alt="" style="display:none" hidden><% } %>
+              <% if (b.link) { %></a><% } %>
+            </div>
+          <% }) %>
+        </div>
+        <% if (rows.length > 1) { %>
+          <button class="slider-nav prev" type="button" aria-label="قبلی"><svg width="18" height="18"><use href="#i-chevron-right"/></svg></button>
+          <button class="slider-nav next" type="button" aria-label="بعدی"><svg width="18" height="18"><use href="#i-chevron-left"/></svg></button>
+          <div class="slider-dots"></div>
+        <% } %>
+      </div>
+    </section>
+
+  <% /* ---------------- استوری ---------------- */ %>
+  <% } else if (sec.type === 'stories' && rows.length) { %>
+    <section class="section-sm" id="stories" data-reveal>
+      <div class="stories-row">
+        <% rows.forEach(function (st, i) { %>
+          <div class="story" data-story="<%= i %>" role="button" tabindex="0" aria-label="استوری <%= st.label || st.seller_name || '' %>">
+            <span class="ring"><img src="<%= st.seller_logo || st.thumb || st.media_path %>" alt="<%= st.label || '' %>" loading="lazy"></span>
+            <span class="n"><%= st.seller_name || st.label || 'بالی‌وو' %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+    <script>
+      window.__stories = <%- JSON.stringify(rows.map(function (st) { return {
+        id: st.id, media_path: st.media_path, media_type: st.media_type || 'image', duration: st.duration || 5,
+        link: st.link || '', label: st.label || '', shop_name: st.seller_name || 'بالی‌وو', logo: st.seller_logo || ''
+      }; })) %>;
+    </script>
+    <div class="story-viewer" id="storyViewer">
+      <div class="frame">
+        <div class="story-progress sv-progress"></div>
+        <div class="story-head sv-head"></div>
+        <div class="sv-media" style="position:absolute;inset:0"></div>
+        <a class="btn btn-sm btn-primary sv-link" href="#" style="position:absolute;bottom:22px;inset-inline:0;margin:0 auto;width:fit-content">مشاهده محصول</a>
+        <button class="story-close sv-close" type="button" aria-label="بستن"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+        <button class="slider-nav prev sv-prev" type="button" aria-label="قبلی" style="position:absolute;top:50%;inset-inline-start:-52px"><svg width="18" height="18"><use href="#i-chevron-right"/></svg></button>
+        <button class="slider-nav next sv-next" type="button" aria-label="بعدی" style="position:absolute;top:50%;inset-inline-end:-52px"><svg width="18" height="18"><use href="#i-chevron-left"/></svg></button>
+      </div>
+    </div>
+
+  <% /* ---------------- خدمات ---------------- */ %>
+  <% } else if (sec.type === 'services' && rows.length) { %>
+    <section class="section-sm" data-reveal>
+      <div class="services-grid">
+        <% rows.forEach(function (sv) { %>
+          <div class="service-item">
+            <span class="ic"><svg><use href="#i-<%= sv.icon || 'zap' %>"/></svg></span>
+            <div><div class="t"><%= sv.title %></div><div class="d"><%= sv.text || '' %></div></div>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- دسته‌بندی‌ها ---------------- */ %>
+  <% } else if (sec.type === 'categories' && rows.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head">
+        <h2><%= sec.title || 'خرید بر اساس دسته‌بندی' %></h2>
+        <a class="link-more" href="/products">همه محصولات <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a>
+      </div>
+      <div class="cat-tiles">
+        <% rows.forEach(function (c) { %>
+          <a class="cat-tile" href="/products?cat=<%= encodeURIComponent(c.slug) %>">
+            <span class="ic"><img src="<%= c.image %>" alt="<%= c.name %>" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{innerHTML:'<svg width=26 height=26><use href=&quot;#i-box&quot;/></svg>'}))"></span>
+            <div class="n"><%= c.name %></div>
+            <div class="c"><%= h.toPersianDigits(c.count || 0) %> کالا</div>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- لیست محصولات ---------------- */ %>
+  <% } else if (sec.type === 'product_list' && rows.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head">
+        <h2>
+          <%= sec.title || 'محصولات' %>
+          <% if (sec.source === 'special') { %>
+            <span class="badge badge-danger">تخفیف زمان‌دار</span>
+          <% } %>
+        </h2>
+        <a class="link-more" href="<%= sec.moreUrl || (sec.source === 'special' ? '/products?special=1' : sec.source === 'bestseller' ? '/products?sort=bestselling' : '/products?sort=newest') %>">
+          مشاهده همه <svg width="14" height="14"><use href="#i-chevron-left"/></svg>
+        </a>
+      </div>
+      <% if (sec.source === 'special') { %>
+        <div class="flex items-center justify-between gap-14 mb-14 flex-wrap">
+          <p class="text-sm text-muted m-0">پیشنهادها تا پایان زمان زیر معتبر هستند — عجله کنید!</p>
+          <% const first = rows.find(function (r) { return r.discount_end; }); %>
+          <% if (first && first.discount_end) { %>
+            <div class="countdown" data-countdown="<%= first.discount_end %>"></div>
+          <% } %>
+        </div>
+      <% } %>
+      <div class="products-grid <%= rows.length > 8 ? 'large' : '' %>">
+        <% rows.forEach(function (p) { %>
+          <%- include('../partials/product-card', { product: p }) %>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- بنر ---------------- */ %>
+  <% } else if (sec.type === 'banner' && rows.length) { %>
+    <section class="section-sm" data-reveal>
+      <div class="banner-grid">
+        <% rows.forEach(function (b) { %>
+          <% if (b.link) { %><a class="banner-item" href="<%= b.link %>"><% } else { %><div class="banner-item"><% } %>
+            <img class="light" src="<%= b.image %>" alt="<%= b.title || '' %>" loading="lazy">
+            <% if (b.image_dark) { %><img class="dark" src="<%= b.image_dark %>" alt="<%= b.title || '' %>" loading="lazy"><% } %>
+          <% if (b.link) { %></a><% } else { %></div><% } %>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- برندها ---------------- */ %>
+  <% } else if (sec.type === 'brands' && rows.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head">
+        <h2><%= sec.title || 'برندهای محبوب' %></h2>
+        <a class="link-more" href="/brands">همه برندها <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a>
+      </div>
+      <div class="brand-strip">
+        <% rows.forEach(function (b) { %>
+          <a class="brand-item" href="/brand/<%= encodeURIComponent(b.slug) %>" title="<%= b.name %>">
+            <% if (b.logo) { %><img src="<%= b.logo %>" alt="<%= b.name %>" loading="lazy"><% } else { %><span class="semibold"><%= b.name %></span><% } %>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- فروشگاه‌ها ---------------- */ %>
+  <% } else if (sec.type === 'stores' && rows.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head">
+        <h2><%= sec.title || 'فروشگاه‌های برتر' %></h2>
+        <a class="link-more" href="/auth/seller/register">شما هم فروشنده شوید <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a>
+      </div>
+      <div class="grid g-3">
+        <% rows.forEach(function (st) { %>
+          <a class="card hover" href="/store/<%= encodeURIComponent(st.shop_slug) %>" style="text-decoration:none;color:inherit">
+            <div class="card-body flex items-center gap-14">
+              <img src="<%= st.logo || '/img/placeholder-product.svg' %>" alt="<%= st.shop_name %>" style="width:56px;height:56px;border-radius:14px;object-fit:cover" loading="lazy">
+              <div class="grow">
+                <div class="bold"><%= st.shop_name %></div>
+                <div class="text-xs text-muted flex items-center gap-8 mt-6">
+                  <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px;color:#f59e0b"><use href="#i-star"/></svg> <%= h.toPersianDigits(Number(st.score || 5).toFixed(1)) %></span>
+                  <span><%= h.toPersianDigits(st.products_count || 0) %> کالا</span>
+                  <% if (st.success_rate) { %><span class="text-success">عملکرد عالی</span><% } %>
+                </div>
+              </div>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- مجله ---------------- */ %>
+  <% } else if (sec.type === 'blog' && rows.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head">
+        <h2><%= sec.title || 'از مجله ما' %></h2>
+        <a class="link-more" href="/blog">همه مطالب <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a>
+      </div>
+      <div class="grid g-3">
+        <% rows.forEach(function (post) { %>
+          <article class="post-card">
+            <a class="cover" href="/blog/<%= post.slug %>"><img src="<%= post.cover || '/img/placeholder-product.svg' %>" alt="<%= post.title %>" loading="lazy"></a>
+            <div class="body">
+              <div class="meta">
+                <% if (post.cat_name) { %><span class="tag"><%= post.cat_name %></span><% } %>
+                <span class="flex items-center gap-4"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-clock"/></svg> <%= h.timeAgo(post.created_at) %></span>
+                <span class="flex items-center gap-4"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-eye"/></svg> <%= h.toPersianDigits(post.views || 0) %></span>
+              </div>
+              <a href="/blog/<%= post.slug %>" class="bold line-2" style="font-size:.95rem;line-height:1.9"><%= post.title %></a>
+              <p class="text-sm text-muted line-2 m-0"><%= post.excerpt || h.truncate(h.stripTags(post.body || ''), 120) %></p>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+
+  <% /* ---------------- متن آزاد / HTML ---------------- */ %>
+  <% } else if (sec.type === 'html' && sec.content) { %>
+    <section class="section article-body" data-reveal><%- sec.content %></section>
+
+  <% } else if (sec.type === 'text' && rows.length === 0 && sec.body) { %>
+    <section class="section" data-reveal><div class="card"><div class="card-body article-body"><%- sec.body %></div></div></section>
+  <% } %>
+
+<% }) %>
+
+<% if (!sections.length) { %>
+  <section class="section">
+    <div class="empty">
+      <svg><use href="#i-layout"/></svg>
+      <h4>هنوز بخشی به صفحه نخست اضافه نشده است</h4>
+      <p class="text-sm">از پنل مدیریت › محتوا › صفحه‌ساز، بخش‌های دلخواه را به صفحه نخست اضافه کنید.</p>
+      <% if (user && user.is_staff) { %><a class="btn btn-primary" href="/admin/content/templates">باز کردن صفحه‌ساز</a><% } %>
+    </div>
+  </section>
+<% } %>
+
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

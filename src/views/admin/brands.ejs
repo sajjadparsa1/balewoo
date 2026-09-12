@@ -1,0 +1,127 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">برندها</h2>
+    <div class="text-xs text-muted mt-4">برندها در فیلتر آرشیو، صفحه برند و سئوی محصولات استفاده می‌شوند.</div>
+  </div>
+  <% if (can('brands.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openBrand(null)"><svg><use href="#i-plus"/></svg> برند جدید</button>
+  <% } %>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">فهرست برندها</h3>
+    <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> برند</span></div>
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th></th><th>نام برند</th><th>آدرس</th><th>محصولات</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (b) { %>
+            <tr>
+              <td><% if (b.logo) { %><span class="thumb-sm" style="width:34px;height:34px;background:#fff"><img src="<%= b.logo %>" alt=""></span>
+                <% } else { %><svg width="18" height="18" style="width:18px;height:18px;color:var(--text-3)"><use href="#i-tag"/></svg><% } %></td>
+              <td>
+                <b class="text-sm"><%= b.name %></b>
+                <% if (b.name_en) { %><span class="text-2xs text-muted mono" dir="ltr"> · <%= b.name_en %></span><% } %>
+                <% if (b.description) { %><div class="text-2xs text-muted"><%= h.truncate(h.stripTags(b.description), 70) %></div><% } %>
+              </td>
+              <td class="mono text-2xs" dir="ltr"><a href="/brand/<%= b.slug %>" target="_blank"><%= b.slug %></a></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(b.products_count || 0) %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(b.sort || 0) %></td>
+              <td><span class="badge <%= b.status === 'active' ? 'badge-success' : 'badge-outline' %>"><%= b.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <td class="actions">
+                <% if (can('brands.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openBrand(<%- JSON.stringify({ id: b.id, name: b.name, name_en: b.name_en || '', slug: b.slug, description: b.description || '', seo_title: b.seo_title || '', seo_desc: b.seo_desc || '', sort: b.sort || 0, status: b.status, logo: b.logo || '', banner: b.banner || '' }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/brands/<%= b.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="برند «<%= b.name %>» حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+                <a class="btn btn-sm btn-ghost" href="/brand/<%= b.slug %>" target="_blank" title="مشاهده صفحه برند"><svg><use href="#i-eye"/></svg></a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-tag"/></svg>
+      <h4>برندی ثبت نشده است</h4>
+      <p class="text-sm">برندها به فیلتر شدن محصولات و اعتبار فروشگاه کمک می‌کنند.</p>
+      <% if (can('brands.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openBrand(null)">افزودن برند</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('brands.manage')) { %>
+<div class="modal-backdrop" id="brandModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="brandModalTitle">برند جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/brands" enctype="multipart/form-data" data-upload-form>
+      <input type="hidden" name="id" id="brand_id" value="">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="b_name">نام برند <span class="req">*</span></label>
+            <input class="input" id="b_name" name="name" required></div>
+          <div class="field"><label for="b_name_en">نام انگلیسی</label>
+            <input class="input mono" id="b_name_en" name="name_en" dir="ltr" placeholder="Samsung"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="b_slug">آدرس یکتا</label>
+            <div class="input-group"><span class="addon" dir="ltr">/brand/</span>
+              <input class="input mono" id="b_slug" name="slug" dir="ltr" data-slug-from="#b_name"></div></div>
+          <div class="field"><label for="b_sort">ترتیب نمایش</label>
+            <input class="input mono" id="b_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+        </div>
+        <div class="field"><label for="b_desc">توضیحات</label>
+          <textarea class="textarea" id="b_desc" name="description" rows="3"></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label for="b_seo_title">عنوان سئو</label>
+            <input class="input" id="b_seo_title" name="seo_title" maxlength="70"></div>
+          <div class="field"><label for="b_seo_desc">توضیح متا</label>
+            <input class="input" id="b_seo_desc" name="seo_desc" maxlength="160"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="b_logo">لوگو</label>
+            <input class="input" id="b_logo" name="logo" type="file" accept="image/*">
+            <div class="input-group mt-10">
+              <input class="input mono" id="b_logo_url" name="logo_url" dir="ltr" placeholder="/uploads/brands/…">
+              <button class="btn btn-outline" type="button" data-media-pick="logo_url"><svg><use href="#i-folder"/></svg></button>
+            </div>
+            <div id="b_logo_prev" class="mt-10" data-preview-for="logo_url"></div></div>
+          <div class="field"><label for="b_banner">بنر برند</label>
+            <input class="input" id="b_banner" name="banner" type="file" accept="image/*">
+            <div class="help mt-10">ابعاد پیشنهادی ۱۹۲۰×۴۲۰ پیکسل — در صفحه برند نمایش داده می‌شود.</div>
+            <div id="b_banner_prev" class="mt-10"></div></div>
+        </div>
+        <div class="field m-0" style="max-width:200px"><label for="b_status">وضعیت</label>
+          <select class="select" id="b_status" name="status">
+            <option value="active">فعال</option>
+            <option value="inactive">غیرفعال</option>
+          </select></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره برند</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot', { includeMediaModal: true }) %>
+<script>
+  function openBrand(d) {
+    var f = document.querySelector('#brandModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('brandModalTitle').textContent = d ? 'ویرایش برند' : 'برند جدید';
+    ['id', 'name', 'name_en', 'slug', 'description', 'seo_title', 'seo_desc', 'sort', 'status', 'logo_url'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el) el.value = d && d[k] != null ? d[k] : (k === 'sort' ? 0 : '');
+    });
+    document.getElementById('b_logo_prev').innerHTML = d && d.logo ? '<img src="' + d.logo + '" alt="" style="max-height:80px;border-radius:10px;background:#fff;padding:6px">' : '';
+    document.getElementById('b_banner_prev').innerHTML = d && d.banner ? '<img src="' + d.banner + '" alt="" style="max-height:80px;border-radius:10px;width:100%;object-fit:cover">' : '';
+    openModal('brandModal');
+  }
+</script>

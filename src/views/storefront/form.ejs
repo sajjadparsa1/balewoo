@@ -1,0 +1,80 @@
+<%- include('../layouts/head', { bodyClass: 'page-form' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container container-xs">
+  <%- include('../partials/breadcrumb', { items: [{ name: form.title }] }) %>
+
+  <div class="card">
+    <div class="card-body" style="padding:26px">
+      <h1 style="font-size:1.2rem;margin-bottom:6px"><%= form.title %></h1>
+      <% if (form.description) { %><p class="text-sm text-muted mb-20" style="line-height:2"><%= form.description %></p><% } %>
+
+      <form method="post" action="/form/<%= form.slug %>">
+        <% (fields || []).forEach(function (f) { %>
+          <div class="field">
+            <label for="fld_<%= f.name %>"><%= f.label || f.name %> <% if (f.required) { %><span class="req">*</span><% } %></label>
+
+            <% if (f.type === 'textarea') { %>
+              <textarea class="textarea" id="fld_<%= f.name %>" name="<%= f.name %>" <%= f.required ? 'required' : '' %> placeholder="<%= f.placeholder || '' %>"></textarea>
+
+            <% } else if (f.type === 'select') { %>
+              <select class="select" id="fld_<%= f.name %>" name="<%= f.name %>" <%= f.required ? 'required' : '' %>>
+                <option value="">انتخاب کنید…</option>
+                <% (f.options || []).forEach(function (o) { %><option value="<%= o %>"><%= o %></option><% }) %>
+              </select>
+
+            <% } else if (f.type === 'radio') { %>
+              <div class="flex gap-14 flex-wrap mt-6">
+                <% (f.options || []).forEach(function (o, i) { %>
+                  <label class="check"><input type="radio" name="<%= f.name %>" value="<%= o %>" <%= i === 0 && f.required ? 'required' : '' %>> <%= o %></label>
+                <% }) %>
+              </div>
+
+            <% } else if (f.type === 'checkbox') { %>
+              <div class="flex gap-14 flex-wrap mt-6">
+                <% (f.options || []).forEach(function (o) { %>
+                  <label class="check"><input type="checkbox" name="<%= f.name %>" value="<%= o %>"> <%= o %></label>
+                <% }) %>
+              </div>
+
+            <% } else if (f.type === 'file') { %>
+              <input type="file" class="input" id="fld_<%= f.name %>" name="<%= f.name %>">
+
+            <% } else { %>
+              <input class="input" type="<%= f.type || 'text' %>" id="fld_<%= f.name %>" name="<%= f.name %>"
+                     <%= f.required ? 'required' : '' %> <%= f.type === 'tel' ? 'dir="ltr"' : '' %>
+                     placeholder="<%= f.placeholder || '' %>"
+                     value="<%= user && f.name === 'name' ? (user.name || '') : user && f.name === 'phone' ? (user.phone || '') : user && f.name === 'email' ? (user.email || '') : '' %>">
+            <% } %>
+
+            <% if (f.help) { %><div class="help"><%= f.help %></div><% } %>
+          </div>
+        <% }) %>
+
+        <% if (!(fields || []).length) { %>
+          <div class="alert alert-warning"><svg><use href="#i-alert"/></svg><div class="body">این فرم هیچ فیلدی ندارد. از پنل مدیریت › محتوا › فرم‌ساز فیلدها را تعریف کنید.</div></div>
+        <% } %>
+
+        <div class="flex items-center gap-10 mt-20">
+          <button class="btn btn-primary btn-lg" type="submit" <%= !(fields || []).length ? 'disabled' : '' %>>
+            <svg><use href="#i-send"/></svg> ارسال
+          </button>
+          <span class="text-xs text-muted">اطلاعات شما محرمانه است و تنها برای پاسخگویی استفاده می‌شود.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-20"><div class="card-body flex items-center justify-between gap-14 flex-wrap">
+    <div class="flex items-center gap-10">
+      <svg width="26" height="26" style="color:var(--brand);width:26px;height:26px"><use href="#i-headset"/></svg>
+      <div><div class="bold text-sm">تماس مستقیم با پشتیبانی</div>
+        <div class="text-xs text-muted"><% if (site.phone) { %><span dir="ltr"><%= h.toPersianDigits(site.phone) %></span> · <% } %><%= site.email %></div></div>
+    </div>
+    <a class="btn btn-sm btn-outline" href="/faq">پرسش‌های متداول</a>
+  </div></div>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

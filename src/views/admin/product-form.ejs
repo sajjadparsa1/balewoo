@@ -1,0 +1,403 @@
+<%
+  const isNew = !p;
+  const specs = (p && p.specs) || [];
+  const highlights = (p && p.highlights) || [];
+  const attrs = (p && p.attributes) || {};
+  const stockByWarehouse = {};
+  (typeof stock !== 'undefined' ? stock : []).forEach(function (s) { stockByWarehouse[s.warehouse_id] = s.qty; });
+  const catOptions = [];
+  (function walk(list, depth) {
+    (list || []).forEach(function (c) { catOptions.push({ id: c.id, name: '—'.repeat(depth) + (depth ? ' ' : '') + c.name }); walk(c.children, depth + 1); });
+  })(categories, 0);
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0"><%= isNew ? 'افزودن محصول' : 'ویرایش محصول' %></h2>
+    <div class="text-xs text-muted mt-4"><% if (!isNew) { %>شناسه <span class="mono" dir="ltr">#<%= h.toPersianDigits(p.id) %></span> · آخرین بروزرسانی <%= p.updated_at ? h.formatJalali(p.updated_at) : '—' %><% } else { %>همه فیلدهای بازاریابی، سئو و انبار از اینجا قابل تنظیم است.<% } %></div>
+  </div>
+  <div class="flex gap-8">
+    <% if (!isNew) { %><a class="btn btn-sm" href="/product/<%= p.slug %>" target="_blank"><svg><use href="#i-eye"/></svg> مشاهده</a><% } %>
+    <a class="btn btn-sm" href="/admin/products"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+  </div>
+</div>
+
+<form method="post" action="/admin/products" enctype="multipart/form-data" data-upload-form>
+  <% if (!isNew) { %><input type="hidden" name="id" value="<%= p.id %>"><% } %>
+
+  <div class="grid g-panel">
+    <div class="stack">
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">اطلاعات اصلی</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_title">عنوان محصول <span class="req">*</span></label>
+            <input class="input" id="f_title" name="title" required maxlength="250" value="<%= isNew ? '' : p.title %>"></div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_title_en">عنوان انگلیسی</label>
+              <input class="input" id="f_title_en" name="title_en" dir="ltr" value="<%= isNew ? '' : (p.title_en || '') %>"></div>
+            <div class="field"><label for="f_slug">آدرس یکتا</label>
+              <div class="input-group"><span class="addon" dir="ltr">/product/</span>
+                <input class="input mono" id="f_slug" name="slug" dir="ltr" value="<%= isNew ? '' : p.slug %>" data-slug-from="#f_title"></div></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_cat">دسته‌بندی</label>
+              <select class="select" id="f_cat" name="category_id">
+                <option value="">بدون دسته</option>
+                <% catOptions.forEach(function (c) { %>
+                  <option value="<%= c.id %>" <%= !isNew && p.category_id === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+              </select></div>
+            <div class="field"><label for="f_brand">برند</label>
+              <select class="select" id="f_brand" name="brand_id">
+                <option value="">بدون برند</option>
+                <% (brands || []).forEach(function (b) { %>
+                  <option value="<%= b.id %>" <%= !isNew && p.brand_id === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_seller">فروشنده</label>
+              <select class="select" id="f_seller" name="seller_id">
+                <% sellers.forEach(function (s) { %>
+                  <option value="<%= s.id %>" <%= !isNew && p.seller_id === s.id ? 'selected' : '' %> <%= s.is_main ? '' : '' %>><%= s.shop_name %><%= s.is_main ? ' (فروشگاه اصلی)' : '' %></option>
+                <% }) %>
+              </select></div>
+            <div class="field"><label for="f_sku">کد کالا (SKU)</label>
+              <input class="input mono" id="f_sku" name="sku" dir="ltr" value="<%= isNew ? '' : (p.sku || '') %>"></div>
+          </div>
+          <div class="grid g-3">
+            <div class="field"><label for="f_cond">وضعیت کالا</label>
+              <select class="select" id="f_cond" name="condition_txt">
+                <option value="new" <%= !isNew && p.condition_txt === 'new' ? 'selected' : '' %>>آکبند</option>
+                <option value="refurbished" <%= !isNew && p.condition_txt === 'refurbished' ? 'selected' : '' %>>بازسازی‌شده</option>
+                <option value="used" <%= !isNew && p.condition_txt === 'used' ? 'selected' : '' %>>دست دوم</option>
+              </select></div>
+            <div class="field"><label for="f_warranty">گارانتی</label>
+              <input class="input" id="f_warranty" name="warranty" value="<%= isNew ? '' : (p.warranty || '') %>"></div>
+            <div class="field"><label for="f_weight">وزن (گرم)</label>
+              <input class="input mono" id="f_weight" name="weight" dir="ltr" inputmode="decimal" value="<%= isNew ? '' : (p.weight || '') %>"></div>
+          </div>
+          <div class="field"><label for="f_short">خلاصه توضیحات</label>
+            <textarea class="textarea" id="f_short" name="short_desc" rows="3"><%= isNew ? '' : (p.short_desc || '') %></textarea></div>
+          <div class="field"><label for="f_desc">توضیحات کامل</label>
+            <div class="rich-editor" data-editor>
+              <div class="toolbar">
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertUnorderedList">• فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertOrderedList">۱. فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h3">تیتر</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="createLink">پیوند</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertImage">تصویر</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="removeFormat">پاکسازی</button>
+              </div>
+              <div class="editable" contenteditable="true" data-placeholder="توضیحات کامل محصول…"></div>
+              <textarea id="f_desc" name="description" hidden><%= isNew ? '' : (p.description || '') %></textarea>
+            </div>
+          </div>
+          <div class="field"><label for="f_keywords">کلمات کلیدی</label>
+            <input class="input" id="f_keywords" name="keywords" value="<%= isNew ? '' : (p.keywords || '') %>">
+            <div class="help">با کاما جدا کنید — برای سئوی محصول استفاده می‌شود.</div></div>
+          <label class="switch mt-10"><input type="checkbox" name="is_inquiry" value="1" <%= !isNew && p.is_inquiry ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">حالت استعلام قیمت (بدون نمایش قیمت)</span></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">قیمت، موجودی و انبار</h3></div>
+        <div class="card-body">
+          <div class="grid g-3">
+            <div class="field"><label for="f_price">قیمت فروش <span class="req">*</span></label>
+              <input class="input mono" id="f_price" name="price" dir="ltr" inputmode="numeric" required data-money-input value="<%= isNew ? '' : p.price %>"></div>
+            <div class="field"><label for="f_old">قیمت قبل از تخفیف</label>
+              <input class="input mono" id="f_old" name="old_price" dir="ltr" inputmode="numeric" data-money-input value="<%= isNew ? '' : (p.old_price || '') %>"></div>
+            <div class="field"><label for="f_stock">موجودی کل</label>
+              <input class="input mono" id="f_stock" name="stock" dir="ltr" inputmode="numeric" value="<%= isNew ? '0' : p.stock %>"></div>
+          </div>
+          <div class="grid g-3">
+            <div class="field"><label for="f_ds">شروع تخفیف</label>
+              <input class="input mono" id="f_ds" name="discount_start" dir="ltr" value="<%= isNew ? '' : (p.discount_start || '') %>" placeholder="1404-05-01 00:00:00"></div>
+            <div class="field"><label for="f_de">پایان تخفیف</label>
+              <input class="input mono" id="f_de" name="discount_end" dir="ltr" value="<%= isNew ? '' : (p.discount_end || '') %>" placeholder="1404-05-15 23:59:59"></div>
+            <div class="field"><label for="f_rate">ضریب ارز پایه</label>
+              <input class="input mono" id="f_rate" name="base_currency_rate" dir="ltr" inputmode="decimal" value="<%= isNew ? '1' : (p.base_currency_rate || 1) %>">
+              <div class="help">برای فروشگاه‌های چندارزی.</div></div>
+          </div>
+
+          <% if ((warehouses || []).length) { %>
+            <div class="divider"></div>
+            <h4 class="text-sm mb-14">موجودی تفکیکی انبارها</h4>
+            <div class="grid g-3">
+              <% warehouses.forEach(function (w) { %>
+                <div class="field"><label for="wq_<%= w.id %>"><%= w.name %><%= w.is_default ? ' (پیش‌فرض)' : '' %></label>
+                  <input class="input mono" id="wq_<%= w.id %>" name="warehouse_qty[<%= w.id %>]" dir="ltr" inputmode="numeric"
+                         value="<%= stockByWarehouse[w.id] != null ? stockByWarehouse[w.id] : '' %>" placeholder="—"></div>
+              <% }) %>
+            </div>
+            <div class="help">مجموع موجودی انبارها به‌عنوان موجودی محصول ذخیره می‌شود.</div>
+          <% } %>
+
+          <div class="grid g-3 mt-14">
+            <div class="field"><label for="f_min">حداقل تعداد در سفارش</label>
+              <input class="input mono" id="f_min" name="min_order" dir="ltr" inputmode="numeric" value="<%= isNew ? '1' : (p.min_order || 1) %>"></div>
+            <div class="field"><label for="f_max">حداکثر تعداد در سفارش</label>
+              <input class="input mono" id="f_max" name="max_order" dir="ltr" inputmode="numeric" value="<%= isNew ? '' : (p.max_order || '') %>" placeholder="بدون محدودیت"></div>
+            <div class="field"><label for="f_points">امتیاز باشگاه مشتریان</label>
+              <input class="input mono" id="f_points" name="points_reward" dir="ltr" inputmode="numeric" value="<%= isNew ? '' : (p.points_reward || '') %>">
+              <div class="help">خالی بگذارید تا بر اساس درصد مبلغ خرید محاسبه شود.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">متغیرها</h3><span class="text-xs text-muted">رنگ، سایز، حافظه و…</span></div>
+        <div class="card-body">
+          <div id="variantsWrap">
+            <% (variants || []).forEach(function (v) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input type="hidden" name="variant_ids[]" value="<%= v.id %>">
+                <input class="input input-sm" name="variant_titles[]" placeholder="عنوان" value="<%= v.title %>">
+                <input class="input input-sm mono" name="variant_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت" value="<%= v.price || '' %>">
+                <input class="input input-sm mono" name="variant_old_prices[]" dir="ltr" inputmode="numeric" placeholder="قبل تخفیف" value="<%= v.old_price || '' %>">
+                <input class="input input-sm mono" name="variant_stocks[]" dir="ltr" inputmode="numeric" placeholder="موجودی" value="<%= v.stock || 0 %>">
+                <input class="input input-sm mono" name="variant_skus[]" dir="ltr" placeholder="SKU" value="<%= v.sku || '' %>">
+                <input class="input input-sm mono" name="variant_weights[]" dir="ltr" inputmode="decimal" placeholder="وزن" value="<%= v.weight || '' %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="variantTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input type="hidden" name="variant_ids[]" value="">
+              <input class="input input-sm" name="variant_titles[]" placeholder="عنوان">
+              <input class="input input-sm mono" name="variant_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت">
+              <input class="input input-sm mono" name="variant_old_prices[]" dir="ltr" inputmode="numeric" placeholder="قبل تخفیف">
+              <input class="input input-sm mono" name="variant_stocks[]" dir="ltr" inputmode="numeric" placeholder="موجودی" value="0">
+              <input class="input input-sm mono" name="variant_skus[]" dir="ltr" placeholder="SKU">
+              <input class="input input-sm mono" name="variant_weights[]" dir="ltr" inputmode="decimal" placeholder="وزن">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="variantTpl" data-repeater-target="variantsWrap"><svg><use href="#i-plus"/></svg> افزودن متغیر</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ویژگی‌های اختیاری و تخفیف پلکانی</h3></div>
+        <div class="card-body">
+          <div id="optionsWrap">
+            <% (extraOptions || []).forEach(function (o) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="option_titles[]" placeholder="عنوان ویژگی" value="<%= o.title %>">
+                <input class="input input-sm mono" name="option_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت" value="<%= o.price || 0 %>">
+                <label class="check m-0"><input type="checkbox" name="option_required[]" value="1" <%= o.is_required ? 'checked' : '' %>> اجباری</label>
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="optionTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="option_titles[]" placeholder="عنوان ویژگی">
+              <input class="input input-sm mono" name="option_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت" value="0">
+              <label class="check m-0"><input type="checkbox" name="option_required[]" value="1"> اجباری</label>
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="optionTpl" data-repeater-target="optionsWrap"><svg><use href="#i-plus"/></svg> افزودن ویژگی</button>
+
+          <div class="divider"></div>
+          <div id="tiersWrap">
+            <% (tiers || []).forEach(function (t) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm mono" name="tier_qty[]" dir="ltr" inputmode="numeric" placeholder="حداقل تعداد" value="<%= t.min_qty %>">
+                <input class="input input-sm mono" name="tier_price[]" dir="ltr" inputmode="numeric" placeholder="قیمت واحد" value="<%= t.price || '' %>">
+                <input class="input input-sm mono" name="tier_percent[]" dir="ltr" inputmode="decimal" placeholder="یا درصد" value="<%= t.percent || '' %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="tierTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm mono" name="tier_qty[]" dir="ltr" inputmode="numeric" placeholder="حداقل تعداد">
+              <input class="input input-sm mono" name="tier_price[]" dir="ltr" inputmode="numeric" placeholder="قیمت واحد">
+              <input class="input input-sm mono" name="tier_percent[]" dir="ltr" inputmode="decimal" placeholder="یا درصد">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="tierTpl" data-repeater-target="tiersWrap"><svg><use href="#i-plus"/></svg> افزودن پله تخفیف</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">مشخصات و ویژگی‌های کلیدی</h3></div>
+        <div class="card-body">
+          <div id="specsWrap">
+            <% specs.forEach(function (s) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="spec_titles[]" placeholder="مشخصه" value="<%= s.title %>">
+                <input class="input input-sm" name="spec_values[]" placeholder="مقدار" value="<%= s.value %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="specTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="spec_titles[]" placeholder="مشخصه">
+              <input class="input input-sm" name="spec_values[]" placeholder="مقدار">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="specTpl" data-repeater-target="specsWrap"><svg><use href="#i-plus"/></svg> افزودن مشخصه</button>
+
+          <div class="divider"></div>
+          <div id="highlightsWrap">
+            <% highlights.forEach(function (hl) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="highlight_titles[]" placeholder="عنوان" value="<%= hl.title %>">
+                <input class="input input-sm" name="highlight_values[]" placeholder="توضیح" value="<%= hl.value %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="highlightTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="highlight_titles[]" placeholder="عنوان">
+              <input class="input input-sm" name="highlight_values[]" placeholder="توضیح">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="highlightTpl" data-repeater-target="highlightsWrap"><svg><use href="#i-plus"/></svg> افزودن ویژگی کلیدی</button>
+        </div>
+      </section>
+
+      <% if ((attributeGroups || []).length) { %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">خصوصیات فیلترپذیر</h3></div>
+          <div class="card-body grid g-2">
+            <% attributeGroups.forEach(function (g) { %>
+              <% const selected = (attrs[g.id] || []).map(String); %>
+              <div class="field">
+                <label><%= g.name %><% if (g.unit) { %> (<%= g.unit %>)<% } %></label>
+                <% if (g.type === 'multi' || g.type === 'color') { %>
+                  <div class="stack" style="gap:6px;max-height:140px;overflow:auto">
+                    <% (g.options || []).forEach(function (o) { %>
+                      <label class="check m-0"><input type="checkbox" name="attributes[<%= g.id %>][]" value="<%= o.id %>" <%= selected.indexOf(String(o.id)) > -1 ? 'checked' : '' %>>
+                        <% if (o.color) { %><span class="color-dot" style="background:<%= o.color %>"></span><% } %><%= o.title %></label>
+                    <% }) %>
+                  </div>
+                <% } else if (g.type === 'select' || g.type === 'bool') { %>
+                  <select class="select" name="attributes[<%= g.id %>]">
+                    <option value="">—</option>
+                    <% (g.options || []).forEach(function (o) { %>
+                      <option value="<%= o.id %>" <%= selected.indexOf(String(o.id)) > -1 ? 'selected' : '' %>><%= o.title %></option><% }) %>
+                  </select>
+                <% } else { %>
+                  <input class="input mono" name="attributes[<%= g.id %>][]" dir="ltr" value="<%= selected[0] || '' %>">
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سئو</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_seo_title">عنوان سئو</label>
+            <input class="input" id="f_seo_title" name="seo_title" maxlength="70" value="<%= isNew ? '' : (p.seo_title || '') %>"></div>
+          <div class="field"><label for="f_seo_desc">توضیح متا</label>
+            <textarea class="textarea" id="f_seo_desc" name="seo_desc" rows="3" maxlength="160"><%= isNew ? '' : (p.seo_desc || '') %></textarea></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack sticky-col">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">انتشار</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_status">وضعیت</label>
+            <select class="select" id="f_status" name="status">
+              <option value="active" <%= !isNew && p.status === 'active' ? 'selected' : '' %>>فعال (منتشر شده)</option>
+              <option value="pending" <%= !isNew && p.status === 'pending' ? 'selected' : '' %>>در انتظار تایید</option>
+              <option value="inactive" <%= !isNew && p.status === 'inactive' ? 'selected' : '' %>>غیرفعال</option>
+              <option value="draft" <%= !isNew && p.status === 'draft' ? 'selected' : '' %>>پیش‌نویس</option>
+              <option value="rejected" <%= !isNew && p.status === 'rejected' ? 'selected' : '' %>>رد شده</option>
+            </select></div>
+          <label class="switch"><input type="checkbox" name="is_special" value="1" <%= !isNew && p.is_special ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">فروش ویژه</span></label>
+          <label class="switch"><input type="checkbox" name="is_featured" value="1" <%= !isNew && p.is_featured ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">محصول پیشنهادی</span></label>
+          <label class="switch"><input type="checkbox" name="is_best_seller" value="1" <%= !isNew && p.is_best_seller ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">پرفروش</span></label>
+          <label class="switch"><input type="checkbox" name="affiliate" value="1" <%= !isNew && p.affiliate ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">همکاری در فروش</span></label>
+          <div class="grid g-3 mt-10">
+            <div class="field m-0"><label for="f_aff_g">طلایی ٪</label>
+              <input class="input input-sm mono" id="f_aff_g" name="aff_gold" dir="ltr" value="<%= isNew ? setting('affiliate_gold_percent', '5') : (p.aff_gold || 0) %>"></div>
+            <div class="field m-0"><label for="f_aff_s">نقره‌ای ٪</label>
+              <input class="input input-sm mono" id="f_aff_s" name="aff_silver" dir="ltr" value="<%= isNew ? setting('affiliate_silver_percent', '3') : (p.aff_silver || 0) %>"></div>
+            <div class="field m-0"><label for="f_aff_b">برنزی ٪</label>
+              <input class="input input-sm mono" id="f_aff_b" name="aff_bronze" dir="ltr" value="<%= isNew ? setting('affiliate_bronze_percent', '1') : (p.aff_bronze || 0) %>"></div>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-save"/></svg> <%= isNew ? 'ایجاد محصول' : 'ذخیره تغییرات' %></button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">تصاویر</h3></div>
+        <div class="card-body">
+          <div class="dropzone" data-dropzone data-target="#f_images">
+            <svg><use href="#i-image"/></svg>
+            <div class="text-sm">رها کردن یا کلیک برای انتخاب</div>
+            <div class="dz-hint text-xs">حداکثر ۱۵ تصویر</div>
+          </div>
+          <input class="input mt-10" id="f_images" name="images" type="file" accept="image/*" multiple>
+
+          <% if ((images || []).length) { %>
+            <div class="divider"></div>
+            <div class="media-grid sm">
+              <% images.forEach(function (im) { %>
+                <div class="media-item" data-path="<%= im.media_path %>">
+                  <div class="prev"><img src="<%= im.media_path %>" alt="" loading="lazy"></div>
+                  <div class="meta"><div class="n"><%= im.kind === 'cover' ? 'کاور' : 'گالری' %></div>
+                    <label class="check m-0 text-2xs"><input type="radio" name="cover_image" value="<%= im.media_path %>" <%= im.kind === 'cover' ? 'checked' : '' %>> کاور</label></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <div class="divider"></div>
+          <div class="field m-0"><label for="f_lib">از کتابخانه مدیا</label>
+            <div class="input-group">
+              <input class="input mono" id="f_lib" name="library_images" dir="ltr" placeholder="/uploads/products/…">
+              <button class="btn btn-outline" type="button" data-media-pick="library_images" data-media-multi="1"><svg><use href="#i-folder"/></svg> انتخاب</button>
+            </div></div>
+        </div>
+      </section>
+
+      <% if (!isNew && (typeof history !== 'undefined') && history.length) { %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">تاریخچه قیمت</h3></div>
+          <div class="card-body">
+            <canvas class="chart" style="max-height:150px" data-chart='<%- JSON.stringify({
+              type: 'line',
+              labels: history.map(function (x) { return String(x.created_at).slice(5, 10); }).reverse(),
+              series: [{ data: history.map(function (x) { return x.price; }).reverse() }]
+            }) %>'></canvas>
+            <div class="stack mt-10" style="gap:5px;max-height:150px;overflow:auto">
+              <% history.slice(0, 10).forEach(function (x) { %>
+                <div class="flex items-center justify-between gap-8 text-2xs">
+                  <span><%= h.formatJalali(x.created_at) %></span>
+                  <span class="mono bold"><%= h.fa(x.price) %></span>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </section>
+      <% } %>
+    </aside>
+  </div>
+</form>
+
+<%- include('../partials/panel-foot', { includeMediaModal: true }) %>

@@ -1,0 +1,127 @@
+<%
+  const ROUTES = { home: 'صفحه نخست', category: 'صفحه دسته‌بندی', custom: 'صفحه دلخواه' };
+  const THEMES = { classic: 'کلاسیک (دیجی‌کالا)', modern: 'مدرن', minimal: 'مینیمال', fashion: 'مد و پوشاک', fresh: 'سوپرمارکت', tools: 'ابزارآلات' };
+  const canManage = can('templates.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">قالب و صفحه‌ساز <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> قالب</span></h2>
+  <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="tplModal" onclick="openTpl(null)"><svg><use href="#i-plus"/></svg> قالب جدید</button><% } %>
+</div>
+
+<div class="alert alert-info mb-20"><svg><use href="#i-info"/></svg><div class="body text-xs">
+  هر قالب مجموعه‌ای از «بخش‌ها» است که به ترتیب در صفحه هدف چیده می‌شوند. برای هر جایگاه (مثل صفحه نخست) فقط یک قالب فعال است؛
+  اگر هیچ قالب فعالی نباشد، چیدمان پیش‌فرض سیستم نمایش داده می‌شود.
+</div></div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>قالب</th><th>جایگاه</th><th>تم</th><th>بخش‌ها</th><th>بروزرسانی</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (t) { %>
+            <tr>
+              <td>
+                <b class="text-sm block"><%= t.name %></b>
+                <span class="text-2xs text-muted mono" dir="ltr">id #<%= h.toPersianDigits(t.id) %></span>
+              </td>
+              <td><span class="badge badge-outline text-2xs"><%= ROUTES[t.route] || t.route %></span></td>
+              <td class="text-xs"><%= THEMES[t.theme] || t.theme %></td>
+              <td>
+                <span class="badge badge-info text-2xs"><%= h.toPersianDigits(t.sections.length) %> بخش</span>
+                <% if (t.sections.length) { %>
+                  <div class="text-2xs text-muted mt-4"><%= t.sections.slice(0, 4).map(function (s) { return s.title || s.type; }).join(' › ') %><%= t.sections.length > 4 ? ' …' : '' %></div>
+                <% } %>
+              </td>
+              <td class="text-2xs"><%= t.updated_at ? h.timeAgo(t.updated_at) : h.formatJalali(t.created_at) %></td>
+              <td>
+                <% if (t.is_active) { %><span class="badge badge-success">فعال</span>
+                <% } else { %><span class="badge badge-outline"><%= t.status === 'published' ? 'منتشر (غیرفعال)' : 'پیش‌نویس' %></span><% } %>
+              </td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/admin/content/templates/<%= t.id %>/edit" title="ویرایش چیدمان"><svg><use href="#i-layout"/></svg></a>
+                <% if (canManage) { %>
+                  <% if (!t.is_active) { %>
+                    <form method="post" action="/admin/content/templates" class="m-0">
+                      <input type="hidden" name="id" value="<%= t.id %>">
+                      <input type="hidden" name="name" value="<%= t.name %>">
+                      <input type="hidden" name="route" value="<%= t.route %>">
+                      <input type="hidden" name="theme" value="<%= t.theme %>">
+                      <input type="hidden" name="status" value="published">
+                      <input type="hidden" name="activate" value="1">
+                      <button class="btn btn-sm btn-ghost text-success" type="submit" title="فعال‌سازی این قالب"
+                              data-confirm-click="قالب «<%= t.name %>» برای «<%= ROUTES[t.route] || t.route %>» فعال شود؟ قالب فعال قبلی غیرفعال می‌گردد."><svg><use href="#i-check"/></svg></button>
+                    </form>
+                  <% } %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش مشخصات"
+                          onclick='openTpl(<%- JSON.stringify(t) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/content/templates/<%= t.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف قالب"
+                            data-confirm-click="قالب «<%= t.name %>» و چیدمان آن حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-layout"/></svg></span>
+      <h3>قالبی ساخته نشده است</h3>
+      <p>در حال حاضر چیدمان پیش‌فرض صفحه نخست نمایش داده می‌شود. برای شخصی‌سازی، یک قالب بسازید و بخش‌ها را بچینید.</p>
+      <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="tplModal" onclick="openTpl(null)"><svg><use href="#i-plus"/></svg> ساخت قالب</button><% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="tplModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="tplTitle">قالب جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/templates">
+      <input type="hidden" name="id" id="tplId">
+      <div class="modal-body">
+        <div class="field"><label for="tplName">نام قالب <i class="req">*</i></label>
+          <input class="input" id="tplName" name="name" required placeholder="صفحه نخست — نوروز"></div>
+        <div class="grid g-2">
+          <div class="field"><label for="tplRoute">جایگاه نمایش</label>
+            <select class="select" id="tplRoute" name="route">
+              <% Object.keys(ROUTES).forEach(function (k) { %><option value="<%= k %>"><%= ROUTES[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="tplTheme">تم</label>
+            <select class="select" id="tplTheme" name="theme">
+              <% Object.keys(THEMES).forEach(function (k) { %><option value="<%= k %>"><%= THEMES[k] %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="field"><label for="tplStatus">وضعیت</label>
+          <select class="select" id="tplStatus" name="status">
+            <option value="draft">پیش‌نویس</option><option value="published">منتشر شده</option>
+          </select></div>
+        <label class="switch-row"><input type="checkbox" name="activate" id="tplActivate" value="1"><span>پس از ذخیره، این قالب فعال شود</span></label>
+        <div class="alert alert-info mt-10"><svg><use href="#i-info"/></svg><div class="body text-xs">
+          پس از ذخیره به صفحه چیدمان بخش‌ها می‌روید تا اسلایدر، دسته‌بندی‌ها، لیست محصولات و… را اضافه کنید.
+        </div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره قالب</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openTpl(t) {
+    document.getElementById('tplTitle').textContent = t ? 'ویرایش قالب' : 'قالب جدید';
+    document.getElementById('tplId').value = t ? t.id : '';
+    document.getElementById('tplName').value = t ? t.name : '';
+    document.getElementById('tplRoute').value = t ? (t.route || 'home') : 'home';
+    document.getElementById('tplTheme').value = t ? (t.theme || 'classic') : 'classic';
+    document.getElementById('tplStatus').value = t ? (t.status || 'draft') : 'draft';
+    document.getElementById('tplActivate').checked = !t || !!t.is_active;
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

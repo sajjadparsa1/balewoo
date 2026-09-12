@@ -1,0 +1,393 @@
+<%
+  const isNew = !p;
+  const specs = (p && p.specs) || [];
+  const highlights = (p && p.highlights) || [];
+  const attrs = (p && p.attributes) || {};
+  const catOptions = [];
+  (function walk(list, depth) {
+    (list || []).forEach(function (c) {
+      catOptions.push({ id: c.id, name: '—'.repeat(depth) + (depth ? ' ' : '') + c.name });
+      walk(c.children, depth + 1);
+    });
+  })(categories, 0);
+  const needApproval = String(setting('seller_products_need_approval', '1')) === '1';
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0"><%= isNew ? 'افزودن محصول جدید' : 'ویرایش محصول' %></h2>
+    <div class="text-xs text-muted mt-4">
+      <% if (needApproval) { %>محصولات پس از ثبت، برای تایید به مدیریت ارسال می‌شوند.<% } else { %>محصولات بلافاصله در فروشگاه منتشر می‌شوند.<% } %>
+    </div>
+  </div>
+  <div class="flex gap-8">
+    <% if (!isNew) { %><a class="btn btn-sm" href="/product/<%= p.slug %>" target="_blank"><svg><use href="#i-eye"/></svg> مشاهده در فروشگاه</a><% } %>
+    <a class="btn btn-sm" href="/seller/products"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+  </div>
+</div>
+
+<form method="post" action="/seller/products" enctype="multipart/form-data" data-upload-form id="productForm">
+  <% if (!isNew) { %><input type="hidden" name="id" value="<%= p.id %>"><% } %>
+
+  <div class="grid g-panel">
+    <div class="stack">
+
+      <!-- اطلاعات اصلی -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">اطلاعات اصلی</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_title">عنوان محصول <span class="req">*</span></label>
+            <input class="input" id="f_title" name="title" value="<%= isNew ? '' : p.title %>" required maxlength="250"
+                   placeholder="مثلاً: ساعت هوشمند سامسونگ مدل Galaxy Watch5 44mm">
+            <div class="help">عنوان دقیق و کامل، شانس دیده‌شدن محصول را افزایش می‌دهد.</div></div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_title_en">عنوان انگلیسی</label>
+              <input class="input" id="f_title_en" name="title_en" dir="ltr" value="<%= isNew ? '' : (p.title_en || '') %>"></div>
+            <div class="field"><label for="f_slug">آدرس یکتا (slug)</label>
+              <div class="input-group"><span class="addon" dir="ltr">/product/</span>
+                <input class="input mono" id="f_slug" name="slug" dir="ltr" value="<%= isNew ? '' : p.slug %>" data-slug-from="#f_title"></div>
+              <div class="help">خالی بگذارید تا از عنوان ساخته شود.</div></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_cat">دسته‌بندی <span class="req">*</span></label>
+              <select class="select" id="f_cat" name="category_id" required>
+                <option value="">انتخاب دسته…</option>
+                <% catOptions.forEach(function (c) { %>
+                  <option value="<%= c.id %>" <%= !isNew && p.category_id === c.id ? 'selected' : '' %>><%= c.name %></option>
+                <% }) %>
+              </select></div>
+            <div class="field"><label for="f_brand">برند</label>
+              <select class="select" id="f_brand" name="brand_id">
+                <option value="">بدون برند</option>
+                <% (brands || []).forEach(function (b) { %>
+                  <option value="<%= b.id %>" <%= !isNew && p.brand_id === b.id ? 'selected' : '' %>><%= b.name %></option>
+                <% }) %>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_sku">کد کالا (SKU)</label>
+              <input class="input mono" id="f_sku" name="sku" dir="ltr" value="<%= isNew ? '' : (p.sku || '') %>"></div>
+            <div class="field"><label for="f_condition">وضعیت کالا</label>
+              <select class="select" id="f_condition" name="condition_txt">
+                <option value="new" <%= !isNew && p.condition_txt === 'new' ? 'selected' : '' %>>آکبند (نو)</option>
+                <option value="refurbished" <%= !isNew && p.condition_txt === 'refurbished' ? 'selected' : '' %>>بازسازی‌شده</option>
+                <option value="used" <%= !isNew && p.condition_txt === 'used' ? 'selected' : '' %>>دست دوم</option>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_warranty">گارانتی</label>
+              <input class="input" id="f_warranty" name="warranty" value="<%= isNew ? '' : (p.warranty || '') %>" placeholder="۱۸ ماه گارانتی شرکتی"></div>
+            <div class="field"><label for="f_weight">وزن (گرم)</label>
+              <input class="input mono" id="f_weight" name="weight" dir="ltr" inputmode="decimal" value="<%= isNew ? '' : (p.weight || '') %>" placeholder="350">
+              <div class="help">برای محاسبه هزینه ارسال استفاده می‌شود.</div></div>
+          </div>
+          <div class="field"><label for="f_short">خلاصه توضیحات</label>
+            <textarea class="textarea" id="f_short" name="short_desc" rows="3"><%= isNew ? '' : (p.short_desc || '') %></textarea></div>
+          <div class="field"><label for="f_desc">توضیحات کامل</label>
+            <div class="rich-editor" data-editor>
+              <div class="toolbar">
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="underline"><u>U</u></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertUnorderedList">• فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertOrderedList">۱. فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h3">تیتر</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="createLink">پیوند</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="removeFormat">پاکسازی</button>
+              </div>
+              <div class="editable" contenteditable="true" data-placeholder="توضیحات کامل محصول را اینجا بنویسید…"></div>
+              <textarea id="f_desc" name="description" hidden><%= isNew ? '' : (p.description || '') %></textarea>
+            </div>
+          </div>
+          <div class="field"><label for="f_keywords">کلمات کلیدی</label>
+            <input class="input" id="f_keywords" name="keywords" value="<%= isNew ? '' : (p.keywords || '') %>" placeholder="ساعت هوشمند، سامسونگ، گالکسی واچ">
+            <div class="help">با کاما جدا کنید.</div></div>
+          <label class="switch mt-14"><input type="checkbox" name="is_inquiry" value="1" <%= !isNew && p.is_inquiry ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">حالت استعلام قیمت (بدون نمایش قیمت، ثبت درخواست استعلام)</span></label>
+        </div>
+      </section>
+
+      <!-- قیمت و موجودی -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">قیمت و موجودی</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="f_price">قیمت فروش (<%= site.currency %>) <span class="req">*</span></label>
+              <input class="input mono" id="f_price" name="price" dir="ltr" inputmode="numeric" required value="<%= isNew ? '' : p.price %>" data-money-input></div>
+            <div class="field"><label for="f_old">قیمت قبل از تخفیف</label>
+              <input class="input mono" id="f_old" name="old_price" dir="ltr" inputmode="numeric" value="<%= isNew ? '' : (p.old_price || '') %>" data-money-input>
+              <div class="help">بزرگ‌تر از قیمت فروش باشد تا درصد تخفیف نمایش داده شود.</div></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="f_ds">شروع تخفیف</label>
+              <input class="input mono" id="f_ds" name="discount_start" dir="ltr" placeholder="1404-05-01 00:00:00" value="<%= isNew ? '' : (p.discount_start || '') %>"></div>
+            <div class="field"><label for="f_de">پایان تخفیف</label>
+              <input class="input mono" id="f_de" name="discount_end" dir="ltr" placeholder="1404-05-15 23:59:59" value="<%= isNew ? '' : (p.discount_end || '') %>"></div>
+          </div>
+          <div class="field"><label for="f_stock">موجودی انبار <span class="req">*</span></label>
+            <input class="input mono" id="f_stock" name="stock" dir="ltr" inputmode="numeric" required value="<%= isNew ? '0' : p.stock %>">
+            <% if ((warehouses || []).length) { %><div class="help">موجودی انبارها: <% warehouses.forEach(function (w) { %><span class="badge badge-outline"><%= w.name %></span> <% }) %>— از بخش <a class="text-brand" href="/seller/warehouses">انبارها</a> قابل مدیریت است.</div><% } %>
+          </div>
+        </div>
+      </section>
+
+      <!-- متغیرها -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">متغیرها (رنگ، سایز، حافظه…)</h3>
+          <span class="text-xs text-muted">هر متغیر قیمت و موجودی مستقل دارد.</span></div>
+        <div class="card-body">
+          <div id="variantsWrap">
+            <% (variants || []).forEach(function (v) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="variant_titles[]" placeholder="عنوان متغیر" value="<%= v.title %>">
+                <input class="input input-sm mono" name="variant_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت" value="<%= v.price || '' %>">
+                <input class="input input-sm mono" name="variant_old_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت قبل تخفیف" value="<%= v.old_price || '' %>">
+                <input class="input input-sm mono" name="variant_stocks[]" dir="ltr" inputmode="numeric" placeholder="موجودی" value="<%= v.stock || 0 %>">
+                <input class="input input-sm mono" name="variant_skus[]" dir="ltr" placeholder="SKU" value="<%= v.sku || '' %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="variantTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="variant_titles[]" placeholder="عنوان متغیر">
+              <input class="input input-sm mono" name="variant_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت">
+              <input class="input input-sm mono" name="variant_old_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت قبل تخفیف">
+              <input class="input input-sm mono" name="variant_stocks[]" dir="ltr" inputmode="numeric" placeholder="موجودی" value="0">
+              <input class="input input-sm mono" name="variant_skus[]" dir="ltr" placeholder="SKU">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="variantTpl" data-repeater-target="variantsWrap"><svg><use href="#i-plus"/></svg> افزودن متغیر</button>
+        </div>
+      </section>
+
+      <!-- ویژگی‌های اختیاری -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ویژگی‌های اختیاری (افزودنی‌های پولی)</h3>
+          <span class="text-xs text-muted">مثل بند اضافه، بسته‌بندی هدیه یا گلس محافظ.</span></div>
+        <div class="card-body">
+          <div id="optionsWrap">
+            <% (extraOptions || []).forEach(function (o) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="option_titles[]" placeholder="عنوان ویژگی" value="<%= o.title %>">
+                <input class="input input-sm mono" name="option_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت افزوده" value="<%= o.price || 0 %>">
+                <label class="check m-0"><input type="checkbox" name="option_required[]" value="1" <%= o.is_required ? 'checked' : '' %>> اجباری</label>
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="optionTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="option_titles[]" placeholder="عنوان ویژگی">
+              <input class="input input-sm mono" name="option_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت افزوده" value="0">
+              <label class="check m-0"><input type="checkbox" name="option_required[]" value="1"> اجباری</label>
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="optionTpl" data-repeater-target="optionsWrap"><svg><use href="#i-plus"/></svg> افزودن ویژگی</button>
+        </div>
+      </section>
+
+      <!-- تخفیف پلکانی -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">تخفیف پلکانی (عمده‌فروشی)</h3></div>
+        <div class="card-body">
+          <div id="tiersWrap">
+            <% (tiers || []).forEach(function (t) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm mono" name="tier_qty[]" dir="ltr" inputmode="numeric" placeholder="حداقل تعداد" value="<%= t.min_qty %>">
+                <input class="input input-sm mono" name="tier_price[]" dir="ltr" inputmode="numeric" placeholder="قیمت هر واحد" value="<%= t.price || '' %>">
+                <input class="input input-sm mono" name="tier_percent[]" dir="ltr" inputmode="decimal" placeholder="یا درصد تخفیف" value="<%= t.percent || '' %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="tierTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm mono" name="tier_qty[]" dir="ltr" inputmode="numeric" placeholder="حداقل تعداد">
+              <input class="input input-sm mono" name="tier_price[]" dir="ltr" inputmode="numeric" placeholder="قیمت هر واحد">
+              <input class="input input-sm mono" name="tier_percent[]" dir="ltr" inputmode="decimal" placeholder="یا درصد تخفیف">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="tierTpl" data-repeater-target="tiersWrap"><svg><use href="#i-plus"/></svg> افزودن پله</button>
+          <div class="help mt-10">یکی از دو ستون «قیمت» یا «درصد تخفیف» کافی است.</div>
+        </div>
+      </section>
+
+      <!-- مشخصات و ویژگی‌های کلیدی -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">مشخصات فنی</h3></div>
+        <div class="card-body">
+          <div id="specsWrap">
+            <% specs.forEach(function (s) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="spec_titles[]" placeholder="نام مشخصه" value="<%= s.title %>">
+                <input class="input input-sm" name="spec_values[]" placeholder="مقدار" value="<%= s.value %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="specTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="spec_titles[]" placeholder="نام مشخصه">
+              <input class="input input-sm" name="spec_values[]" placeholder="مقدار">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="specTpl" data-repeater-target="specsWrap"><svg><use href="#i-plus"/></svg> افزودن مشخصه</button>
+
+          <div class="divider"></div>
+          <h4 class="text-sm mb-14">ویژگی‌های کلیدی</h4>
+          <div id="highlightsWrap">
+            <% highlights.forEach(function (hl) { %>
+              <div class="repeater-row" data-repeater-row>
+                <input class="input input-sm" name="highlight_titles[]" placeholder="عنوان" value="<%= hl.title %>">
+                <input class="input input-sm" name="highlight_values[]" placeholder="توضیح کوتاه" value="<%= hl.value %>">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+              </div>
+            <% }) %>
+          </div>
+          <template id="highlightTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="highlight_titles[]" placeholder="عنوان">
+              <input class="input input-sm" name="highlight_values[]" placeholder="توضیح کوتاه">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="highlightTpl" data-repeater-target="highlightsWrap"><svg><use href="#i-plus"/></svg> افزودن ویژگی کلیدی</button>
+        </div>
+      </section>
+
+      <!-- خصوصیات فیلترپذیر -->
+      <% if ((attributeGroups || []).length) { %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">خصوصیات فیلترپذیر</h3>
+            <span class="text-xs text-muted">این مقادیر در فیلترهای آرشیو محصولات استفاده می‌شوند.</span></div>
+          <div class="card-body grid g-2">
+            <% attributeGroups.forEach(function (g) { %>
+              <% const selected = (attrs[g.id] || []).map(String); %>
+              <div class="field">
+                <label><%= g.name %><% if (g.unit) { %> (<%= g.unit %>)<% } %></label>
+                <% if (g.type === 'select' || g.type === 'bool') { %>
+                  <select class="select" name="attributes[<%= g.id %>]">
+                    <option value="">—</option>
+                    <% (g.options || []).forEach(function (o) { %>
+                      <option value="<%= o.id %>" <%= selected.indexOf(String(o.id)) > -1 ? 'selected' : '' %>><%= o.title %></option>
+                    <% }) %>
+                  </select>
+                <% } else if (g.type === 'multi' || g.type === 'color') { %>
+                  <div class="stack" style="gap:6px;max-height:150px;overflow:auto">
+                    <% (g.options || []).forEach(function (o) { %>
+                      <label class="check m-0">
+                        <input type="checkbox" name="attributes[<%= g.id %>][]" value="<%= o.id %>" <%= selected.indexOf(String(o.id)) > -1 ? 'checked' : '' %>>
+                        <% if (o.color) { %><span class="color-dot" style="background:<%= o.color %>"></span><% } %>
+                        <%= o.title %>
+                      </label>
+                    <% }) %>
+                  </div>
+                <% } else if (g.type === 'number' || g.type === 'range') { %>
+                  <input class="input mono" name="attributes[<%= g.id %>][]" dir="ltr" value="<%= selected[0] || '' %>" placeholder="<%= g.type === 'range' ? 'مثلاً 10-20' : 'عدد' %>">
+                <% } else { %>
+                  <input class="input" name="attributes[<%= g.id %>][]" value="<%= selected[0] || '' %>">
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- سئو -->
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سئو و بازاریابی</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_seo_title">عنوان سئو</label>
+            <input class="input" id="f_seo_title" name="seo_title" maxlength="70" value="<%= isNew ? '' : (p.seo_title || '') %>">
+            <div class="help">خالی بگذارید تا عنوان محصول استفاده شود. حداکثر ۷۰ کاراکتر.</div></div>
+          <div class="field"><label for="f_seo_desc">توضیح متا</label>
+            <textarea class="textarea" id="f_seo_desc" name="seo_desc" rows="3" maxlength="160"><%= isNew ? '' : (p.seo_desc || '') %></textarea></div>
+          <div class="divider"></div>
+          <label class="switch"><input type="checkbox" name="affiliate" value="1" <%= !isNew && p.affiliate ? 'checked' : '' %>>
+            <span class="slider"></span><span class="lbl">فعال‌سازی همکاری در فروش برای این محصول</span></label>
+          <div class="grid g-3 mt-14">
+            <div class="field"><label for="f_aff_gold">پورسانت طلایی (٪)</label>
+              <input class="input mono" id="f_aff_gold" name="aff_gold" dir="ltr" inputmode="decimal" value="<%= isNew ? setting('affiliate_gold_percent', '5') : (p.aff_gold || 0) %>"></div>
+            <div class="field"><label for="f_aff_silver">پورسانت نقره‌ای (٪)</label>
+              <input class="input mono" id="f_aff_silver" name="aff_silver" dir="ltr" inputmode="decimal" value="<%= isNew ? setting('affiliate_silver_percent', '3') : (p.aff_silver || 0) %>"></div>
+            <div class="field"><label for="f_aff_bronze">پورسانت برنزی (٪)</label>
+              <input class="input mono" id="f_aff_bronze" name="aff_bronze" dir="ltr" inputmode="decimal" value="<%= isNew ? setting('affiliate_bronze_percent', '1') : (p.aff_bronze || 0) %>"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ستون کناری -->
+    <aside class="stack sticky-col">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">انتشار</h3></div>
+        <div class="card-body">
+          <div class="alert alert-info" style="padding:10px 12px"><div class="body text-xs">
+            <% if (needApproval) { %>پس از ذخیره، محصول با وضعیت «در انتظار تایید» ثبت و به مدیریت ارسال می‌شود.<% } else { %>محصول بلافاصله فعال می‌شود.<% } %>
+          </div></div>
+          <div class="flex gap-8">
+            <button class="btn btn-primary grow" type="submit"><svg><use href="#i-save"/></svg> <%= isNew ? 'ثبت محصول' : 'ذخیره تغییرات' %></button>
+            <a class="btn btn-ghost" href="/seller/products">انصراف</a>
+          </div>
+          <% if (!isNew) { %>
+            <div class="text-xs text-muted mt-10">شناسه: <span class="mono" dir="ltr">#<%= h.toPersianDigits(p.id) %></span> · وضعیت:
+              <span class="badge <%= p.status === 'active' ? 'badge-success' : p.status === 'pending' ? 'badge-warning' : 'badge-outline' %>"><%= p.status === 'active' ? 'فعال' : p.status === 'pending' ? 'در انتظار تایید' : p.status === 'rejected' ? 'رد شده' : 'غیرفعال' %></span>
+            </div>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">تصاویر محصول</h3></div>
+        <div class="card-body">
+          <div class="dropzone" data-dropzone data-target="#f_images">
+            <svg><use href="#i-image"/></svg>
+            <div class="text-sm">تصاویر را اینجا رها کنید یا کلیک کنید</div>
+            <div class="dz-hint text-xs">حداکثر ۱۲ تصویر — اولین تصویر، کاور محصول است.</div>
+          </div>
+          <input class="input mt-10" id="f_images" name="images" type="file" accept="image/*" multiple>
+
+          <% if ((images || []).length) { %>
+            <div class="divider"></div>
+            <div class="text-xs text-muted mb-10">تصاویر فعلی:</div>
+            <div class="media-grid sm">
+              <% images.forEach(function (im) { %>
+                <div class="media-item" data-path="<%= im.media_path %>">
+                  <div class="prev"><img src="<%= im.media_path %>" alt="" loading="lazy"></div>
+                  <div class="meta"><div class="n"><%= im.kind === 'cover' ? 'کاور' : 'گالری' %></div>
+                    <label class="check m-0 text-2xs"><input type="radio" name="cover_image" value="<%= im.media_path %>" <%= im.kind === 'cover' ? 'checked' : '' %>> کاور</label></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <div class="divider"></div>
+          <div class="field m-0"><label for="f_lib">افزودن از کتابخانه مدیا</label>
+            <div class="input-group">
+              <input class="input mono" id="f_lib" name="library_images" dir="ltr" placeholder="/uploads/products/… (با کاما جدا کنید)">
+              <button class="btn btn-outline" type="button" data-media-pick="library_images" data-media-multi="1"><svg><use href="#i-folder"/></svg> انتخاب</button>
+            </div>
+            <div class="help">فقط فایل‌هایی که خودتان بارگذاری کرده‌اید نمایش داده می‌شوند.</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">راهنمای ثبت محصول</h3></div>
+        <div class="card-body text-xs text-muted" style="line-height:2.2">
+          · عنوان را با نام برند و مدل شروع کنید.<br>
+          · حداقل ۳ تصویر با زمینه روشن بارگذاری کنید.<br>
+          · مشخصات فنی کامل، نرخ مرجوعی شما را کاهش می‌دهد.<br>
+          · برای کالاهای متغیر (رنگ/سایز) از بخش متغیرها استفاده کنید تا هر ترکیب موجودی جداگانه داشته باشد.
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<%- include('../partials/panel-foot', { includeMediaModal: true, mediaUrl: '/seller/media' }) %>

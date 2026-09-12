@@ -1,0 +1,49 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">دستگاه‌هایی که با حساب شما وارد شده‌اند. اگر دستگاه ناشناسی می‌بینید، آن را خاتمه دهید و گذرواژه را تغییر دهید.</div>
+  <form method="post" action="/user/sessions/revoke-all" class="m-0">
+    <button class="btn btn-sm btn-danger" type="submit" data-confirm-click="همه نشست‌های دیگر خاتمه یابند؟"><svg><use href="#i-log-out"/></svg> خروج از همه دستگاه‌ها</button>
+  </form>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="card-body stack" style="gap:0">
+      <% rows.forEach(function (s) { %>
+        <% const revoked = !!s.revoked_at; %>
+        <div class="session-item <%= revoked ? 'revoked' : '' %>">
+          <span class="session-ic"><svg><use href="#i-<%= String(s.device || '').indexOf('mobile') > -1 ? 'smartphone' : String(s.device || '').indexOf('tablet') > -1 ? 'tablet' : 'monitor' %>"/></svg></span>
+          <div class="grow">
+            <div class="flex items-center gap-8 flex-wrap">
+              <b class="text-sm"><%= s.browser || 'مرورگر ناشناس' %> · <%= s.os || 'سیستم‌عامل ناشناس' %></b>
+              <% if (s.is_current) { %><span class="badge badge-success">نشست فعلی</span><% } %>
+              <% if (revoked) { %><span class="badge badge-outline">خاتمه یافته</span><% } %>
+            </div>
+            <div class="text-xs text-muted mt-4">
+              <span dir="ltr" class="mono"><%= s.ip || '—' %></span>
+              <% if (s.city || s.country) { %> · <%= [s.city, s.country].filter(Boolean).join('، ') %><% } %>
+              · ورود: <%= h.formatJalaliFull(s.login_at) %>
+              · آخرین فعالیت: <%= s.last_seen_at ? h.timeAgo(s.last_seen_at) : '—' %>
+            </div>
+          </div>
+          <% if (!revoked && !s.is_current) { %>
+            <form method="post" action="/user/sessions/<%= s.id %>/revoke" class="m-0">
+              <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="این نشست خاتمه یابد؟">خاتمه</button>
+            </form>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-monitor"/></svg>
+      <h4>نشستی ثبت نشده است</h4>
+      <p class="text-sm">از این پس هر ورود به حساب، در این فهرست ثبت می‌شود.</p></div>
+  <% } %>
+</section>
+
+<div class="alert alert-info mt-20"><svg><use href="#i-shield"/></svg>
+  <div class="body">برای امنیت بیشتر، گذرواژه خود را در <a class="text-brand bold" href="/user/profile">ویرایش پروفایل</a> تغییر دهید و از ورود با دستگاه‌های عمومی خودداری کنید.</div>
+</div>
+
+<%- include('../partials/panel-foot') %>

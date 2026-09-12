@@ -1,0 +1,416 @@
+<%
+  const USTATUS = { active: ['فعال', 'badge-success'], blocked: ['مسدود', 'badge-danger'], pending: ['در انتظار', 'badge-warning'] };
+  const st = USTATUS[u.status] || [u.status, 'badge-outline'];
+  const ROLE = { customer: 'مشتری', staff: 'کارمند', admin: 'مدیر', seller: 'فروشنده' };
+  const LEVEL = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' };
+  const TX = { charge: 'شارژ کیف پول', purchase: 'پرداخت سفارش', refund: 'بازگشت وجه', withdraw: 'برداشت وجه', withdraw_request: 'درخواست برداشت', adjust: 'اصلاح دستی', affiliate: 'پورسانت همکاری', points: 'امتیاز' };
+  const CSTATUS = { pending: ['در انتظار', 'badge-warning'], approved: ['تایید شده', 'badge-info'], paid: ['پرداخت شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+  const totalSpending = orders.filter(function (o) { return o.payment_status === 'paid'; }).reduce(function (s, o) { return s + o.total; }, 0);
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-start justify-between gap-14 flex-wrap mb-20">
+  <div class="flex items-center gap-14">
+    <span class="avatar lg" style="width:64px;height:64px;font-size:1.3rem">
+      <% if (u.avatar) { %><img src="<%= u.avatar %>" alt=""><% } else { %><%= h.toPersianDigits(String(u.name || u.phone || 'ک').trim().charAt(0)) %><% } %></span>
+    <div>
+      <h2 style="font-size:1.1rem;margin:0" class="flex items-center gap-10 flex-wrap">
+        <%= u.name || 'بدون نام' %>
+        <span class="badge <%= st[1] %>"><%= st[0] %></span>
+        <span class="badge badge-outline"><%= ROLE[u.role] || u.role %></span>
+      </h2>
+      <div class="text-xs text-muted mt-6">
+        <span class="mono" dir="ltr"><%= h.toPersianDigits(u.phone || '—') %></span>
+        <% if (u.email) { %> · <span class="mono" dir="ltr"><%= u.email %></span><% } %>
+        · عضویت <%= h.formatJalali(u.created_at) %>
+        · آخرین ورود <%= u.last_login_at ? h.timeAgo(u.last_login_at) : '—' %>
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/people/users"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+    <% if (can('users.manage')) { %><button class="btn btn-sm btn-outline" type="button" data-modal-open="editUserModal"><svg><use href="#i-edit"/></svg> ویرایش</button><% } %>
+    <% if (can('users.wallet')) { %><button class="btn btn-sm btn-outline" type="button" data-modal-open="walletModal"><svg><use href="#i-wallet"/></svg> کیف پول</button><% } %>
+    <% if (can('users.points')) { %><button class="btn btn-sm btn-outline" type="button" data-modal-open="pointsModal"><svg><use href="#i-award"/></svg> امتیاز</button><% } %>
+    <% if (can('users.manage')) { %>
+      <form method="post" action="/admin/people/users/<%= u.id %>/block" class="m-0">
+        <input type="hidden" name="status" value="<%= u.status === 'blocked' ? 'active' : 'blocked' %>">
+        <button class="btn btn-sm <%= u.status === 'blocked' ? 'btn-success' : 'btn-danger' %>" type="submit"
+                data-confirm-click="<%= u.status === 'blocked' ? 'مسدودسازی لغو شود؟' : 'کاربر مسدود و همه نشست‌ها خاتمه یابند؟' %>">
+          <svg><use href="#i-<%= u.status === 'blocked' ? 'check' : 'ban' %>"/></svg> <%= u.status === 'blocked' ? 'لغو مسدودسازی' : 'مسدودسازی' %></button>
+      </form>
+      <form method="post" action="/admin/people/users/<%= u.id %>/delete" class="m-0">
+        <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="کاربر به سطل زباله منتقل شود؟"><svg><use href="#i-trash"/></svg></button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(totalSpending) %></div><div class="l">مجموع خرید موفق</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(orders.length) %></div><div class="l">سفارش (۲۰ مورد اخیر)</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(u.wallet) %></div><div class="l">موجودی کیف پول</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-award"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(u.points) %></div><div class="l">امتیاز — سطح <%= LEVEL[u.club_level] || u.club_level %></div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-eye"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(u.login_count || 0) %></div><div class="l">تعداد ورود</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-monitor"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(sessions.filter(function (s) { return !s.revoked_at; }).length) %></div><div class="l">نشست فعال</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-body" data-tabs style="padding-top:0">
+        <div class="tabs">
+          <button class="tab-btn active" type="button" data-tab="t-orders">سفارش‌ها <span class="badge badge-outline"><%= h.toPersianDigits(orders.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-tx">تراکنش‌ها <span class="badge badge-outline"><%= h.toPersianDigits(transactions.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-addr">نشانی‌ها <span class="badge badge-outline"><%= h.toPersianDigits(addresses.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-tickets">تیکت‌ها <span class="badge badge-outline"><%= h.toPersianDigits(tickets.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-reviews">دیدگاه‌ها <span class="badge badge-outline"><%= h.toPersianDigits(reviews.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-club">باشگاه <span class="badge badge-outline"><%= h.toPersianDigits(clubActivities.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-aff">همکاری در فروش <span class="badge badge-outline"><%= h.toPersianDigits(commissions.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-bank">حساب‌های بانکی <span class="badge badge-outline"><%= h.toPersianDigits(bankAccounts.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-sessions">نشست‌ها <span class="badge badge-outline"><%= h.toPersianDigits(sessions.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-log">گزارش فعالیت <span class="badge badge-outline"><%= h.toPersianDigits(activities.length) %></span></button>
+        </div>
+
+        <div class="tab-pane active" data-pane="t-orders">
+          <% if (orders.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>کد</th><th>تاریخ</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody><% orders.forEach(function (o) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr"><%= o.code %></td>
+                  <td class="text-2xs"><%= h.formatJalali(o.created_at) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(o.total) %></td>
+                  <td class="text-2xs"><span class="badge <%= o.payment_status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= o.payment_status === 'paid' ? 'پرداخت شده' : 'پرداخت نشده' %></span></td>
+                  <td class="text-2xs"><%= o.status_title %></td>
+                  <td class="actions"><a class="btn btn-sm btn-ghost" href="/admin/orders/<%= o.code %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">سفارشی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-tx">
+          <% if (transactions.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>تاریخ</th><th>نوع</th><th>درگاه</th><th>مبلغ</th><th>موجودی</th><th>پیگیری</th><th>وضعیت</th></tr></thead>
+              <tbody><% transactions.forEach(function (t) { %>
+                <tr>
+                  <td class="text-2xs"><%= h.formatJalali(t.created_at) %></td>
+                  <td class="text-xs"><%= TX[t.type] || t.type %></td>
+                  <td class="text-2xs"><%= t.gateway || '—' %></td>
+                  <td class="mono text-xs <%= t.amount >= 0 ? 'text-success' : 'text-danger' %>"><%= t.amount >= 0 ? '+' : '−' %><%= h.fa(Math.abs(t.amount)) %></td>
+                  <td class="mono text-2xs"><%= t.balance != null ? h.fa(t.balance) : '—' %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= t.reference || '—' %></td>
+                  <td class="text-2xs"><span class="badge <%= t.status === 'success' ? 'badge-success' : t.status === 'failed' ? 'badge-danger' : 'badge-warning' %>"><%= t.status %></span></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">تراکنشی ندارد.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-addr">
+          <% if (addresses.length) { %>
+            <div class="grid g-2">
+              <% addresses.forEach(function (a) { %>
+                <div class="card"><div class="card-body">
+                  <div class="flex items-center gap-8 mb-6">
+                    <b class="text-xs"><%= a.title || 'نشانی' %></b>
+                    <% if (a.is_default) { %><span class="badge badge-success text-2xs">پیش‌فرض</span><% } %>
+                  </div>
+                  <div class="text-2xs text-muted" style="line-height:2">
+                    <%= [a.province, a.city, a.address].filter(Boolean).join('، ') %><br>
+                    <% if (a.postal_code) { %>کد پستی: <span class="mono" dir="ltr"><%= h.toPersianDigits(a.postal_code) %></span><br><% } %>
+                    تحویل‌گیرنده: <%= a.receiver || '—' %> · <span dir="ltr"><%= h.toPersianDigits(a.phone || '') %></span>
+                  </div>
+                </div></div>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">نشانی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-tickets">
+          <% if (tickets.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>کد</th><th>موضوع</th><th>تاریخ</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody><% tickets.forEach(function (t) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr"><%= t.code %></td>
+                  <td class="text-xs"><%= h.truncate(t.subject, 46) %></td>
+                  <td class="text-2xs"><%= h.formatJalali(t.created_at) %></td>
+                  <td class="text-2xs"><span class="badge badge-outline"><%= t.status %></span></td>
+                  <td class="actions"><% if (can('tickets.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/system/tickets/<%= t.code %>"><svg><use href="#i-eye"/></svg></a><% } %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">تیکتی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-reviews">
+          <% if (reviews.length) { %>
+            <div class="stack" style="gap:0">
+              <% reviews.forEach(function (r) { %>
+                <div class="review-item">
+                  <div class="review-head">
+                    <span class="grow text-xs bold"><%= h.truncate(r.title, 50) %></span>
+                    <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+                    <span class="badge <%= r.status === 'approved' ? 'badge-success' : r.status === 'pending' ? 'badge-warning' : 'badge-danger' %>"><%= r.status %></span>
+                  </div>
+                  <% if (r.body) { %><p class="text-xs text-muted m-0 mt-6"><%= h.truncate(r.body, 160) %></p><% } %>
+                  <div class="text-2xs text-muted mt-6"><%= h.formatJalali(r.created_at) %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">دیدگاهی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-club">
+          <% if (clubActivities.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>تاریخ</th><th>امتیاز</th><th>دلیل</th><th>مرجع</th></tr></thead>
+              <tbody><% clubActivities.forEach(function (c) { %>
+                <tr>
+                  <td class="text-2xs"><%= h.formatJalali(c.created_at) %></td>
+                  <td class="mono text-xs <%= c.points >= 0 ? 'text-success' : 'text-danger' %>"><%= c.points >= 0 ? '+' : '−' %><%= h.toPersianDigits(Math.abs(c.points)) %></td>
+                  <td class="text-xs"><%= c.reason %></td>
+                  <td class="text-2xs mono" dir="ltr"><%= c.reference || '—' %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">فعالیتی در باشگاه ندارد.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-aff">
+          <% if (commissions.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>تاریخ</th><th>سفارش</th><th>سطح</th><th>درصد</th><th>مبلغ</th><th>وضعیت</th></tr></thead>
+              <tbody><% commissions.forEach(function (c) { %>
+                <% const cs = CSTATUS[c.status] || [c.status, 'badge-outline']; %>
+                <tr>
+                  <td class="text-2xs"><%= h.formatJalali(c.created_at) %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= c.order_id ? '#' + h.toPersianDigits(c.order_id) : '—' %></td>
+                  <td class="text-xs"><%= c.level %></td>
+                  <td class="mono text-2xs"><%= h.toPersianDigits(c.percent) %>٪</td>
+                  <td class="mono text-xs bold"><%= h.fa(c.amount) %></td>
+                  <td><span class="badge <%= cs[1] %>"><%= cs[0] %></span></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">پورسانتی ثبت نشده است.</p></div><% } %>
+          <% if (u.affiliate_code) { %>
+            <div class="text-xs text-muted mt-10">کد همکاری: <span class="mono bold" dir="ltr"><%= u.affiliate_code %></span>
+              · وضعیت: <span class="badge <%= u.is_affiliate ? 'badge-success' : 'badge-outline' %>"><%= u.is_affiliate ? 'فعال' : 'غیرفعال' %></span></div>
+          <% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-bank">
+          <% if (bankAccounts.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>بانک</th><th>صاحب حساب</th><th>کارت</th><th>شبا</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+              <tbody><% bankAccounts.forEach(function (a) { %>
+                <tr>
+                  <td class="text-xs"><%= a.bank_name || '—' %></td>
+                  <td class="text-xs"><%= a.owner_name || '—' %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(a.card_number || '—') %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(a.iban || a.account_no || '—') %></td>
+                  <td><span class="badge <%= a.status === 'approved' ? 'badge-success' : a.status === 'rejected' ? 'badge-danger' : 'badge-warning' %>"><%= a.status === 'approved' ? 'تایید شده' : a.status === 'rejected' ? 'رد شده' : 'در انتظار' %></span></td>
+                  <td class="actions">
+                    <% if (can('users.wallet')) { %>
+                      <form method="post" action="/admin/people/bank-accounts/<%= a.id %>/approve" class="m-0">
+                        <input type="hidden" name="status" value="<%= a.status === 'approved' ? 'rejected' : 'approved' %>">
+                        <button class="btn btn-sm btn-ghost" type="submit"><%= a.status === 'approved' ? 'رد' : 'تایید' %></button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">حساب بانکی ثبت نکرده است.</p></div><% } %>
+
+          <% if (withdrawals.length) { %>
+            <h4 class="text-sm mt-20 mb-10">درخواست‌های برداشت</h4>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>شناسه</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th>یادداشت</th></tr></thead>
+              <tbody><% withdrawals.forEach(function (w) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(w.id) %></td>
+                  <td class="text-2xs"><%= h.formatJalali(w.created_at) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(w.amount) %></td>
+                  <td class="text-2xs"><span class="badge <%= w.status === 'paid' ? 'badge-success' : w.status === 'rejected' ? 'badge-danger' : 'badge-warning' %>"><%= w.status %></span></td>
+                  <td class="text-2xs text-muted"><%= w.admin_note || '—' %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-sessions">
+          <% if (sessions.length) { %>
+            <div class="stack" style="gap:0">
+              <% sessions.forEach(function (s) { %>
+                <div class="session-item <%= s.revoked_at ? 'revoked' : '' %>">
+                  <span class="session-ic"><svg><use href="#i-<%= String(s.device || '').indexOf('mobile') > -1 ? 'smartphone' : 'monitor' %>"/></svg></span>
+                  <div class="grow">
+                    <b class="text-xs"><%= s.browser || '—' %> · <%= s.os || '—' %></b>
+                    <% if (s.is_current) { %><span class="badge badge-success text-2xs">نشست فعلی</span><% } %>
+                    <div class="text-2xs text-muted"><span class="mono" dir="ltr"><%= s.ip || '—' %></span> · <%= [s.city, s.country].filter(Boolean).join('، ') || '—' %> · ورود <%= h.formatJalaliFull(s.login_at) %></div>
+                  </div>
+                  <span class="text-2xs text-muted"><%= s.revoked_at ? 'خاتمه یافته' : (s.last_seen_at ? h.timeAgo(s.last_seen_at) : '—') %></span>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">نشستی ثبت نشده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-log">
+          <% if (activities.length) { %>
+            <div class="timeline">
+              <% activities.forEach(function (a) { %>
+                <div class="timeline-item done">
+                  <span class="tl-ic"><svg><use href="#i-activity"/></svg></span>
+                  <div class="grow">
+                    <b class="text-xs"><%= a.action %></b>
+                    <% if (a.description) { %><span class="text-2xs text-muted"> — <%= a.description %></span><% } %>
+                    <div class="text-2xs text-muted"><%= h.formatJalaliFull(a.created_at) %><% if (a.ip) { %> · <span class="mono" dir="ltr"><%= a.ip %></span><% } %></div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">رویدادی ثبت نشده است.</p></div><% } %>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات حساب</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>شناسه</th><td class="mono" dir="ltr">#<%= h.toPersianDigits(u.id) %></td></tr>
+            <tr><th>کد ملی</th><td class="mono" dir="ltr"><%= h.toPersianDigits(u.national_id || '—') %></td></tr>
+            <tr><th>جنسیت</th><td><%= u.gender === 'male' ? 'مرد' : u.gender === 'female' ? 'زن' : '—' %></td></tr>
+            <tr><th>تاریخ تولد</th><td class="mono text-xs" dir="ltr"><%= u.birth_date || '—' %></td></tr>
+            <tr><th>معرف</th><td class="mono text-xs"><%= u.referrer_id ? '#' + h.toPersianDigits(u.referrer_id) : '—' %></td></tr>
+            <tr><th>گذرواژه</th><td><%= u.password_hash ? 'تنظیم شده' : 'ورود فقط با کد تایید' %></td></tr>
+            <tr><th>آخرین فعالیت</th><td class="text-xs"><%= u.last_seen_at ? h.timeAgo(u.last_seen_at) : '—' %></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <% if (seller) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فروشگاه کاربر</h3></div>
+        <div class="card-body">
+          <table class="table-kv">
+            <tbody>
+              <tr><th>نام فروشگاه</th><td class="text-xs"><%= seller.shop_name %></td></tr>
+              <tr><th>وضعیت</th><td><span class="badge <%= seller.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= seller.status %></span></td></tr>
+              <tr><th>کمیسیون</th><td class="mono"><%= h.toPersianDigits(seller.commission) %>٪</td></tr>
+              <tr><th>قابل برداشت</th><td class="mono"><%= h.fa(seller.wallet) %></td></tr>
+            </tbody>
+          </table>
+          <% if (can('sellers.view')) { %><a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/people/sellers/<%= seller.id %>">پروفایل فروشگاه</a><% } %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (can('notifications.send')) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ارسال اعلان</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/system/notifications/send">
+            <input type="hidden" name="segment" value="single">
+            <input type="hidden" name="user_id" value="<%= u.id %>">
+            <div class="field"><label for="n_title">عنوان</label>
+              <input class="input input-sm" id="n_title" name="title" required></div>
+            <div class="field"><label for="n_body">متن</label>
+              <textarea class="textarea" id="n_body" name="body" rows="2"></textarea></div>
+            <button class="btn btn-sm btn-primary btn-block" type="submit"><svg><use href="#i-send"/></svg> ارسال</button>
+          </form>
+        </div>
+      </section>
+    <% } %>
+  </aside>
+</div>
+
+<% if (can('users.manage')) { %>
+<div class="modal-backdrop" id="editUserModal">
+  <div class="modal">
+    <div class="modal-head"><h3>ویرایش کاربر</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/users/<%= u.id %>">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="eu_name">نام</label>
+            <input class="input" id="eu_name" name="name" value="<%= u.name || '' %>"></div>
+          <div class="field"><label for="eu_email">ایمیل</label>
+            <input class="input mono" id="eu_email" name="email" dir="ltr" value="<%= u.email || '' %>"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="eu_role">نقش</label>
+            <select class="select" id="eu_role" name="role">
+              <% Object.keys(ROLE).forEach(function (k) { %><option value="<%= k %>" <%= u.role === k ? 'selected' : '' %>><%= ROLE[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="eu_rid">نقش ACL</label>
+            <select class="select" id="eu_rid" name="role_id">
+              <option value="">بدون نقش خاص</option>
+              <% roles.forEach(function (r) { %><option value="<%= r.id %>" <%= u.role_id === r.id ? 'selected' : '' %>><%= r.name %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="eu_status">وضعیت</label>
+            <select class="select" id="eu_status" name="status">
+              <% Object.keys(USTATUS).forEach(function (k) { %><option value="<%= k %>" <%= u.status === k ? 'selected' : '' %>><%= USTATUS[k][0] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="eu_pass">گذرواژه جدید</label>
+            <input class="input" id="eu_pass" name="password" type="password" autocomplete="new-password" placeholder="خالی = بدون تغییر"></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (can('users.wallet')) { %>
+<div class="modal-backdrop" id="walletModal">
+  <div class="modal">
+    <div class="modal-head"><h3>تغییر موجودی کیف پول</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/users/<%= u.id %>/wallet">
+      <div class="modal-body">
+        <div class="summary-row total mb-14"><span>موجودی فعلی</span><span class="mono"><%= h.fa(u.wallet) %> <%= site.currency %></span></div>
+        <div class="field"><label for="w_amount">مبلغ (مثبت = شارژ، منفی = کسر)</label>
+          <input class="input mono" id="w_amount" name="amount" dir="ltr" inputmode="numeric" required placeholder="500000"></div>
+        <div class="field"><label for="w_desc">شرح تراکنش</label>
+          <input class="input" id="w_desc" name="description" placeholder="جبران خسارت / شارژ هدیه"></div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body">برای کاربر اعلان ارسال و تراکنش در تاریخچه ثبت می‌شود.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت تغییر</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (can('users.points')) { %>
+<div class="modal-backdrop" id="pointsModal">
+  <div class="modal">
+    <div class="modal-head"><h3>تغییر امتیاز باشگاه</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/users/<%= u.id %>/points">
+      <div class="modal-body">
+        <div class="summary-row total mb-14"><span>امتیاز فعلی</span><span class="mono"><%= h.toPersianDigits(u.points) %> — سطح <%= LEVEL[u.club_level] || u.club_level %></span></div>
+        <div class="field"><label for="p_points">مقدار امتیاز (مثبت = افزودن، منفی = کسر)</label>
+          <input class="input mono" id="p_points" name="points" dir="ltr" inputmode="numeric" required placeholder="100"></div>
+        <div class="field"><label for="p_reason">دلیل</label>
+          <input class="input" id="p_reason" name="reason" placeholder="هدیه مناسبتی / اصلاح خطا"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت امتیاز</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

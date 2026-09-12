@@ -1,0 +1,133 @@
+<%
+  const STATUS = { pending: ['در انتظار بررسی', 'badge-warning'], paid: ['پرداخت شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'], failed: ['ناموفق', 'badge-danger'] };
+  const canReview = can('users.wallet');
+  const sums = { pending: 0, paid: 0, rejected: 0 };
+  rows.forEach(function (r) { if (sums[r.status] !== undefined) sums[r.status] += r.amount; });
+  const counts = { pending: 0, paid: 0, rejected: 0 };
+  rows.forEach(function (r) { if (counts[r.status] !== undefined) counts[r.status] += 1; });
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">درخواست‌های برداشت وجه <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> مورد</span></h2>
+  <div class="text-xs text-muted">درخواست‌های کاربران و فروشندگان برای انتقال موجودی به حساب بانکی.</div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.fa(sums.pending) %></div><div class="l">در انتظار پرداخت (<%= h.toPersianDigits(counts.pending) %> درخواست)</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.fa(sums.paid) %></div><div class="l">پرداخت شده (<%= h.toPersianDigits(counts.paid) %>)</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-x"/></svg></span>
+    <div><div class="v mono"><%= h.fa(sums.rejected) %></div><div class="l">رد شده (<%= h.toPersianDigits(counts.rejected) %>)</div></div></div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th style="width:44px">#</th><th>درخواست‌دهنده</th><th>نوع</th><th>حساب مقصد</th><th>مبلغ</th>
+          <th>تاریخ</th><th>وضعیت</th><% if (canReview) { %><th>عملیات</th><% } %>
+        </tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { const st = STATUS[r.status] || [r.status, 'badge-outline'];
+                const isSeller = r.owner_type === 'seller';
+                const who = isSeller ? (r.shop_name || 'فروشگاه #' + r.owner_id) : (r.user_name || r.user_phone || 'کاربر #' + r.owner_id); %>
+            <tr>
+              <td class="mono text-2xs text-muted" dir="ltr">#<%= h.toPersianDigits(r.id) %></td>
+              <td class="text-xs">
+                <% if (!isSeller && r.owner_id && can('users.view')) { %>
+                  <a class="bold" href="/admin/people/users/<%= r.owner_id %>"><%= who %></a>
+                <% } else { %>
+                  <b><%= who %></b>
+                <% } %>
+                <% if (isSeller && can('sellers.view')) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/people/sellers/<%= r.owner_id %>" title="پروفایل فروشگاه"><svg><use href="#i-store"/></svg></a>
+                <% } %>
+                <div class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(r.user_phone || '—') %></div>
+              </td>
+              <td><span class="badge <%= isSeller ? 'badge-info' : 'badge-outline' %> text-2xs"><%= isSeller ? 'فروشنده' : 'کاربر' %></span></td>
+              <td class="text-2xs">
+                <% if (r.bank_name || r.card_number) { %>
+                  <%= r.bank_name || 'بانک' %> — <span class="mono" dir="ltr"><%= h.toPersianDigits(r.card_number || '') %></span>
+                  <div class="text-muted">به نام <%= r.account_owner || who %></div>
+                <% } else { %><span class="text-muted">حساب بانکی ثبت نشده</span><% } %>
+              </td>
+              <td class="mono text-xs bold"><%= h.fa(r.amount) %></td>
+              <td class="text-2xs"><%= h.formatJalali(r.created_at) %><div class="text-muted"><%= h.timeAgo(r.created_at) %></div></td>
+              <td>
+                <span class="badge <%= st[1] %>"><%= st[0] %></span>
+                <% if (r.reference) { %><div class="mono text-2xs mt-4" dir="ltr"><%= r.reference %></div><% } %>
+                <% if (r.admin_note) { %><div class="text-2xs text-muted mt-4"><%= h.truncate(r.admin_note, 40) %></div><% } %>
+              </td>
+              <% if (canReview) { %>
+                <td class="actions">
+                  <button class="btn btn-sm btn-ghost" type="button" title="بررسی"
+                          onclick='openWd(<%- JSON.stringify({ id: r.id, amount: r.amount, status: r.status, admin_note: r.admin_note || '', reference: r.reference || '', who: who, bank: [r.bank_name, r.card_number].filter(Boolean).join(' — '), owner: r.account_owner || '' }) %>)'>
+                    <svg><use href="#i-edit"/></svg></button>
+                  <% if (r.status === 'pending') { %>
+                    <form method="post" action="/admin/people/withdrawals/<%= r.id %>" class="m-0">
+                      <input type="hidden" name="status" value="paid">
+                      <button class="btn btn-sm btn-ghost text-success" type="submit" title="پرداخت شد"
+                              data-confirm-click="برداشت به مبلغ <%= h.fa(r.amount) %> پرداخت‌شده علامت بخورد و تراکنش آن ثبت شود؟"><svg><use href="#i-check"/></svg></button>
+                    </form>
+                  <% } %>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot text-2xs text-muted">۲۰۰ درخواست اخیر نمایش داده می‌شود.</div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-wallet"/></svg></span>
+      <h3>درخواست برداشتی ثبت نشده است</h3>
+      <p>کاربران و فروشندگان می‌توانند از پنل خود برای انتقال موجودی درخواست دهند.</p>
+      <% if (can('settings.edit')) { %><a class="btn btn-sm btn-primary" href="/admin/settings/general?group=wallet">تنظیمات کیف پول و سقف برداشت</a><% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (canReview) { %>
+<div class="modal-backdrop" id="wdModal">
+  <div class="modal">
+    <div class="modal-head"><h3>بررسی درخواست برداشت</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="" id="wdForm">
+      <div class="modal-body">
+        <div class="summary-row"><span>درخواست‌دهنده</span><span class="text-xs" id="wdWho">—</span></div>
+        <div class="summary-row"><span>حساب مقصد</span><span class="text-xs" id="wdBank">—</span></div>
+        <div class="summary-row total"><span>مبلغ</span><span class="mono" id="wdAmount">—</span></div>
+        <div class="field mt-14"><label for="wd_status">وضعیت</label>
+          <select class="select" id="wd_status" name="status">
+            <option value="paid">پرداخت شد (ثبت تراکنش بانکی)</option>
+            <option value="rejected">رد درخواست (بازگشت مبلغ به موجودی)</option>
+            <option value="pending">در انتظار بررسی</option>
+          </select></div>
+        <div class="field"><label for="wd_ref">شماره پیگیری / ارجاع بانکی</label>
+          <input class="input mono" id="wd_ref" name="reference" dir="ltr" placeholder="14030612..."></div>
+        <div class="field"><label for="wd_note">یادداشت (برای درخواست‌دهنده نمایش داده می‌شود)</label>
+          <textarea class="textarea" id="wd_note" name="note" rows="2"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت وضعیت</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openWd(w) {
+    document.getElementById('wdForm').action = '/admin/people/withdrawals/' + w.id;
+    document.getElementById('wdWho').textContent = w.who;
+    document.getElementById('wdBank').textContent = w.bank ? (w.bank + (w.owner ? ' — به نام ' + w.owner : '')) : 'ثبت نشده';
+    document.getElementById('wdAmount').textContent = new Intl.NumberFormat('fa-IR').format(w.amount) + ' <%= site.currency %>';
+    document.getElementById('wd_status').value = w.status || 'paid';
+    document.getElementById('wd_ref').value = w.reference || '';
+    document.getElementById('wd_note').value = w.admin_note || '';
+    if (window.openModal) window.openModal('wdModal');
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

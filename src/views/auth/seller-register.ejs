@@ -1,0 +1,176 @@
+<%- include('../layouts/head', { bodyClass: 'page-seller-register' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'فروشنده شوید' }] }) %>
+
+  <div class="grid g-sidebar">
+    <aside class="stack" style="align-self:start">
+      <div class="card">
+        <div class="card-body">
+          <h2 style="font-size:1.1rem;margin-bottom:10px">چرا در <%= site.name %> بفروشیم؟</h2>
+          <ul class="text-sm text-2" style="list-style:none;padding:0;margin:0">
+            <li class="flex items-start gap-8 mb-10"><svg width="17" height="17" style="width:17px;height:17px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg> <span>پنل اختصاصی مدیریت کالا، سفارش، موجودی و انبار</span></li>
+            <li class="flex items-start gap-8 mb-10"><svg width="17" height="17" style="width:17px;height:17px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg> <span>کمیسیون شفاف و قابل مذاکره با دوره تسویه <%= h.toPersianDigits(setting('seller_default_settlement', '7')) %> روزه</span></li>
+            <li class="flex items-start gap-8 mb-10"><svg width="17" height="17" style="width:17px;height:17px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg> <span>صفحه فروشگاه مستقل با بنر، لوگو و امتیاز عملکرد</span></li>
+            <li class="flex items-start gap-8 mb-10"><svg width="17" height="17" style="width:17px;height:17px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg> <span>ابزارهای بازاریابی: استوری، بنر، تخفیف پلکانی و مجله</span></li>
+            <li class="flex items-start gap-8"><svg width="17" height="17" style="width:17px;height:17px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg> <span>گزارش فروش، تسویه حساب و درخواست برداشت آنلاین</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3 class="text-sm">مراحل همکاری</h3></div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item done"><div class="t">۱. تکمیل فرم درخواست</div><div class="d">اطلاعات فروشگاه و مدارک را ثبت کنید.</div></div>
+            <div class="timeline-item current"><div class="t">۲. بررسی توسط کارشناسان</div><div class="d">معمولاً کمتر از ۴۸ ساعت کاری.</div></div>
+            <div class="timeline-item"><div class="t">۳. فعال‌سازی پنل فروشندگی</div><div class="d">دسترسی به داشبورد، قرارداد و تعرفه کمیسیون.</div></div>
+            <div class="timeline-item"><div class="t">۴. افزودن کالا و شروع فروش</div><div class="d">ثبت محصول با متغیر، قیمت پلکانی و تصویر.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card"><div class="card-body text-center">
+        <svg width="30" height="30" style="color:var(--brand);width:30px;height:30px"><use href="#i-headset"/></svg>
+        <div class="bold text-sm mt-10">نیاز به راهنمایی دارید؟</div>
+        <p class="text-xs text-muted m-0 mt-6">تیم جذب فروشندگان پاسخگوی شماست.</p>
+        <a class="btn btn-sm btn-outline w-100 mt-10" href="/form/contact-us">تماس با ما</a>
+      </div></div>
+    </aside>
+
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <h3>فرم ثبت‌نام فروشندگان</h3>
+          <span class="badge badge-outline">کمیسیون پیش‌فرض: <%= h.toPersianDigits(setting('seller_default_commission', '5')) %>٪</span>
+        </div>
+        <div class="card-body">
+          <% if (String(setting('seller_auto_approve', '0')) === '1') { %>
+            <div class="alert alert-success mb-20"><svg><use href="#i-zap"/></svg><div class="body">تایید خودکار فعال است — بلافاصله پس از ثبت فرم، پنل فروشندگی شما فعال می‌شود.</div></div>
+          <% } else { %>
+            <div class="alert alert-info mb-20"><svg><use href="#i-info"/></svg><div class="body">پس از ارسال فرم، درخواست شما بررسی و نتیجه از طریق پیامک و اعلان اطلاع‌رسانی می‌شود.</div></div>
+          <% } %>
+
+          <form method="post" action="/auth/seller/register" enctype="multipart/form-data">
+            <h4 class="mb-14" style="font-size:.95rem">اطلاعات فروشگاه</h4>
+            <div class="grid g-2">
+              <div class="field">
+                <label>نوع فعالیت <span class="req">*</span></label>
+                <div class="flex gap-14 mt-6">
+                  <label class="check"><input type="radio" name="type" value="real" checked onchange="document.getElementById('legalBox').classList.add('hidden');document.getElementById('realBox').classList.remove('hidden')"> حقیقی</label>
+                  <label class="check"><input type="radio" name="type" value="legal" onchange="document.getElementById('legalBox').classList.remove('hidden');document.getElementById('realBox').classList.add('hidden')"> حقوقی (شرکت)</label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="shop_name">نام فروشگاه <span class="req">*</span></label>
+                <input class="input" id="shop_name" name="shop_name" required minlength="3" placeholder="مثلاً دیجیتال آرمان">
+              </div>
+            </div>
+            <div class="grid g-2">
+              <div class="field">
+                <label for="shop_en">نام انگلیسی فروشگاه</label>
+                <input class="input" id="shop_en" name="shop_en" dir="ltr" placeholder="Arman Digital">
+              </div>
+              <div class="field">
+                <label for="shop_slug">نشانی فروشگاه (اسلاگ)</label>
+                <div class="input-group">
+                  <span class="addon mono" dir="ltr">/store/</span>
+                  <input class="input" id="shop_slug" name="shop_slug" dir="ltr" placeholder="arman-digital">
+                </div>
+                <div class="help">در صورت خالی بودن، از نام فروشگاه ساخته می‌شود.</div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="description">معرفی فروشگاه</label>
+              <textarea class="textarea" id="description" name="description" placeholder="سابقه فعالیت، دسته محصولات، مزیت‌های رقابتی و خدمات پس از فروش…"></textarea>
+            </div>
+
+            <div id="realBox">
+              <div class="grid g-2">
+                <div class="field"><label for="national_id">کد ملی <span class="req">*</span></label>
+                  <input class="input" id="national_id" name="national_id" dir="ltr" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم"></div>
+                <div class="field"><label for="full_name">نام و نام خانوادگی صاحب امتیاز</label>
+                  <input class="input" id="full_name" name="full_name"></div>
+              </div>
+            </div>
+            <div id="legalBox" class="hidden">
+              <div class="grid g-2">
+                <div class="field"><label for="reg_no">شناسه ملی شرکت</label>
+                  <input class="input" id="reg_no" name="reg_no" dir="ltr" inputmode="numeric"></div>
+                <div class="field"><label for="economic_code">کد اقتصادی</label>
+                  <input class="input" id="economic_code" name="economic_code" dir="ltr"></div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+            <h4 class="mb-14" style="font-size:.95rem">اطلاعات تماس و نشانی</h4>
+            <div class="grid g-2">
+              <div class="field"><label for="phone">شماره موبایل <span class="req">*</span></label>
+                <input class="input" id="phone" name="phone" type="tel" dir="ltr" required pattern="09[0-9]{9}" maxlength="11" placeholder="09xxxxxxxxx">
+                <div class="help">کد ورود و اطلاعیه‌های سفارش به این شماره ارسال می‌شود.</div></div>
+              <div class="field"><label for="email">ایمیل</label>
+                <input class="input" id="email" name="email" type="email" dir="ltr" placeholder="shop@example.com"></div>
+            </div>
+            <div class="grid g-2">
+              <div class="field"><label for="province">استان</label>
+                <select class="select" id="province" name="province">
+                  <option value="">انتخاب کنید…</option>
+                  <% (provinces || []).forEach(function (pr) { %><option value="<%= pr.name %>"><%= pr.name %></option><% }) %>
+                </select></div>
+              <div class="field"><label for="city">شهر</label><input class="input" id="city" name="city"></div>
+            </div>
+            <div class="field"><label for="address">نشانی کامل انبار / فروشگاه</label>
+              <textarea class="textarea" id="address" name="address" style="min-height:80px"></textarea></div>
+
+            <div class="divider"></div>
+            <h4 class="mb-14" style="font-size:.95rem">مدارک و حساب</h4>
+            <div class="field">
+              <label for="documents">بارگذاری مدارک (کارت ملی، پروانه کسب، صفحه اول حساب)</label>
+              <div class="dropzone" onclick="document.getElementById('documents').click()">
+                <svg><use href="#i-upload"/></svg>
+                <div class="semibold">برای انتخاب فایل کلیک کنید</div>
+                <div class="text-xs mt-6">حداکثر ۶ فایل — jpg، png یا pdf (هر فایل تا <%= h.toPersianDigits(setting('max_upload_mb', '12')) %> مگابایت)</div>
+              </div>
+              <input type="file" id="documents" name="documents" multiple accept=".jpg,.jpeg,.png,.pdf" class="hidden">
+              <div class="text-xs text-muted mt-6" id="docList"></div>
+            </div>
+            <div class="grid g-2">
+              <div class="field"><label for="password">گذرواژه (اختیاری)</label>
+                <input class="input" id="password" name="password" type="password" minlength="6" autocomplete="new-password">
+                <div class="help">اگر خالی بگذارید، ورود فقط با کد پیامکی انجام می‌شود.</div></div>
+              <div class="field"><label for="sheba">شماره شبا (برای تسویه)</label>
+                <input class="input" id="sheba" name="sheba" dir="ltr" placeholder="IR00 0000 0000 0000 0000 0000 00"></div>
+            </div>
+
+            <label class="check mb-20"><input type="checkbox" required> <span class="text-sm"><a class="text-brand" href="/page/terms">قوانین و شرایط همکاری فروشندگان</a> را مطالعه کردم و می‌پذیرم.</span></label>
+
+            <div class="flex gap-10 flex-wrap">
+              <button class="btn btn-primary btn-lg" type="submit"><svg><use href="#i-store"/></svg> ثبت درخواست همکاری</button>
+              <a class="btn btn-ghost btn-lg" href="/login">قبلاً ثبت‌نام کرده‌ام</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<script>
+  document.getElementById('documents').addEventListener('change', function () {
+    var names = Array.prototype.map.call(this.files, function (f) { return f.name; });
+    document.getElementById('docList').textContent = names.length ? 'فایل‌های انتخاب‌شده: ' + names.join('، ') : '';
+  });
+  document.querySelectorAll('.dropzone').forEach(function (dz) {
+    ['dragenter', 'dragover'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('drag'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('drag'); }); });
+    dz.addEventListener('drop', function (e) {
+      var input = document.getElementById('documents');
+      if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
+    });
+  });
+</script>
+
+<%- include('../partials/store-footer') %>

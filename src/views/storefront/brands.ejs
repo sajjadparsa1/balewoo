@@ -1,0 +1,56 @@
+<%
+  const letters = {};
+  (brands || []).forEach(function (b) {
+    const key = (b.name_en ? b.name_en : b.name).slice(0, 1).toUpperCase();
+    (letters[key] = letters[key] || []).push(b);
+  });
+  const keys = Object.keys(letters).sort();
+%>
+<%- include('../layouts/head', { bodyClass: 'page-brands' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'برندها' }] }) %>
+
+  <div class="section-head">
+    <h2>برندهای فروشگاه</h2>
+    <span class="badge badge-outline"><%= h.toPersianDigits((brands || []).length) %> برند فعال</span>
+  </div>
+
+  <% if (keys.length) { %>
+    <div class="flex gap-6 flex-wrap mb-20">
+      <% keys.forEach(function (k) { %><a class="chip" href="#letter-<%= encodeURIComponent(k) %>"><%= k %></a><% }) %>
+    </div>
+
+    <% keys.forEach(function (k) { %>
+      <section class="mb-30" id="letter-<%= encodeURIComponent(k) %>">
+        <h2 class="mb-14" style="font-size:1.1rem"><span class="badge badge-primary" style="font-size:.95rem;padding:4px 12px"><%= k %></span>
+          <span class="text-xs text-muted" style="margin-inline-start:8px"><%= h.toPersianDigits(letters[k].length) %> برند</span></h2>
+        <div class="grid g-4">
+          <% letters[k].forEach(function (b) { %>
+            <a class="card hover" href="/brand/<%= encodeURIComponent(b.slug) %>" style="text-decoration:none;color:inherit">
+              <div class="card-body text-center">
+                <% if (b.logo) { %><img src="<%= b.logo %>" alt="<%= b.name %>" style="max-height:54px;object-fit:contain" loading="lazy">
+                <% } else { %><span class="bold text-lg"><%= b.name %></span><% } %>
+                <div class="bold mt-10"><%= b.name %></div>
+                <% if (b.name_en) { %><div class="text-xs text-muted" dir="ltr"><%= b.name_en %></div><% } %>
+                <div class="text-xs text-muted mt-6"><%= h.toPersianDigits(b.products_count || 0) %> کالا</div>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% }) %>
+  <% } else { %>
+    <div class="card"><div class="empty">
+      <svg><use href="#i-tag"/></svg>
+      <h4>برندی ثبت نشده است</h4>
+      <p class="text-sm">پس از افزودن برندها در پنل مدیریت، فهرست آن‌ها در این صفحه نمایش داده می‌شود.</p>
+      <a class="btn btn-primary" href="/products">مشاهده محصولات</a>
+    </div></div>
+  <% } %>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

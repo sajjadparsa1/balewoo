@@ -1,0 +1,156 @@
+<%
+  const TYPES = { select: 'تک‌انتخابی', multi: 'چندانتخابی', color: 'رنگ', bool: 'بله/خیر', number: 'عدد', range: 'بازه' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">ویژگی‌ها و فیلترها</h2>
+    <div class="text-xs text-muted mt-4">این گروه‌ها هم در فیلترهای آرشیو، هم در جدول مشخصات و هم به‌عنوان متغیر محصول استفاده می‌شوند.</div>
+  </div>
+  <% if (can('attributes.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openAttr(null)"><svg><use href="#i-plus"/></svg> ویژگی جدید</button>
+  <% } %>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>نام ویژگی</th><th>نوع</th><th>دسته مرتبط</th><th>گزینه‌ها</th><th>واحد</th><th>کاربرد</th><th>ترتیب</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (a) { %>
+            <% const opts = h.jparse(a.options, []); %>
+            <tr>
+              <td class="text-sm bold"><%= a.name %></td>
+              <td class="text-xs"><span class="badge badge-outline"><%= TYPES[a.type] || a.type %></span></td>
+              <td class="text-xs"><%= a.category_name || 'عمومی (همه دسته‌ها)' %></td>
+              <td class="text-2xs">
+                <% opts.slice(0, 6).forEach(function (o) { %>
+                  <span class="tag"><% if (o.color) { %><span class="color-dot" style="background:<%= o.color %>"></span><% } %><%= o.title %></span>
+                <% }) %>
+                <% if (opts.length > 6) { %><span class="tag">+<%= h.toPersianDigits(opts.length - 6) %></span><% } %>
+                <% if (!opts.length) { %><span class="text-muted">—</span><% } %>
+              </td>
+              <td class="text-xs"><%= a.unit || '—' %></td>
+              <td class="text-2xs">
+                <% if (a.is_filter) { %><span class="badge badge-info">فیلتر</span><% } %>
+                <% if (a.is_variant) { %><span class="badge badge-primary">متغیر</span><% } %>
+                <% if (a.is_spec) { %><span class="badge badge-outline">مشخصات</span><% } %>
+              </td>
+              <td class="mono text-xs"><%= h.toPersianDigits(a.sort || 0) %></td>
+              <td class="actions">
+                <% if (can('attributes.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openAttr(<%- JSON.stringify({ id: a.id, name: a.name, category_id: a.category_id || '', type: a.type, unit: a.unit || '', is_filter: a.is_filter, is_variant: a.is_variant, is_spec: a.is_spec, sort: a.sort || 0, options: opts }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/attributes/<%= a.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="ویژگی «<%= a.name %>» و گزینه‌های آن حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-filter"/></svg>
+      <h4>ویژگی‌ای تعریف نشده است</h4>
+      <p class="text-sm">برای فیلترپذیر شدن آرشیو (رنگ، سایز، حافظه داخلی و…) ویژگی بسازید.</p>
+      <% if (can('attributes.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openAttr(null)">افزودن ویژگی</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('attributes.manage')) { %>
+<div class="modal-backdrop" id="attrModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="attrModalTitle">ویژگی جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/attributes">
+      <input type="hidden" name="id" id="attr_id" value="">
+      <div class="modal-body">
+        <div class="grid g-3">
+          <div class="field"><label for="a_name">نام ویژگی <span class="req">*</span></label>
+            <input class="input" id="a_name" name="name" required placeholder="رنگ"></div>
+          <div class="field"><label for="a_type">نوع ورودی</label>
+            <select class="select" id="a_type" name="type">
+              <% Object.keys(TYPES).forEach(function (k) { %><option value="<%= k %>"><%= TYPES[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="a_cat">دسته مرتبط</label>
+            <select class="select" id="a_cat" name="category_id">
+              <option value="">عمومی (همه دسته‌ها)</option>
+              <% categories.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="a_unit">واحد</label>
+            <input class="input" id="a_unit" name="unit" placeholder="گیگابایت / اینچ / گرم"></div>
+          <div class="field"><label for="a_sort">ترتیب</label>
+            <input class="input mono" id="a_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+        </div>
+
+        <div class="field"><label>گزینه‌ها</label>
+          <div id="attrOptionsWrap">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="option_titles[]" placeholder="عنوان گزینه">
+              <input class="input input-sm mono" name="option_colors[]" type="color" title="رنگ (برای نوع رنگ)" style="max-width:60px">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </div>
+          <template id="attrOptionTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="option_titles[]" placeholder="عنوان گزینه">
+              <input class="input input-sm mono" name="option_colors[]" type="color" title="رنگ" style="max-width:60px">
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="attrOptionTpl" data-repeater-target="attrOptionsWrap"><svg><use href="#i-plus"/></svg> افزودن گزینه</button>
+          <div class="help mt-6">رنگ فقط برای ویژگی‌های نوع «رنگ» کاربرد دارد.</div>
+        </div>
+
+        <div class="flex gap-16 flex-wrap">
+          <label class="check"><input type="checkbox" id="a_is_filter" name="is_filter" value="1" checked> نمایش در فیلتر آرشیو</label>
+          <label class="check"><input type="checkbox" id="a_is_variant" name="is_variant" value="1"> قابل استفاده به‌عنوان متغیر</label>
+          <label class="check"><input type="checkbox" id="a_is_spec" name="is_spec" value="1"> نمایش در جدول مشخصات</label>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره ویژگی</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  function openAttr(d) {
+    var f = document.querySelector('#attrModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('attrModalTitle').textContent = d ? 'ویرایش ویژگی' : 'ویژگی جدید';
+    ['id', 'name', 'type', 'category_id', 'unit', 'sort'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el) el.value = d && d[k] != null ? d[k] : (k === 'sort' ? 0 : k === 'type' ? 'select' : '');
+    });
+    f.querySelector('[name="is_filter"]').checked = d ? !!d.is_filter : true;
+    f.querySelector('[name="is_variant"]').checked = d ? !!d.is_variant : false;
+    f.querySelector('[name="is_spec"]').checked = d ? !!d.is_spec : false;
+
+    var wrap = document.getElementById('attrOptionsWrap');
+    wrap.innerHTML = '';
+    var opts = (d && d.options) || [];
+    if (!opts.length) opts = [{ title: '', color: '' }];
+    opts.forEach(function (o) {
+      var row = document.createElement('div');
+      row.className = 'repeater-row';
+      row.setAttribute('data-repeater-row', '');
+      row.innerHTML = '<input class="input input-sm" name="option_titles[]" placeholder="عنوان گزینه">' +
+        '<input class="input input-sm mono" name="option_colors[]" type="color" style="max-width:60px">' +
+        '<button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>';
+      row.querySelector('[name="option_titles[]"]').value = o.title || '';
+      if (o.color) row.querySelector('[name="option_colors[]"]').value = o.color;
+      wrap.appendChild(row);
+    });
+    openModal('attrModal');
+  }
+</script>

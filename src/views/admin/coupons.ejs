@@ -1,0 +1,156 @@
+<%
+  const TYPE = { percent: 'درصدی', fixed: 'مبلغ ثابت' };
+  const STATUS = { active: ['فعال', 'badge-success'], inactive: ['غیرفعال', 'badge-outline'] };
+  const isExpired = function (c) { return c.expires_at && new Date(String(c.expires_at).replace(' ', 'T')) < new Date(); };
+  const isUsed = function (c) { return c.usage_limit && c.used_count >= c.usage_limit; };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">کدهای تخفیف</h2>
+    <div class="text-xs text-muted mt-4">کوپن عمومی، اختصاصی برای یک کاربر، یا محدود به محصولات و فروشندگان خاص.</div>
+  </div>
+  <% if (can('coupons.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openCoupon(null)"><svg><use href="#i-plus"/></svg> کد تخفیف جدید</button>
+  <% } %>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد</th><th>نوع</th><th>مقدار</th><th>سقف تخفیف</th><th>حداقل سبد</th><th>مصرف</th><th>اعتبار</th><th>محدودیت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (c) { %>
+            <% const st = STATUS[c.status] || [c.status, 'badge-outline']; %>
+            <tr>
+              <td class="mono text-sm bold" dir="ltr"><%= c.code %></td>
+              <td class="text-xs"><%= TYPE[c.type] || c.type %></td>
+              <td class="mono text-xs bold"><%= c.type === 'percent' ? h.toPersianDigits(c.value) + '٪' : h.fa(c.value) + ' ' + site.currency %></td>
+              <td class="mono text-xs"><%= c.max_discount ? h.fa(c.max_discount) : '—' %></td>
+              <td class="mono text-xs"><%= c.min_cart ? h.fa(c.min_cart) : '—' %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(c.used_count) %><%= c.usage_limit ? ' / ' + h.toPersianDigits(c.usage_limit) : '' %></td>
+              <td class="text-2xs">
+                <%= c.starts_at ? h.formatJalali(c.starts_at) : 'از اکنون' %>
+                <% if (c.expires_at) { %> تا <%= h.formatJalali(c.expires_at) %><% } %>
+              </td>
+              <td class="text-2xs">
+                <% if (c.user_id) { %>اختصاصی: <span dir="ltr"><%= h.toPersianDigits(c.user_phone || '#' + c.user_id) %></span><% } %>
+                <% const pids = h.jparse(c.product_ids, []); const sids = h.jparse(c.seller_ids, []); %>
+                <% if (pids.length) { %><div><%= h.toPersianDigits(pids.length) %> محصول</div><% } %>
+                <% if (sids.length) { %><div><%= h.toPersianDigits(sids.length) %> فروشنده</div><% } %>
+                <% if (!c.user_id && !pids.length && !sids.length) { %>عمومی<% } %>
+              </td>
+              <td>
+                <span class="badge <%= st[1] %>"><%= st[0] %></span>
+                <% if (isExpired(c)) { %><div class="badge badge-danger text-2xs mt-4">منقضی</div><% } else if (isUsed(c)) { %><div class="badge badge-warning text-2xs mt-4">سقف مصرف پر</div><% } %>
+              </td>
+              <td class="actions">
+                <% if (can('coupons.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openCoupon(<%- JSON.stringify({ id: c.id, code: c.code, type: c.type, value: c.value, max_discount: c.max_discount || 0, min_cart: c.min_cart || 0, usage_limit: c.usage_limit || 0, per_user: c.per_user || 1, user_id: c.user_id || '', product_ids: h.jparse(c.product_ids, []).map(String), seller_ids: h.jparse(c.seller_ids, []).map(String), starts_at: c.starts_at || '', expires_at: c.expires_at || '', status: c.status }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/coupons/<%= c.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="کد تخفیف «<%= c.code %>» حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+                <button class="btn btn-sm btn-ghost" type="button" title="کپی کد"
+                        onclick="navigator.clipboard.writeText('<%= c.code %>').then(function(){toast('کد کپی شد','success')})"><svg><use href="#i-copy"/></svg></button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-percent"/></svg>
+      <h3>کد تخفیفی ساخته نشده است</h3>
+      <p class="text-sm">با یک کد تخفیف جشنواره، نرخ تبدیل سبد خرید را بالا ببرید.</p>
+      <% if (can('coupons.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openCoupon(null)">ساخت کد تخفیف</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('coupons.manage')) { %>
+<div class="modal-backdrop" id="couponModal">
+  <div class="modal xl">
+    <div class="modal-head"><h3 id="couponModalTitle">کد تخفیف جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/coupons">
+      <input type="hidden" name="id" id="cp_id" value="">
+      <div class="modal-body">
+        <div class="grid g-3">
+          <div class="field"><label for="cp_code">کد تخفیف <span class="req">*</span></label>
+            <input class="input mono" id="cp_code" name="code" dir="ltr" required placeholder="BALEWOO20" style="text-transform:uppercase"></div>
+          <div class="field"><label for="cp_type">نوع</label>
+            <select class="select" id="cp_type" name="type">
+              <option value="percent">درصدی</option>
+              <option value="fixed">مبلغ ثابت (<%= site.currency %>)</option>
+            </select></div>
+          <div class="field"><label for="cp_value">مقدار <span class="req">*</span></label>
+            <input class="input mono" id="cp_value" name="value" dir="ltr" inputmode="numeric" required placeholder="20"></div>
+        </div>
+        <div class="grid g-3">
+          <div class="field"><label for="cp_max">سقف تخفیف</label>
+            <input class="input mono" id="cp_max" name="max_discount" dir="ltr" inputmode="numeric" data-money-input placeholder="بدون سقف"></div>
+          <div class="field"><label for="cp_min">حداقل مبلغ سبد</label>
+            <input class="input mono" id="cp_min" name="min_cart" dir="ltr" inputmode="numeric" data-money-input placeholder="۰"></div>
+          <div class="field"><label for="cp_limit">سقف تعداد استفاده</label>
+            <input class="input mono" id="cp_limit" name="usage_limit" dir="ltr" inputmode="numeric" placeholder="نامحدود"></div>
+        </div>
+        <div class="grid g-3">
+          <div class="field"><label for="cp_per_user">سقف هر کاربر</label>
+            <input class="input mono" id="cp_per_user" name="per_user" dir="ltr" inputmode="numeric" value="1"></div>
+          <div class="field"><label for="cp_starts">شروع اعتبار</label>
+            <input class="input mono" id="cp_starts" name="starts_at" dir="ltr" placeholder="1404-05-01 00:00:00"></div>
+          <div class="field"><label for="cp_expires">پایان اعتبار</label>
+            <input class="input mono" id="cp_expires" name="expires_at" dir="ltr" placeholder="1404-05-30 23:59:59"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="cp_user">اختصاصی برای یک کاربر</label>
+            <select class="select" id="cp_user" name="user_id">
+              <option value="">عمومی (همه کاربران)</option>
+              <% users.forEach(function (u) { %>
+                <option value="<%= u.id %>"><%= u.name || 'بدون نام' %> — <%= h.toPersianDigits(u.phone || '') %></option>
+              <% }) %>
+            </select></div>
+          <div class="field m-0" style="max-width:200px"><label for="cp_status">وضعیت</label>
+            <select class="select" id="cp_status" name="status">
+              <option value="active">فعال</option>
+              <option value="inactive">غیرفعال</option>
+            </select></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="cp_products">محدود به محصولات</label>
+            <select class="select" id="cp_products" name="product_ids" multiple size="6">
+              <% products.forEach(function (pp) { %><option value="<%= pp.id %>"><%= h.truncate(pp.title, 56) %></option><% }) %>
+            </select>
+            <div class="help">خالی = همه محصولات</div></div>
+          <div class="field"><label for="cp_sellers">محدود به فروشندگان</label>
+            <input class="input mono" id="cp_sellers" name="seller_ids" dir="ltr" placeholder="شناسه فروشندگان با کاما: 1,2,3">
+            <div class="help">خالی = همه فروشندگان</div></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره کد تخفیف</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  function openCoupon(d) {
+    var f = document.querySelector('#couponModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('couponModalTitle').textContent = d ? 'ویرایش کد تخفیف' : 'کد تخفیف جدید';
+    ['id', 'code', 'type', 'value', 'max_discount', 'min_cart', 'usage_limit', 'per_user', 'user_id', 'starts_at', 'expires_at', 'status'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el) el.value = d && d[k] != null ? d[k] : (k === 'type' ? 'percent' : k === 'per_user' ? 1 : k === 'status' ? 'active' : '');
+    });
+    var ids = (d && d.product_ids) || [];
+    Array.prototype.forEach.call(f.querySelector('[name="product_ids"]').options, function (o) { o.selected = ids.indexOf(o.value) > -1; });
+    f.querySelector('[name="seller_ids"]').value = (d && d.seller_ids && d.seller_ids.length) ? d.seller_ids.join(',') : '';
+    openModal('couponModal');
+  }
+</script>

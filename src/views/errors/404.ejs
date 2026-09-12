@@ -1,0 +1,28 @@
+<%- include('../layouts/head', { bodyClass: 'page-error' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main">
+<div class="container container-xs section">
+  <div class="card">
+    <div class="card-body text-center" style="padding:52px 26px">
+      <div style="font-size:5.5rem;font-weight:800;line-height:1;color:var(--brand);opacity:.16">۴۰۴</div>
+      <svg width="62" height="62" style="color:var(--text-3);width:62px;height:62px;margin:-30px auto 12px"><use href="#i-search"/></svg>
+      <h1 style="font-size:1.2rem;margin-bottom:8px">صفحه‌ای که دنبالش بودید پیدا نشد</h1>
+      <p class="text-sm text-muted mb-20">ممکن است نشانی تغییر کرده باشد یا کالا از فروشگاه حذف شده باشد. از جستجو استفاده کنید یا به صفحه نخست بازگردید.</p>
+      <form method="get" action="/products" class="search-box mx-auto mb-20" style="max-width:420px;margin:0 auto 20px">
+        <div class="input-wrap">
+          <svg><use href="#i-search"/></svg>
+          <input type="search" name="search" placeholder="جستجوی کالا…" aria-label="جستجو">
+        </div>
+      </form>
+      <div class="flex gap-10 justify-center flex-wrap">
+        <a class="btn btn-primary" href="/"><svg><use href="#i-grid"/></svg> صفحه نخست</a>
+        <a class="btn btn-outline" href="/products">آرشیو محصولات</a>
+        <button class="btn btn-ghost" type="button" onclick="history.back()"><svg><use href="#i-rotate"/></svg> بازگشت</button>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

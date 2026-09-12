@@ -1,0 +1,210 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">روش‌های ارسال و مراکز حضوری</h2>
+    <div class="text-xs text-muted mt-4">هزینه ارسال بر اساس وزن، مبلغ سبد و روش انتخابی محاسبه می‌شود.</div>
+  </div>
+  <div class="flex gap-8">
+    <% if (can('pickups.manage')) { %><button class="btn btn-sm btn-outline" type="button" onclick="openPickup(null)"><svg><use href="#i-pin"/></svg> مرکز حضوری</button><% } %>
+    <% if (can('shipping.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openMethod(null)"><svg><use href="#i-plus"/></svg> روش ارسال</button><% } %>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">روش‌های ارسال</h3>
+    <span class="badge badge-outline"><%= h.toPersianDigits(methods.length) %> روش</span></div>
+  <% if (methods.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>عنوان</th><th>هزینه پایه</th><th>ارسال رایگان</th><th>وزن اضافه</th><th>زمان تحویل</th><th>پرداخت در محل</th><th>محدوده</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% methods.forEach(function (m) { %>
+            <% const s = m.seller_id ? sellers.find(function (x) { return x.id === m.seller_id; }) : null; %>
+            <tr>
+              <td class="text-sm bold"><%= m.title %>
+                <% if (m.description) { %><div class="text-2xs text-muted"><%= h.truncate(m.description, 60) %></div><% } %></td>
+              <td class="mono text-xs"><%= m.base_price ? h.fa(m.base_price) : 'رایگان' %></td>
+              <td class="mono text-xs text-success"><%= m.free_above ? 'بالای ' + h.fa(m.free_above) : '—' %></td>
+              <td class="text-2xs"><%= m.extra_weight_from ? 'از ' + h.toPersianDigits(m.extra_weight_from) + ' گرم: ' + h.fa(m.extra_weight_price) + '/کیلو' : '—' %></td>
+              <td class="mono text-xs"><%= m.eta_days ? h.toPersianDigits(m.eta_days) + ' روز کاری' : 'فوری' %></td>
+              <td><span class="badge <%= m.cod_allowed ? 'badge-success' : 'badge-outline' %>"><%= m.cod_allowed ? 'مجاز' : 'غیرمجاز' %></span></td>
+              <td class="text-2xs"><%= s ? s.shop_name : 'عمومی' %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(m.sort || 0) %></td>
+              <td><span class="badge <%= m.status === 'active' ? 'badge-success' : 'badge-outline' %>"><%= m.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <td class="actions">
+                <% if (can('shipping.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openMethod(<%- JSON.stringify({ id: m.id, title: m.title, description: m.description || '', base_price: m.base_price || 0, free_above: m.free_above || 0, extra_weight_price: m.extra_weight_price || 0, extra_weight_from: m.extra_weight_from || 0, eta_days: m.eta_days || 3, cod_allowed: m.cod_allowed, seller_id: m.seller_id || '', sort: m.sort || 0, status: m.status }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/shipping/<%= m.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="روش ارسال «<%= m.title %>» حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-truck"/></svg>
+      <h4>روش ارسالی تعریف نشده است</h4>
+      <p class="text-sm">بدون روش ارسال، فرایند خرید کامل نمی‌شود. حداقل یک روش اضافه کنید.</p>
+      <% if (can('shipping.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openMethod(null)">افزودن روش ارسال</button><% } %></div>
+  <% } %>
+</section>
+
+<section class="card mt-20">
+  <div class="card-head"><h3 class="text-sm">مراکز دریافت حضوری</h3>
+    <span class="badge badge-outline"><%= h.toPersianDigits(pickups.length) %> مرکز</span></div>
+  <% if (pickups.length) { %>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>عنوان</th><th>نشانی</th><th>تلفن</th><th>ساعت کاری</th><th>مختصات</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% pickups.forEach(function (p) { %>
+            <tr>
+              <td class="text-sm bold"><%= p.title %></td>
+              <td class="text-xs"><%= p.address || '—' %></td>
+              <td class="mono text-xs" dir="ltr"><%= h.toPersianDigits(p.phone || '—') %></td>
+              <td class="text-2xs"><%= p.work_hours || '—' %></td>
+              <td class="mono text-2xs" dir="ltr"><%= p.lat && p.lng ? p.lat + ', ' + p.lng : '—' %></td>
+              <td><span class="badge <%= p.status === 'active' ? 'badge-success' : 'badge-outline' %>"><%= p.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <td class="actions">
+                <% if (can('pickups.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openPickup(<%- JSON.stringify({ id: p.id, title: p.title, address: p.address || '', phone: p.phone || '', lat: p.lat || '', lng: p.lng || '', work_hours: p.work_hours || '', status: p.status }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/pickups/<%= p.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="مرکز حضوری حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty" style="padding:24px"><svg><use href="#i-pin"/></svg>
+      <p class="text-sm">مرکز دریافت حضوری ثبت نشده است.</p>
+      <% if (can('pickups.manage')) { %><button class="btn btn-sm btn-outline" type="button" onclick="openPickup(null)">افزودن مرکز</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('shipping.manage')) { %>
+<div class="modal-backdrop" id="methodModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="methodModalTitle">روش ارسال جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/shipping">
+      <input type="hidden" name="id" id="sm_id" value="">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="sm_title">عنوان <span class="req">*</span></label>
+            <input class="input" id="sm_title" name="title" required placeholder="پست پیشتاز"></div>
+          <div class="field"><label for="sm_seller">محدوده کاربرد</label>
+            <select class="select" id="sm_seller" name="seller_id">
+              <option value="">عمومی (همه فروشگاه‌ها)</option>
+              <% sellers.forEach(function (s) { %><option value="<%= s.id %>">فقط <%= s.shop_name %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="field"><label for="sm_desc">توضیحات</label>
+          <input class="input" id="sm_desc" name="description" placeholder="تحویل ۲ تا ۴ روز کاری پس از ارسال"></div>
+        <div class="grid g-3">
+          <div class="field"><label for="sm_base">هزینه پایه (<%= site.currency %>)</label>
+            <input class="input mono" id="sm_base" name="base_price" dir="ltr" inputmode="numeric" data-money-input value="0"></div>
+          <div class="field"><label for="sm_free">ارسال رایگان بالای</label>
+            <input class="input mono" id="sm_free" name="free_above" dir="ltr" inputmode="numeric" data-money-input placeholder="۰ = بدون سقف"></div>
+          <div class="field"><label for="sm_eta">زمان تحویل (روز کاری)</label>
+            <input class="input mono" id="sm_eta" name="eta_days" dir="ltr" inputmode="numeric" value="3"></div>
+        </div>
+        <div class="grid g-3">
+          <div class="field"><label for="sm_wfrom">شروع وزن اضافه (گرم)</label>
+            <input class="input mono" id="sm_wfrom" name="extra_weight_from" dir="ltr" inputmode="numeric" value="0"></div>
+          <div class="field"><label for="sm_wprice">هزینه هر کیلو اضافه</label>
+            <input class="input mono" id="sm_wprice" name="extra_weight_price" dir="ltr" inputmode="numeric" data-money-input value="0"></div>
+          <div class="field"><label for="sm_sort">ترتیب نمایش</label>
+            <input class="input mono" id="sm_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+        </div>
+        <div class="flex gap-16">
+          <label class="check"><input type="checkbox" id="sm_cod" name="cod_allowed" value="1"> پرداخت در محل مجاز است</label>
+          <div class="field m-0" style="min-width:150px"><label for="sm_status">وضعیت</label>
+            <select class="select" id="sm_status" name="status">
+              <option value="active">فعال</option>
+              <option value="inactive">غیرفعال</option>
+            </select></div>
+        </div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg>
+          <div class="body">هزینه پرداخت در محل از تنظیمات عمومی (<span class="mono"><%= h.fa(setting('cod_fee', '0')) %> <%= site.currency %></span>) افزوده می‌شود.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره روش ارسال</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (can('pickups.manage')) { %>
+<div class="modal-backdrop" id="pickupModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="pickupModalTitle">مرکز دریافت حضوری</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/pickups">
+      <input type="hidden" name="id" id="pk_id" value="">
+      <div class="modal-body">
+        <div class="field"><label for="pk_title">عنوان <span class="req">*</span></label>
+          <input class="input" id="pk_title" name="title" required placeholder="شعبه مرکزی — تهران"></div>
+        <div class="field"><label for="pk_address">نشانی</label>
+          <textarea class="textarea" id="pk_address" name="address" rows="2"></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label for="pk_phone">تلفن</label>
+            <input class="input mono" id="pk_phone" name="phone" dir="ltr"></div>
+          <div class="field"><label for="pk_hours">ساعت کاری</label>
+            <input class="input" id="pk_hours" name="work_hours" placeholder="شنبه تا چهارشنبه ۹ تا ۱۸"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="pk_lat">عرض جغرافیایی</label>
+            <input class="input mono" id="pk_lat" name="lat" dir="ltr" placeholder="35.7448"></div>
+          <div class="field"><label for="pk_lng">طول جغرافیایی</label>
+            <input class="input mono" id="pk_lng" name="lng" dir="ltr" placeholder="51.3753"></div>
+        </div>
+        <div class="field m-0" style="max-width:180px"><label for="pk_status">وضعیت</label>
+          <select class="select" id="pk_status" name="status">
+            <option value="active">فعال</option>
+            <option value="inactive">غیرفعال</option>
+          </select></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره مرکز</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  function openMethod(d) {
+    var f = document.querySelector('#methodModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('methodModalTitle').textContent = d ? 'ویرایش روش ارسال' : 'روش ارسال جدید';
+    ['id', 'title', 'description', 'base_price', 'free_above', 'extra_weight_price', 'extra_weight_from', 'eta_days', 'seller_id', 'sort', 'status'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (!el) return;
+      el.value = d && d[k] != null && d[k] !== '' ? d[k] : (k === 'eta_days' ? 3 : k === 'status' ? 'active' : k === 'seller_id' ? '' : 0);
+    });
+    f.querySelector('[name="cod_allowed"]').checked = d ? !!d.cod_allowed : false;
+    openModal('methodModal');
+  }
+  function openPickup(d) {
+    var f = document.querySelector('#pickupModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('pickupModalTitle').textContent = d ? 'ویرایش مرکز حضوری' : 'مرکز دریافت حضوری';
+    ['id', 'title', 'address', 'phone', 'lat', 'lng', 'work_hours', 'status'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el) el.value = d && d[k] != null ? d[k] : (k === 'status' ? 'active' : '');
+    });
+    openModal('pickupModal');
+  }
+</script>

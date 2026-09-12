@@ -1,0 +1,31 @@
+# وابستگی‌ها
+node_modules/
+
+# داده‌های زمان اجرا (پایگاه داده، پشتیبان‌ها)
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# فایل‌های بارگذاری‌شده کاربران
+src/public/uploads/
+
+# تصاویر تولیدشده در زمان اجرا (داده نمونه و جای‌نگهدارها)
+src/public/img/seed/
+src/public/img/placeholders/
+
+# پیکربندی محلی
+.env
+.env.local
+
+# لاگ و فایل‌های موقت
+*.log
+logs/
+tmp/
+.DS_Store
+
+# ابزارها
+.nyc_output/
+coverage/
+.vscode/
+.idea/

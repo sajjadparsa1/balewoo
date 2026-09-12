@@ -1,0 +1,88 @@
+<%
+  const deptFallback = [['support', 'پشتیبانی'], ['sales', 'فروش'], ['finance', 'مالی'], ['technical', 'فنی']];
+  const deps = (departments && departments.length) ? departments : deptFallback;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">ایجاد تیکت پشتیبانی</h2>
+    <div class="text-xs text-muted mt-6">میانگین زمان پاسخ: <%= h.toPersianDigits(setting('support_avg_response', '۲ ساعت')) %></div>
+  </div>
+  <a class="btn btn-sm" href="/user/tickets"><svg><use href="#i-chevron-right"/></svg> تیکت‌های من</a>
+</div>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">اطلاعات تیکت</h3></div>
+    <div class="card-body">
+      <form method="post" action="/user/tickets" enctype="multipart/form-data" data-upload-form>
+        <div class="grid g-2">
+          <div class="field"><label for="t_department">دپارتمان <span class="req">*</span></label>
+            <select class="select" id="t_department" name="department" required>
+              <% deps.forEach(function (d) { %><option value="<%= d[0] %>"><%= d[1] %></option><% }) %>
+            </select>
+            <div class="help">دپارتمان مناسب را انتخاب کنید تا تیکت سریع‌تر به کارشناس مربوطه برسد.</div></div>
+          <div class="field"><label for="t_priority">اولویت</label>
+            <select class="select" id="t_priority" name="priority">
+              <option value="low">کم — سوال عمومی</option>
+              <option value="normal" selected>متوسط</option>
+              <option value="high">زیاد — مشکل در فرایند خرید</option>
+              <option value="critical">بحرانی — اختلال در پرداخت یا امنیت</option>
+            </select></div>
+        </div>
+        <div class="field"><label for="t_subject">موضوع <span class="req">*</span></label>
+          <input class="input" id="t_subject" name="subject" maxlength="200" required placeholder="مثلاً: سفارش تحویل داده نشده است"></div>
+        <div class="field"><label for="t_order">مرتبط با سفارش (اختیاری)</label>
+          <select class="select" id="t_order" name="order_id">
+            <option value="">بدون سفارش</option>
+            <% (orders || []).forEach(function (o) { %>
+              <option value="<%= o.code %>"><%= o.code %> — <%= h.formatJalali(o.created_at) %> (<%= h.fa(o.total) %> <%= site.currency %>)</option>
+            <% }) %>
+          </select>
+          <div class="help">با انتخاب سفارش، کارشناس به جزئیات آن دسترسی پیدا می‌کند.</div></div>
+        <div class="field"><label for="t_body">شرح مشکل <span class="req">*</span></label>
+          <textarea class="textarea" id="t_body" name="body" rows="7" required
+                    placeholder="لطفاً جزئیات، تاریخ و شماره پیگیری را بنویسید…"></textarea></div>
+        <div class="field"><label for="t_file">پیوست</label>
+          <div class="dropzone" data-dropzone data-target="#t_file">
+            <input class="input" id="t_file" name="attachment" type="file" accept="image/*,.pdf,.zip">
+            <div class="dz-hint text-xs text-muted">تصویر، رسید بانکی یا فایل PDF — حداکثر <%= h.toPersianDigits(setting('max_upload_mb', '5')) %> مگابایت</div>
+          </div></div>
+        <div class="flex items-center justify-between gap-12 mt-14">
+          <div class="text-xs text-muted">با ثبت تیکت، اطلاعات حساب شما برای پیگیری در اختیار کارشناس قرار می‌گیرد.</div>
+          <button class="btn btn-primary" type="submit"><svg><use href="#i-send"/></svg> ثبت تیکت</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">پیش از ثبت تیکت</h3></div>
+      <div class="card-body stack" style="gap:12px">
+        <% [
+          ['سوالات متداول', 'پاسخ بسیاری از پرسش‌ها در بخش سوالات متداول هست.', '/faq'],
+          ['پیگیری سفارش', 'وضعیت لحظه‌ای سفارش و کد رهگیری پستی را اینجا ببینید.', '/user/orders'],
+          ['مشکل پرداخت', 'اگر مبلغ کسر شده و سفارش ثبت نشده، رسید را در جزئیات سفارش بارگذاری کنید.', '/user/orders'],
+          ['درخواست مرجوعی', 'برای مرجوعی کالا از جزئیات سفارش اقدام کنید.', '/user/orders']
+        ].forEach(function (l) { %>
+          <a class="link-row" href="<%= l[2] %>">
+            <span class="grow"><b class="text-sm"><%= l[0] %></b><span class="text-xs text-muted" style="display:block"><%= l[1] %></span></span>
+            <svg width="16" height="16" style="width:16px;height:16px"><use href="#i-chevron-left"/></svg>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">ساعات پاسخگویی</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.2">
+        <%= setting('support_hours', 'شنبه تا چهارشنبه ۹ تا ۱۸') %><br>
+        تلفن پشتیبانی: <span dir="ltr"><%= site.phone || '—' %></span><br>
+        ایمیل: <span dir="ltr"><%= site.email || '—' %></span>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,132 @@
+<%
+  const canEdit = can('settings.manage');
+  const dis = canEdit ? '' : 'disabled';
+  const ICONS = ['truck', 'shield', 'rotate', 'headset', 'zap', 'gift', 'check', 'wallet', 'bank', 'package', 'store', 'medal', 'clock', 'percent', 'star', 'globe'];
+  const totalSearches = topSearches.reduce(function (s, t) { return s + (t.count || 0); }, 0);
+%>
+<%- include('../../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">ویجت‌های فروشگاه</h2>
+  <% if (canEdit) { %><button class="btn btn-sm btn-primary" type="submit" form="widgetForm"><svg><use href="#i-save"/></svg> ذخیره ویجت‌ها</button><% } %>
+</div>
+
+<form method="post" action="/admin/settings/widgets" id="widgetForm">
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ویجت خدمات (نوار مزیت‌های صفحه نخست)</h3>
+          <% if (canEdit) { %>
+            <div class="flex gap-8">
+              <button class="btn btn-sm btn-ghost" type="button" data-repeater-add="#svcTpl" data-repeater-target="#svcRows"><svg><use href="#i-plus"/></svg> افزودن خدمت</button>
+              <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button>
+            </div>
+          <% } %>
+        </div>
+        <div class="card-body">
+          <div class="text-2xs text-muted mb-14">این موارد به‌صورت یک نوار افقی در بالای صفحه نخست نمایش داده می‌شوند (ارسال سریع، ضمانت اصالت، پشتیبانی و…).</div>
+          <div data-repeater id="svcRows">
+            <% services.forEach(function (s) { %>
+              <div class="repeater-row" data-repeater-row>
+                <div class="field"><label>آیکون</label>
+                  <select class="select" name="service_icons[]" <%= dis %>>
+                    <% ICONS.forEach(function (ic) { %><option value="<%= ic %>" <%= s.icon === ic ? 'selected' : '' %>><%= ic %></option><% }) %>
+                  </select></div>
+                <div class="field"><label>عنوان</label>
+                  <input class="input" name="service_titles[]" value="<%= s.title %>" <%= dis %>></div>
+                <div class="field" style="grid-column:span 2"><label>توضیح کوتاه</label>
+                  <input class="input" name="service_texts[]" value="<%= s.text || '' %>" <%= dis %>></div>
+                <% if (canEdit) { %>
+                  <button class="btn btn-sm btn-ghost text-danger" type="button" data-repeater-remove title="حذف"><svg><use href="#i-trash"/></svg></button>
+                <% } %>
+              </div>
+              <div class="flex items-center gap-8 text-2xs text-muted" style="margin:-4px 0 12px">
+                <svg style="width:13px;height:13px"><use href="#i-<%= s.icon %>"/></svg> پیش‌نمایش: <b class="text-foreground"><%= s.title %></b> — <%= s.text || '' %>
+              </div>
+            <% }) %>
+          </div>
+          <% if (!services.length) { %>
+            <div class="empty" style="padding:20px"><p class="text-sm">خدمتی تعریف نشده است.</p></div>
+          <% } %>
+        </div>
+        <template id="svcTpl">
+          <div class="repeater-row" data-repeater-row>
+            <div class="field"><label>آیکون</label>
+              <select class="select" name="service_icons[]">
+                <% ICONS.forEach(function (ic) { %><option value="<%= ic %>"><%= ic %></option><% }) %>
+              </select></div>
+            <div class="field"><label>عنوان</label>
+              <input class="input" name="service_titles[]" placeholder="ارسال سریع"></div>
+            <div class="field" style="grid-column:span 2"><label>توضیح کوتاه</label>
+              <input class="input" name="service_texts[]" placeholder="تحویل اکسپرس در تهران و شهرستان‌ها"></div>
+            <button class="btn btn-sm btn-ghost text-danger" type="button" data-repeater-remove title="حذف"><svg><use href="#i-trash"/></svg></button>
+          </div>
+        </template>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">جستجوهای پیشنهادی (ویجت «بیشترین جستجوها»)</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="w_searches">عبارت‌های پیشنهادی (هر خط یکی)</label>
+              <textarea class="textarea" id="w_searches" name="searches" rows="8" <%= dis %> placeholder="گوشی موبایل&#10;هدفون بلوتوثی&#10;کفش ورزشی"><%= topSearches.slice(0, 20).map(function (t) { return t.term; }).join('\n') %></textarea>
+              <div class="help">با ذخیره، این عبارات به‌عنوان جستجوهای پرتکرار در صفحه نخست و صفحه جستجو نمایش داده می‌شوند.</div></div>
+            <div class="stack">
+              <div class="field"><label for="w_count">تعداد کلیک ثبت‌شده برای هر عبارت</label>
+                <input class="input mono" id="w_count" name="search_count" dir="ltr" inputmode="numeric" value="25" <%= dis %>>
+                <div class="help">عدد بالاتر = نمایش بالاتر در فهرست.</div></div>
+              <div class="card" style="margin:0">
+                <div class="card-head" style="padding:10px 14px"><h3 class="text-sm">پرتکرارترین جستجوهای واقعی</h3></div>
+                <div class="card-body" style="padding:10px 14px">
+                  <% if (topSearches.length) { %>
+                    <div class="chips">
+                      <% topSearches.slice(0, 12).forEach(function (t) { %>
+                        <span class="chip"><%= t.term %> <span class="mono text-2xs text-muted">(<%= h.toPersianDigits(t.count) %>)</span></span>
+                      <% }) %>
+                    </div>
+                  <% } else { %>
+                    <p class="text-xs text-muted m-0">هنوز جستجویی توسط کاربران ثبت نشده است.</p>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سایر ویجت‌های صفحه نخست</h3></div>
+        <div class="card-body text-xs text-muted" style="line-height:2.1">
+          <ul class="bullets m-0">
+            <li><b class="text-foreground">اسلایدر و بنرها:</b> از بخش بنرها مدیریت می‌شود.</li>
+            <li><b class="text-foreground">استوری‌ها:</b> از بخش استوری‌ها.</li>
+            <li><b class="text-foreground">محصولات پربازدید هفته و لیست‌ها:</b> در صفحه‌ساز (قالب صفحه نخست).</li>
+            <li><b class="text-foreground">دسته‌بندی‌ها و برندها:</b> در صفحه‌ساز با تعیین تعداد.</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="stack" style="gap:8px">
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/content/templates"><svg><use href="#i-layout"/></svg> صفحه‌ساز</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/content/banners"><svg><use href="#i-image"/></svg> بنرها</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/content/stories"><svg><use href="#i-zap"/></svg> استوری‌ها</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">آمار جستجو</h3></div>
+        <div class="card-body">
+          <table class="table-kv"><tbody>
+            <tr><th>عبارت‌های ثبت‌شده</th><td class="mono"><%= h.toPersianDigits(topSearches.length) %></td></tr>
+            <tr><th>مجموع جستجوها</th><td class="mono"><%= h.toPersianDigits(totalSearches) %></td></tr>
+            <tr><th>خدمات نمایشی</th><td class="mono"><%= h.toPersianDigits(services.length) %></td></tr>
+          </tbody></table>
+          <a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/system/reports"><svg><use href="#i-chart"/></svg> گزارش کامل جستجو و بازدید</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<%- include('../../partials/panel-foot') %>

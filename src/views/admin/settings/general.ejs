@@ -1,0 +1,306 @@
+<%
+  const g = groups || {};
+  const val = function (k, d) { const v = g[k]; return (v === undefined || v === null || v === '') ? (d === undefined ? '' : d) : v; };
+  const on = function (k, d) { const v = String(val(k, d)); return v === '1' || v === 'true' || v === 'on'; };
+  const canEdit = can('settings.manage');
+  const dis = canEdit ? '' : 'disabled';
+  const TABS = [
+    ['identity', 'هویت فروشگاه', 'store'],
+    ['branding', 'لوگو و تصاویر', 'image'],
+    ['marketplace', 'چند فروشندگی', 'users'],
+    ['moderation', 'تایید و نظارت', 'shield'],
+    ['pricing', 'قیمت، مالیات و ارسال', 'percent'],
+    ['club', 'باشگاه و وفاداری', 'award'],
+    ['security', 'ورود و امنیت', 'lock'],
+    ['social', 'شبکه‌های اجتماعی و نمادها', 'globe'],
+    ['appearance', 'ظاهر و کارایی', 'layout'],
+  ];
+  const activeTab = TABS.some(function (t) { return t[0] === query.group; }) ? query.group : 'identity';
+%>
+<%- include('../../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">تنظیمات عمومی</h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/settings/seo"><svg><use href="#i-search"/></svg> سئو</a>
+    <a class="btn btn-sm" href="/admin/settings/widgets"><svg><use href="#i-layout"/></svg> ویجت‌ها</a>
+    <% if (canEdit) { %><button class="btn btn-sm btn-primary" type="submit" form="generalForm"><svg><use href="#i-save"/></svg> ذخیره تنظیمات</button><% } %>
+  </div>
+</div>
+
+<form method="post" action="/admin/settings/general" id="generalForm">
+  <input type="hidden" name="__form" value="general">
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-body" data-tabs style="padding-top:0">
+        <div class="tabs">
+          <% TABS.forEach(function (t) { %>
+            <button class="tab-btn <%= t[0] === activeTab ? 'active' : '' %>" type="button" data-tab="s-<%= t[0] %>">
+              <svg style="width:13px;height:13px;vertical-align:-2px"><use href="#i-<%= t[2] %>"/></svg> <%= t[1] %></button>
+          <% }) %>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'identity' ? 'active' : '' %>" data-pane="s-identity">
+          <h3 class="text-sm mb-14">اطلاعات فروشگاه</h3>
+          <div class="grid g-2">
+            <div class="field"><label for="g_name">نام فروشگاه</label>
+              <input class="input" id="g_name" name="site_name" value="<%= val('site_name') %>" <%= dis %>></div>
+            <div class="field"><label for="g_slogan">شعار فروشگاه</label>
+              <input class="input" id="g_slogan" name="site_slogan" value="<%= val('site_slogan') %>" <%= dis %>></div>
+          </div>
+          <div class="field"><label for="g_desc">معرفی کوتاه (توضیحات متا پیش‌فرض)</label>
+            <textarea class="textarea" id="g_desc" name="site_description" rows="3" <%= dis %>><%= val('site_description') %></textarea></div>
+          <div class="field"><label for="g_kw">کلمات کلیدی سایت</label>
+            <input class="input" id="g_kw" name="site_keywords" value="<%= val('site_keywords') %>" <%= dis %>>
+            <div class="help">با کاما جدا کنید.</div></div>
+          <div class="grid g-2">
+            <div class="field"><label for="g_phone">تلفن پشتیبانی</label>
+              <input class="input mono" id="g_phone" name="site_phone" dir="ltr" value="<%= val('site_phone') %>" <%= dis %>></div>
+            <div class="field"><label for="g_email">ایمیل تماس</label>
+              <input class="input mono" id="g_email" name="site_email" dir="ltr" value="<%= val('site_email') %>" <%= dis %>></div>
+          </div>
+          <div class="field"><label for="g_addr">نشانی</label>
+            <input class="input" id="g_addr" name="site_address" value="<%= val('site_address') %>" <%= dis %>></div>
+          <div class="grid g-3">
+            <div class="field"><label for="g_postal">کد پستی</label>
+              <input class="input mono" id="g_postal" name="site_postal_code" dir="ltr" value="<%= val('site_postal_code') %>" <%= dis %>></div>
+            <div class="field"><label for="g_url">آدرس سایت</label>
+              <input class="input mono" id="g_url" name="site_url" dir="ltr" value="<%= val('site_url') %>" placeholder="https://example.com" <%= dis %>></div>
+            <div class="field"><label for="g_cur">واحد پول</label>
+              <input class="input" id="g_cur" name="currency" value="<%= val('currency', 'تومان') %>" <%= dis %>></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="g_eco">کد اقتصادی</label>
+              <input class="input mono" id="g_eco" name="shop_economic_code" dir="ltr" value="<%= val('shop_economic_code') %>" <%= dis %>></div>
+            <div class="field"><label for="g_nid">شناسه ملی فروشگاه</label>
+              <input class="input mono" id="g_nid" name="shop_national_id" dir="ltr" value="<%= val('shop_national_id') %>" <%= dis %>></div>
+          </div>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'branding' ? 'active' : '' %>" data-pane="s-branding">
+          <h3 class="text-sm mb-14">لوگو و تصاویر برند</h3>
+          <div class="alert alert-info mb-14"><svg><use href="#i-info"/></svg><div class="body text-xs">
+            این بخش فرم جداگانه دارد (بارگذاری فایل) — پس از انتخاب تصویر، دکمه «ذخیره هویت بصری» را بزنید.
+          </div></div>
+          <div class="grid g-2">
+            <% [['logo', 'لوگو (حالت روشن)', 'site_logo'], ['logo_dark', 'لوگو (حالت تیره)', 'site_logo_dark'], ['favicon', 'آیکون سایت (favicon)', 'site_favicon'], ['og_image', 'تصویر اشتراک‌گذاری شبکه‌های اجتماعی', 'site_og_image']].forEach(function (f) { %>
+              <div class="field">
+                <label><%= f[1] %></label>
+                <div class="flex items-center gap-10">
+                  <% const cur = val(f[2]); %>
+                  <% if (cur) { %><img src="<%= cur %>" alt="" style="width:56px;height:56px;object-fit:contain;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)"><% } %>
+                  <div class="grow stack" style="gap:6px">
+                    <input class="input" type="file" accept="image/*" name="<%= f[0] %>" form="brandingForm" <%= dis %>>
+                    <input class="input mono input-sm" dir="ltr" name="<%= f[0] %>_url" form="brandingForm" value="<%= cur %>" placeholder="یا آدرس فایل" <%= dis %>>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+          <div class="field"><label for="g_loginbg">تصویر پس‌زمینه صفحه ورود</label>
+            <input class="input mono" id="g_loginbg" name="login_bg_url" form="brandingForm" dir="ltr" value="<%= val('login_bg') %>" placeholder="/uploads/branding/login.jpg" <%= dis %>></div>
+          <% if (canEdit) { %>
+            <button class="btn btn-sm btn-primary" type="submit" form="brandingForm"><svg><use href="#i-save"/></svg> ذخیره هویت بصری</button>
+          <% } %>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'marketplace' ? 'active' : '' %>" data-pane="s-marketplace">
+          <h3 class="text-sm mb-14">فروشگاه چند فروشنده</h3>
+          <label class="switch-row"><input type="checkbox" name="multivendor_enabled" value="on" <%= on('multivendor_enabled', true) ? 'checked' : '' %> <%= dis %>><span>حالت چند فروشندگی فعال باشد (نمایش فروشگاه‌ها در صفحه محصول)</span></label>
+          <label class="switch-row"><input type="checkbox" name="seller_registration_enabled" value="on" <%= on('seller_registration_enabled', true) ? 'checked' : '' %> <%= dis %>><span>ثبت‌نام فروشنده جدید مجاز باشد</span></label>
+          <div class="grid g-2">
+            <div class="field"><label for="g_autoapprove">تایید خودکار فروشنده</label>
+              <select class="select" id="g_autoapprove" name="seller_auto_approve" <%= dis %>>
+                <option value="0" <%= !on('seller_auto_approve', false) ? 'selected' : '' %>>نیازمند تایید مدیر</option>
+                <option value="1" <%= on('seller_auto_approve', false) ? 'selected' : '' %>>تایید خودکار</option>
+              </select></div>
+            <div class="field"><label for="g_comm">کمیسیون پیش‌فرض (٪)</label>
+              <input class="input mono" id="g_comm" name="seller_default_commission" dir="ltr" inputmode="decimal" value="<%= val('seller_default_commission', '10') %>" <%= dis %>></div>
+          </div>
+          <div class="grid g-3">
+            <div class="field"><label for="g_settle">چرخه تسویه (روز)</label>
+              <input class="input mono" id="g_settle" name="seller_default_settlement" dir="ltr" inputmode="numeric" value="<%= val('seller_default_settlement', '7') %>" <%= dis %>></div>
+            <div class="field"><label for="g_minwd">حداقل برداشت فروشنده</label>
+              <input class="input mono" id="g_minwd" name="min_seller_withdraw" dir="ltr" inputmode="numeric" data-money-input value="<%= val('min_seller_withdraw', '500000') %>" <%= dis %>></div>
+            <div class="field"><label for="g_minuser">حداقل برداشت کاربر</label>
+              <input class="input mono" id="g_minuser" name="min_withdraw_amount" dir="ltr" inputmode="numeric" data-money-input value="<%= val('min_withdraw_amount', '100000') %>" <%= dis %>></div>
+          </div>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'moderation' ? 'active' : '' %>" data-pane="s-moderation">
+          <h3 class="text-sm mb-14">تایید محتوا</h3>
+          <div class="grid g-3">
+            <div class="field"><label for="g_prodappr">محصولات فروشندگان</label>
+              <select class="select" id="g_prodappr" name="seller_products_need_approval" <%= dis %>>
+                <option value="1" <%= on('seller_products_need_approval', true) ? 'selected' : '' %>>نیازمند تایید</option>
+                <option value="0" <%= !on('seller_products_need_approval', true) ? 'selected' : '' %>>انتشار خودکار</option>
+              </select></div>
+            <div class="field"><label for="g_postappr">مقالات فروشندگان</label>
+              <select class="select" id="g_postappr" name="seller_posts_need_approval" <%= dis %>>
+                <option value="1" <%= on('seller_posts_need_approval', true) ? 'selected' : '' %>>نیازمند تایید</option>
+                <option value="0" <%= !on('seller_posts_need_approval', true) ? 'selected' : '' %>>انتشار خودکار</option>
+              </select></div>
+            <div class="field"><label for="g_commmod">دیدگاه مقالات</label>
+              <select class="select" id="g_commmod" name="comment_moderation" <%= dis %>>
+                <option value="1" <%= on('comment_moderation', true) ? 'selected' : '' %>>با تایید مدیر</option>
+                <option value="0" <%= !on('comment_moderation', true) ? 'selected' : '' %>>نمایش فوری</option>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="g_revmod">دیدگاه و امتیاز محصولات</label>
+              <select class="select" id="g_revmod" name="review_moderation" <%= dis %>>
+                <option value="1" <%= on('review_moderation', true) ? 'selected' : '' %>>با تایید مدیر</option>
+                <option value="0" <%= !on('review_moderation', true) ? 'selected' : '' %>>نمایش فوری</option>
+              </select></div>
+            <div class="field"><label for="g_qmod">پرسش‌های محصولات</label>
+              <select class="select" id="g_qmod" name="question_moderation" <%= dis %>>
+                <option value="1" <%= on('question_moderation', true) ? 'selected' : '' %>>با تایید مدیر</option>
+                <option value="0" <%= !on('question_moderation', true) ? 'selected' : '' %>>نمایش فوری</option>
+              </select></div>
+          </div>
+          <div class="field"><label for="g_lowstock">آستانه هشدار موجودی کم</label>
+            <input class="input mono" id="g_lowstock" name="low_stock_threshold" dir="ltr" inputmode="numeric" value="<%= val('low_stock_threshold', '5') %>" style="max-width:200px" <%= dis %>>
+            <div class="help">وقتی موجودی محصول به این عدد برسد، به مدیر و فروشنده هشدار داده می‌شود.</div></div>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'pricing' ? 'active' : '' %>" data-pane="s-pricing">
+          <h3 class="text-sm mb-14">مالیات، ارسال و پرداخت در محل</h3>
+          <div class="grid g-3">
+            <div class="field"><label for="g_vat">مالیات بر ارزش افزوده (٪)</label>
+              <input class="input mono" id="g_vat" name="vat_percent" dir="ltr" inputmode="decimal" value="<%= val('vat_percent', '10') %>" <%= dis %>></div>
+            <div class="field"><label for="g_vatship">مالیات روی هزینه ارسال</label>
+              <select class="select" id="g_vatship" name="vat_on_shipping" <%= dis %>>
+                <option value="0" <%= !on('vat_on_shipping', false) ? 'selected' : '' %>>محاسبه نشود</option>
+                <option value="1" <%= on('vat_on_shipping', false) ? 'selected' : '' %>>محاسبه شود</option>
+              </select></div>
+            <div class="field"><label for="g_codfee">کارمزد پرداخت در محل</label>
+              <input class="input mono" id="g_codfee" name="cod_fee" dir="ltr" inputmode="numeric" data-money-input value="<%= val('cod_fee', '0') %>" <%= dis %>></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="g_freeship">ارسال رایگان از مبلغ</label>
+              <input class="input mono" id="g_freeship" name="free_shipping_above" dir="ltr" inputmode="numeric" data-money-input value="<%= val('free_shipping_above', '2000000') %>" <%= dis %>>
+              <div class="help">صفر یعنی ارسال رایگان غیرفعال است.</div></div>
+            <div class="field"><label>روش‌های ارسال و مراکز حضوری</label>
+              <a class="btn btn-outline w-100" href="/admin/shipping"><svg><use href="#i-truck"/></svg> مدیریت ارسال</a></div>
+          </div>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'club' ? 'active' : '' %>" data-pane="s-club">
+          <h3 class="text-sm mb-14">باشگاه مشتریان</h3>
+          <div class="grid g-2">
+            <div class="field"><label for="g_ptt">امتیاز به ازای هر تومان خرید</label>
+              <input class="input mono" id="g_ptt" name="club_point_per_toman" dir="ltr" inputmode="decimal" value="<%= val('club_point_per_toman', '0.01') %>" <%= dis %>></div>
+            <div class="field"><label for="g_ptv">ارزش هر امتیاز (تومان)</label>
+              <input class="input mono" id="g_ptv" name="club_point_value" dir="ltr" inputmode="decimal" value="<%= val('club_point_value', '10') %>" <%= dis %>></div>
+          </div>
+          <div class="grid g-3">
+            <div class="field"><label for="g_maxuse">حداکثر استفاده از امتیاز (٪ سبد)</label>
+              <input class="input mono" id="g_maxuse" name="club_max_use_percent" dir="ltr" inputmode="numeric" value="<%= val('club_max_use_percent', '30') %>" <%= dis %>></div>
+            <div class="field"><label for="g_regpt">امتیاز ثبت‌نام</label>
+              <input class="input mono" id="g_regpt" name="club_register_points" dir="ltr" inputmode="numeric" value="<%= val('club_register_points', '50') %>" <%= dis %>></div>
+            <div class="field"><label for="g_revpt">امتیاز هر دیدگاه تاییدشده</label>
+              <input class="input mono" id="g_revpt" name="club_review_points" dir="ltr" inputmode="numeric" value="<%= val('club_review_points', '20') %>" <%= dis %>></div>
+          </div>
+          <a class="btn btn-outline w-100 mt-10" href="/admin/people/club"><svg><use href="#i-award"/></svg> مدیریت سطح‌های باشگاه</a>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'security' ? 'active' : '' %>" data-pane="s-security">
+          <h3 class="text-sm mb-14">ورود با کد تایید (OTP)</h3>
+          <div class="grid g-3">
+            <div class="field"><label for="g_otplen">طول کد</label>
+              <input class="input mono" id="g_otplen" name="otp_length" dir="ltr" inputmode="numeric" value="<%= val('otp_length', '5') %>" <%= dis %>></div>
+            <div class="field"><label for="g_otpttl">اعتبار کد (ثانیه)</label>
+              <input class="input mono" id="g_otpttl" name="otp_ttl" dir="ltr" inputmode="numeric" value="<%= val('otp_ttl', '120') %>" <%= dis %>></div>
+            <div class="field"><label for="g_otpresend">فاصله ارسال مجدد (ثانیه)</label>
+              <input class="input mono" id="g_otpresend" name="otp_resend_wait" dir="ltr" inputmode="numeric" value="<%= val('otp_resend_wait', '90') %>" <%= dis %>></div>
+          </div>
+          <div class="alert alert-warning"><svg><use href="#i-alert"/></svg><div class="body text-xs">
+            کوتاه‌کردن اعتبار کد، امنیت را افزایش می‌دهد؛ برای ارسال واقعی پیامک، درگاه پیامکی را در بخش «پیامک» پیکربندی کنید.
+          </div></div>
+          <a class="btn btn-outline w-100 mt-10" href="/admin/settings/sms"><svg><use href="#i-message"/></svg> تنظیمات پیامک</a>
+          <a class="btn btn-outline w-100 mt-10" href="/admin/system/sessions"><svg><use href="#i-monitor"/></svg> نشست‌های فعال کاربران</a>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'social' ? 'active' : '' %>" data-pane="s-social">
+          <h3 class="text-sm mb-14">شبکه‌های اجتماعی</h3>
+          <div class="grid g-2">
+            <div class="field"><label for="g_ig">اینستاگرام</label>
+              <input class="input mono" id="g_ig" name="social_instagram" dir="ltr" value="<%= val('social_instagram') %>" placeholder="https://instagram.com/…" <%= dis %>></div>
+            <div class="field"><label for="g_tg">تلگرام</label>
+              <input class="input mono" id="g_tg" name="social_telegram" dir="ltr" value="<%= val('social_telegram') %>" placeholder="https://t.me/…" <%= dis %>></div>
+            <div class="field"><label for="g_wa">واتساپ</label>
+              <input class="input mono" id="g_wa" name="social_whatsapp" dir="ltr" value="<%= val('social_whatsapp') %>" placeholder="https://wa.me/98…" <%= dis %>></div>
+            <div class="field"><label for="g_li">لینکدین</label>
+              <input class="input mono" id="g_li" name="social_linkedin" dir="ltr" value="<%= val('social_linkedin') %>" <%= dis %>></div>
+          </div>
+          <h3 class="text-sm mt-20 mb-14">نماد اعتماد و یادداشت</h3>
+          <div class="field"><label for="g_enamad">کد نماد اعتماد الکترونیکی (HTML یا شناسه)</label>
+            <textarea class="textarea mono" id="g_enamad" name="enamad_code" rows="3" dir="ltr" <%= dis %>><%= val('enamad_code') %></textarea>
+            <div class="help">می‌توانید کد اسکریپت یا تصویر نماد را در پابرگ نمایش دهید.</div></div>
+          <div class="field"><label for="g_trust">متن اعتمادسازی (زیر نمادها)</label>
+            <input class="input" id="g_trust" name="trust_note" value="<%= val('trust_note') %>" <%= dis %>></div>
+        </div>
+
+        <div class="tab-pane <%= activeTab === 'appearance' ? 'active' : '' %>" data-pane="s-appearance">
+          <h3 class="text-sm mb-14">ظاهر و کارایی</h3>
+          <div class="grid g-2">
+            <div class="field"><label for="g_theme">رنگ اصلی سایت</label>
+              <input class="input" id="g_theme" name="theme_color" type="color" value="<%= val('theme_color', '#6366f1') %>" <%= dis %>></div>
+            <div class="field"><label for="g_dark">حالت تیره</label>
+              <select class="select" id="g_dark" name="dark_mode_enabled" <%= dis %>>
+                <option value="1" <%= on('dark_mode_enabled', true) ? 'selected' : '' %>>فعال (کاربر می‌تواند عوض کند)</option>
+                <option value="0" <%= !on('dark_mode_enabled', true) ? 'selected' : '' %>>غیرفعال</option>
+              </select></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="g_cache">کش صفحات</label>
+              <select class="select" id="g_cache" name="cache_enabled" <%= dis %>>
+                <option value="1" <%= on('cache_enabled', true) ? 'selected' : '' %>>فعال</option>
+                <option value="0" <%= !on('cache_enabled', true) ? 'selected' : '' %>>غیرفعال</option>
+              </select></div>
+            <div class="field"><label for="g_cachettl">مدت کش (ثانیه)</label>
+              <input class="input mono" id="g_cachettl" name="cache_ttl" dir="ltr" inputmode="numeric" value="<%= val('cache_ttl', '300') %>" <%= dis %>></div>
+          </div>
+          <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body text-xs">
+            پس از تغییر محصولات، دسته‌ها یا تنظیمات، کش به‌صورت خودکار پاک می‌شود؛ در صورت نیاز می‌توانید از بخش «سیستم › پشتیبان و به‌روزرسانی» کش را دستی خالی کنید.
+          </div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">وضعیت کلی</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th>چند فروشندگی</th><td><span class="badge <%= on('multivendor_enabled', true) ? 'badge-success' : 'badge-warning' %>"><%= on('multivendor_enabled', true) ? 'فعال' : 'غیرفعال' %></span></td></tr>
+          <tr><th>ثبت‌نام فروشنده</th><td><span class="badge <%= on('seller_registration_enabled', true) ? 'badge-success' : 'badge-warning' %>"><%= on('seller_registration_enabled', true) ? 'باز' : 'بسته' %></span></td></tr>
+          <tr><th>کمیسیون پیش‌فرض</th><td class="mono"><%= h.toPersianDigits(val('seller_default_commission', '10')) %>٪</td></tr>
+          <tr><th>مالیات</th><td class="mono"><%= h.toPersianDigits(val('vat_percent', '10')) %>٪</td></tr>
+          <tr><th>واحد پول</th><td><%= val('currency', 'تومان') %></td></tr>
+          <tr><th>حالت تیره</th><td><%= on('dark_mode_enabled', true) ? 'فعال' : 'غیرفعال' %></td></tr>
+          <tr><th>کش</th><td><%= on('cache_enabled', true) ? 'فعال' : 'غیرفعال' %></td></tr>
+        </tbody></table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">میان‌برها</h3></div>
+      <div class="card-body stack" style="gap:8px">
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/gateways"><svg><use href="#i-credit-card"/></svg> درگاه‌های پرداخت</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/sms"><svg><use href="#i-message"/></svg> درگاه پیامکی</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/currency"><svg><use href="#i-bank"/></svg> نرخ ارز</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/map"><svg><use href="#i-map"/></svg> نقشه و استان‌ها</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/shipping"><svg><use href="#i-truck"/></svg> روش‌های ارسال</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/content/templates"><svg><use href="#i-layout"/></svg> صفحه‌ساز</a>
+      </div>
+    </section>
+  </aside>
+</div>
+</form>
+
+<form method="post" action="/admin/settings/branding" id="brandingForm" enctype="multipart/form-data" class="hidden"></form>
+
+<%- include('../../partials/panel-foot') %>

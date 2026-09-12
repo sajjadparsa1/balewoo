@@ -1,0 +1,113 @@
+<%
+  const STATUS = { pending: ['در انتظار پرداخت', 'badge-warning'], paid: ['پرداخت شده', 'badge-success'], canceled: ['لغو شده', 'badge-danger'], expired: ['منقضی شده', 'badge-outline'] };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">پیش‌فاکتورها</h2>
+    <div class="text-xs text-muted mt-4">برای کالاهای سفارشی، استعلام قیمت یا خریدهای سازمانی پیش‌فاکتور صادر کنید.</div>
+  </div>
+  <% if (can('preinvoices.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" data-modal-open="piModal"><svg><use href="#i-plus"/></svg> صدور پیش‌فاکتور</button>
+  <% } %>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد</th><th>کاربر</th><th>تاریخ صدور</th><th>اعتبار تا</th><th>جمع</th><th>تخفیف</th><th>مالیات</th><th>مبلغ کل</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (pi) { %>
+            <% const st = STATUS[pi.status] || [pi.status, 'badge-outline']; %>
+            <tr>
+              <td class="mono text-xs" dir="ltr"><%= pi.code %></td>
+              <td class="text-xs"><% if (pi.user_id && can('users.view')) { %><a class="text-brand" href="/admin/people/users/<%= pi.user_id %>"><%= pi.name || 'کاربر' %></a><% } else { %><%= pi.name || '—' %><% } %>
+                <div class="text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(pi.phone || '') %></div></td>
+              <td class="text-2xs"><%= h.formatJalali(pi.created_at) %></td>
+              <td class="text-2xs"><%= pi.expires_at ? h.formatJalali(pi.expires_at) : '—' %></td>
+              <td class="mono text-xs"><%= h.fa(pi.subtotal) %></td>
+              <td class="mono text-xs text-success"><%= pi.discount ? '− ' + h.fa(pi.discount) : '—' %></td>
+              <td class="mono text-xs"><%= pi.vat ? h.fa(pi.vat) : '—' %></td>
+              <td class="mono text-xs bold"><%= h.fa(pi.total) %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <td class="actions">
+                <% if (pi.status === 'pending' && can('preinvoices.manage')) { %>
+                  <form method="post" action="/admin/preinvoices/<%= pi.code %>/cancel" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="پیش‌فاکتور لغو شود؟">لغو</button>
+                  </form>
+                <% } %>
+                <button class="btn btn-sm btn-ghost" type="button" title="جزئیات اقلام" data-popover="<%= h.jparse(pi.items, []).map(function (i) { return i.title + ' × ' + i.qty; }).join(' — ') || 'قلمی ثبت نشده' %>">اقلام</button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-file"/></svg>
+      <h4>پیش‌فاکتوری صادر نشده است</h4>
+      <p class="text-sm">برای شروع، یک پیش‌فاکتور برای کاربر مورد نظر صادر کنید.</p>
+      <% if (can('preinvoices.manage')) { %><button class="btn btn-primary btn-sm" type="button" data-modal-open="piModal">صدور پیش‌فاکتور</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('preinvoices.manage')) { %>
+<div class="modal-backdrop" id="piModal">
+  <div class="modal xl">
+    <div class="modal-head"><h3>صدور پیش‌فاکتور</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/preinvoices">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="pi_user">کاربر <span class="req">*</span></label>
+            <select class="select" id="pi_user" name="user_id" required>
+              <option value="">انتخاب کاربر…</option>
+              <% users.forEach(function (u) { %>
+                <option value="<%= u.id %>"><%= u.name || 'بدون نام' %> — <%= h.toPersianDigits(u.phone || '') %></option>
+              <% }) %>
+            </select></div>
+          <div class="field"><label for="pi_expires">اعتبار (روز)</label>
+            <input class="input mono" id="pi_expires" name="expires" dir="ltr" inputmode="numeric" value="7"></div>
+        </div>
+
+        <div class="field"><label>اقلام پیش‌فاکتور <span class="req">*</span></label>
+          <div id="piItemsWrap">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="item_titles[]" placeholder="شرح کالا یا خدمت" required>
+              <input class="input input-sm mono" name="item_qtys[]" dir="ltr" inputmode="numeric" placeholder="تعداد" value="1">
+              <input class="input input-sm mono" name="item_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت واحد" data-money-input>
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </div>
+          <template id="piItemTpl">
+            <div class="repeater-row" data-repeater-row>
+              <input class="input input-sm" name="item_titles[]" placeholder="شرح کالا یا خدمت">
+              <input class="input input-sm mono" name="item_qtys[]" dir="ltr" inputmode="numeric" placeholder="تعداد" value="1">
+              <input class="input input-sm mono" name="item_prices[]" dir="ltr" inputmode="numeric" placeholder="قیمت واحد" data-money-input>
+              <button type="button" class="btn btn-sm btn-ghost text-danger" data-repeater-remove><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </div>
+          </template>
+          <button type="button" class="btn btn-sm btn-outline" data-repeater-add="piItemTpl" data-repeater-target="piItemsWrap"><svg><use href="#i-plus"/></svg> افزودن قلم</button>
+        </div>
+
+        <div class="grid g-2">
+          <div class="field"><label for="pi_discount">تخفیف (<%= site.currency %>)</label>
+            <input class="input mono" id="pi_discount" name="discount" dir="ltr" inputmode="numeric" data-money-input value="0"></div>
+          <div class="field"><label for="pi_vat">مالیات بر ارزش افزوده (<%= site.currency %>)</label>
+            <input class="input mono" id="pi_vat" name="vat" dir="ltr" inputmode="numeric" data-money-input value="0"></div>
+        </div>
+        <div class="field"><label for="pi_note">توضیحات</label>
+          <textarea class="textarea" id="pi_note" name="note" rows="2" placeholder="شرایط پرداخت، مهلت تحویل و…"></textarea></div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg>
+          <div class="body">پس از صدور، پیش‌فاکتور در پنل کاربر نمایش داده می‌شود و کاربر می‌تواند آن را از کیف پول یا درگاه اینترنتی پرداخت کند.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> صدور پیش‌فاکتور</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

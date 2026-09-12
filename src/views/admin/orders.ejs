@@ -1,0 +1,89 @@
+<%
+  const PAY = { unpaid: ['پرداخت نشده', 'badge-warning'], paid: ['پرداخت شده', 'badge-success'], refunded: ['مرجوع شده', 'badge-danger'], partial: ['پرداخت جزئی', 'badge-info'] };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.total) %></div><div class="l">کل سفارش‌ها</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.revenue) %></div><div class="l">درآمد کل</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-calendar"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.today) %></div><div class="l">فروش امروز (<%= h.toPersianDigits(stats.todayCount) %>)</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.pending) %></div><div class="l">در انتظار پرداخت</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-truck"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.delivered) %></div><div class="l">تحویل شده</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-ban"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.canceled) %></div><div class="l">لغو شده</div></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <form method="get" action="/admin/orders" class="table-toolbar">
+      <input class="input input-sm" type="search" name="search" value="<%= query.search || '' %>" placeholder="کد سفارش، نام، تلفن یا کد رهگیری…" style="min-width:220px">
+      <select class="select input-sm" name="status" style="width:auto">
+        <option value="">همه وضعیت‌ها</option>
+        <% Object.keys(statuses).forEach(function (k) { %>
+          <option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= statuses[k].title %></option><% }) %>
+      </select>
+      <select class="select input-sm" name="payment" style="width:auto">
+        <option value="">همه پرداخت‌ها</option>
+        <% Object.keys(PAY).forEach(function (k) { %>
+          <option value="<%= k %>" <%= query.payment === k ? 'selected' : '' %>><%= PAY[k][0] %></option><% }) %>
+      </select>
+      <input class="input input-sm mono" type="date" name="from" value="<%= query.from || '' %>" dir="ltr" title="از تاریخ">
+      <input class="input input-sm mono" type="date" name="to" value="<%= query.to || '' %>" dir="ltr" title="تا تاریخ">
+      <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-filter"/></svg> فیلتر</button>
+      <a class="btn btn-sm btn-ghost" href="/admin/orders">پاکسازی</a>
+      <% if (can('orders.invoice')) { %>
+        <a class="btn btn-sm btn-outline" href="/admin/orders/export<%= fullUrl.indexOf('?') > -1 ? fullUrl.slice(fullUrl.indexOf('?')) : '' %>">
+          <svg><use href="#i-download"/></svg> خروجی CSV</a>
+      <% } %>
+    </form>
+  </div>
+
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد سفارش</th><th>مشتری</th><th>تاریخ</th><th>اقلام</th><th>مبلغ کل</th><th>پرداخت</th><th>وضعیت</th><th>رهگیری</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (o) { %>
+            <% const pay = PAY[o.payment_status] || [o.payment_status, 'badge-outline']; %>
+            <% const st = statuses[o.status] || { title: o.status, color: 'var(--text-3)' }; %>
+            <tr>
+              <td class="mono text-xs" dir="ltr"><a class="text-brand bold" href="/admin/orders/<%= o.code %>"><%= o.code %></a></td>
+              <td class="text-xs">
+                <%= o.user_name || o.receiver_name || 'مهمان' %>
+                <div class="text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(o.user_phone || o.receiver_phone || o.guest_phone || '') %></div>
+              </td>
+              <td class="text-2xs"><%= h.formatJalali(o.created_at) %><div class="text-2xs text-muted"><%= h.timeAgo(o.created_at) %></div></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(o.items_count) %></td>
+              <td class="mono text-xs bold"><%= h.fa(o.total) %>
+                <% if (o.coupon_discount) { %><div class="text-2xs text-success">تخفیف <%= h.fa(o.coupon_discount) %></div><% } %></td>
+              <td><span class="badge <%= pay[1] %>"><%= pay[0] %></span>
+                <% if (o.payment_method) { %><div class="text-2xs text-muted"><%= o.payment_method %></div><% } %></td>
+              <td><span class="badge badge-outline" style="color:<%= st.color %>"><%= o.status_title || st.title %></span></td>
+              <td class="mono text-2xs" dir="ltr"><%= o.tracking_code ? h.toPersianDigits(o.tracking_code) : '—' %></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/admin/orders/<%= o.code %>" title="جزئیات"><svg><use href="#i-eye"/></svg></a>
+                <% if (can('orders.invoice')) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/orders/<%= o.code %>/invoice" target="_blank" title="فاکتور"><svg><use href="#i-print"/></svg></a>
+                  <a class="btn btn-sm btn-ghost" href="/admin/orders/<%= o.code %>/label" target="_blank" title="برچسب ارسال"><svg><use href="#i-truck"/></svg></a>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/orders', extraQuery: query }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-cart"/></svg>
+      <h4>سفارشی یافت نشد</h4>
+      <p class="text-sm">فیلترها را تغییر دهید یا بازه زمانی دیگری را انتخاب کنید.</p>
+      <a class="btn btn-primary btn-sm" href="/admin/orders">همه سفارش‌ها</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

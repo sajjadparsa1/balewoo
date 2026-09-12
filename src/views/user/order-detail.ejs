@@ -1,0 +1,236 @@
+<%
+  const flow = ['pending', 'paid', 'processing', 'shipping', 'delivered'];
+  const idx = flow.indexOf(order.status);
+  const addr = order.address || {};
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0" class="flex items-center gap-10">
+      سفارش <span class="mono" dir="ltr"><%= order.code %></span>
+      <span class="badge badge-<%= order.status === 'delivered' ? 'success' : order.status === 'canceled' || order.status === 'returned' ? 'danger' : order.status === 'pending' ? 'warning' : 'info' %>"><%= order.status_title %></span>
+    </h2>
+    <div class="text-xs text-muted mt-6"><%= order.jalali_date %> · <%= h.toPersianDigits(order.items.length) %> قلم کالا</div>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/user/orders"><svg><use href="#i-chevron-right"/></svg> بازگشت به سفارش‌ها</a>
+    <button class="btn btn-sm" type="button" onclick="window.print()"><svg><use href="#i-print"/></svg> چاپ فاکتور</button>
+    <a class="btn btn-sm btn-outline" href="/user/ticket-new?order=<%= order.code %>"><svg><use href="#i-ticket"/></svg> پشتیبانی</a>
+    <% if (canCancel) { %>
+      <button class="btn btn-sm btn-danger" type="button" data-modal-open="cancelModal"><svg><use href="#i-ban"/></svg> لغو سفارش</button>
+    <% } %>
+  </div>
+</div>
+
+<% if (query.paid) { %><div class="alert alert-success mb-20"><svg><use href="#i-check"/></svg><div class="body">پرداخت شما با موفقیت انجام شد و سفارش در حال پردازش است.</div></div><% } %>
+<% if (query.cod) { %><div class="alert alert-info mb-20"><svg><use href="#i-truck"/></svg><div class="body">سفارش با روش پرداخت در محل ثبت شد. لطفاً هنگام تحویل، مبلغ را آماده داشته باشید.</div></div><% } %>
+<% if (query.card) { %><div class="alert alert-warning mb-20"><svg><use href="#i-credit-card"/></svg><div class="body">برای تایید سفارش کارت به کارت، رسید پرداخت را در بخش زیر ثبت کنید.</div></div><% } %>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <!-- تایم‌لاین -->
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">وضعیت سفارش</h3></div>
+      <div class="card-body">
+        <% if (order.status === 'canceled' || order.status === 'returned') { %>
+          <div class="alert alert-danger mb-14"><svg><use href="#i-alert"/></svg>
+            <div class="body">سفارش <%= order.status_title %> است.
+              <% if (order.cancel_reason) { %>دلیل: <%= order.cancel_reason %><% } %>
+              <% if (order.payment_status === 'refunded') { %> مبلغ به کیف پول شما بازگردانده شد.<% } %>
+            </div>
+          </div>
+        <% } %>
+        <div class="steps mb-20">
+          <% flow.forEach(function (s, i) { %>
+            <div class="step <%= idx > i ? 'done' : idx === i ? 'active' : '' %>">
+              <div class="num"><%= h.toPersianDigits(i + 1) %></div>
+              <%= statuses[s] ? statuses[s].title : s %>
+            </div>
+          <% }) %>
+        </div>
+
+        <div class="timeline">
+          <% (order.history || []).forEach(function (hh, i, arr) { %>
+            <div class="timeline-item <%= i === arr.length - 1 ? 'current' : 'done' %>">
+              <div class="t"><%= (statuses[hh.status] && statuses[hh.status].title) || hh.status %></div>
+              <div class="d"><%= h.formatJalaliFull(hh.created_at) %><% if (hh.actor) { %> · توسط <%= hh.actor %><% } %></div>
+              <% if (hh.note) { %><div class="text-xs mt-6"><%= hh.note %></div><% } %>
+            </div>
+          <% }) %>
+          <% if (!(order.history || []).length) { %>
+            <div class="timeline-item current"><div class="t">ثبت سفارش</div><div class="d"><%= h.formatJalaliFull(order.created_at) %></div></div>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <!-- اقلام -->
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اقلام سفارش</h3>
+        <% if (order.tracking_code) { %><span class="badge badge-primary">کد رهگیری پستی: <span class="mono" dir="ltr"><%= order.tracking_code %></span></span><% } %>
+      </div>
+      <% order.items.forEach(function (it) { %>
+        <div class="cart-item">
+          <img src="<%= it.image || '/img/placeholder-product.svg' %>" alt="<%= it.title %>" loading="lazy">
+          <div class="grow">
+            <% if (it.product_slug) { %><a class="semibold text-sm line-2" href="/product/<%= it.product_slug %>"><%= it.title %></a>
+            <% } else { %><span class="semibold text-sm line-2"><%= it.title %></span><% } %>
+            <% if (it.variant_title) { %><div class="text-xs text-muted mt-6"><%= it.variant_title %></div><% } %>
+            <% if (it.options && it.options.length) { %>
+              <div class="text-xs text-muted mt-6"><% it.options.forEach(function (o) { %><span class="tag"><%= o.title %></span> <% }) %></div>
+            <% } %>
+            <div class="text-xs text-muted mt-6">
+              <%= h.toPersianDigits(it.qty) %> × <span class="mono"><%= h.fa(it.price + (it.options_total || 0)) %></span> <%= site.currency %>
+              <% if (it.discount) { %> · <span class="text-success">تخفیف <%= h.fa(it.discount) %></span><% } %>
+            </div>
+            <div class="flex gap-8 mt-10 flex-wrap">
+              <% if (order.status === 'delivered' && !it.review_id) { %>
+                <a class="btn btn-sm btn-outline" href="/product/<%= it.product_slug %>#reviews">ثبت دیدگاه</a>
+              <% } %>
+              <% if (it.product_slug) { %><a class="btn btn-sm btn-ghost" href="/product/<%= it.product_slug %>">خرید دوباره</a><% } %>
+              <% if (it.status === 'returned') { %><span class="badge badge-danger">مرجوع شده</span><% } %>
+            </div>
+          </div>
+          <div class="col-price text-left"><div class="mono bold text-lg"><%= h.fa(it.total) %></div><div class="text-xs text-muted"><%= site.currency %></div></div>
+        </div>
+      <% }) %>
+      <div class="card-foot">
+        <div class="summary-row"><span>جمع کالاها</span><span class="mono"><%= h.fa(order.subtotal) %></span></div>
+        <% if (order.items_discount) { %><div class="summary-row"><span>تخفیف محصولات</span><span class="discount mono">− <%= h.fa(order.items_discount) %></span></div><% } %>
+        <% if (order.coupon_discount) { %><div class="summary-row"><span>کد تخفیف (<%= order.coupon_code %>)</span><span class="discount mono">− <%= h.fa(order.coupon_discount) %></span></div><% } %>
+        <% if (order.points_discount) { %><div class="summary-row"><span>تخفیف امتیاز</span><span class="discount mono">− <%= h.fa(order.points_discount) %></span></div><% } %>
+        <div class="summary-row"><span>هزینه ارسال <%= order.shipping_title ? '(' + order.shipping_title + ')' : '' %></span><span class="mono"><%= order.shipping_cost ? h.fa(order.shipping_cost) : 'رایگان' %></span></div>
+        <% if (order.vat) { %><div class="summary-row"><span>مالیات بر ارزش افزوده</span><span class="mono"><%= h.fa(order.vat) %></span></div><% } %>
+        <% if (order.wallet_used) { %><div class="summary-row"><span>پرداخت از کیف پول</span><span class="discount mono">− <%= h.fa(order.wallet_used) %></span></div><% } %>
+        <div class="summary-row total"><span>مبلغ نهایی</span><span class="mono"><%= h.fa(order.total) %> <%= site.currency %></span></div>
+        <% if (invoice && invoice.amountInWords) { %><div class="text-xs text-muted mt-6">به حروف: <%= invoice.amountInWords %></div><% } %>
+      </div>
+    </section>
+
+    <% if (order.payment_method === 'card2card' && order.payment_status !== 'paid') { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ثبت رسید کارت به کارت</h3></div>
+        <div class="card-body">
+          <div class="alert alert-info mb-14"><svg><use href="#i-info"/></svg>
+            <div class="body">مبلغ <b class="mono"><%= h.fa(order.total) %> <%= site.currency %></b> را به کارت
+              <b class="mono" dir="ltr"><%= h.toPersianDigits(setting('c2c_card_number', '—')) %></b>
+              به نام <%= setting('c2c_owner_name', '—') %> (<%= setting('c2c_bank_name', '—') %>) واریز و رسید را ثبت کنید.</div>
+          </div>
+          <form method="post" action="/user/orders/<%= order.code %>/receipt">
+            <div class="grid g-2">
+              <div class="field"><label for="card_prefix">۶ رقم اول کارت پرداخت‌کننده</label>
+                <input class="input" id="card_prefix" name="card_prefix" dir="ltr" maxlength="6" inputmode="numeric" required></div>
+              <div class="field"><label for="card_last4">۴ رقم آخر کارت</label>
+                <input class="input" id="card_last4" name="card_last4" dir="ltr" maxlength="4" inputmode="numeric" required></div>
+            </div>
+            <div class="field"><label for="paid_at">تاریخ واریز</label><input class="input" id="paid_at" name="paid_at" type="date"></div>
+            <div class="field"><label for="rnote">توضیحات / کد پیگیری</label><input class="input" id="rnote" name="note"></div>
+            <button class="btn btn-primary btn-sm" type="submit"><svg><use href="#i-upload"/></svg> ثبت رسید</button>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (order.status === 'shipping') { %>
+      <section class="card"><div class="card-body flex items-center justify-between gap-14 flex-wrap">
+        <div class="flex items-center gap-10"><svg width="26" height="26" style="color:var(--brand);width:26px;height:26px"><use href="#i-truck"/></svg>
+          <div><div class="bold text-sm">سفارش شما ارسال شده است</div>
+            <div class="text-xs text-muted">پس از دریافت کالا، رسیدن آن را تایید کنید تا دوره تضمین فروشنده آغاز شود.</div></div></div>
+        <form method="post" action="/user/orders/<%= order.code %>/confirm-delivery" class="m-0">
+          <button class="btn btn-success btn-sm" type="submit" data-confirm="آیا کالا را سالم تحویل گرفته‌اید؟"><svg><use href="#i-check"/></svg> تایید دریافت کالا</button>
+        </form>
+      </div></section>
+    <% } %>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات تحویل</h3></div>
+      <div class="card-body text-sm">
+        <div class="mb-10"><span class="text-muted text-xs" style="display:block">گیرنده</span><%= order.receiver_name || user.name || '—' %></div>
+        <div class="mb-10"><span class="text-muted text-xs" style="display:block">تلفن</span><span dir="ltr"><%= h.toPersianDigits(order.receiver_phone || user.phone || '—') %></span></div>
+        <div class="mb-10"><span class="text-muted text-xs" style="display:block">نشانی</span>
+          <span style="line-height:2"><%= [addr.province, addr.city, addr.address].filter(Boolean).join('، ') || '—' %></span></div>
+        <% if (order.postal_code || addr.postal_code) { %>
+          <div class="mb-10"><span class="text-muted text-xs" style="display:block">کد پستی</span><span class="mono" dir="ltr"><%= h.toPersianDigits(order.postal_code || addr.postal_code) %></span></div>
+        <% } %>
+        <div><span class="text-muted text-xs" style="display:block">روش ارسال</span><%= order.shipping_title || '—' %></div>
+        <% if (order.customer_note) { %>
+          <div class="divider"></div>
+          <div><span class="text-muted text-xs" style="display:block">توضیحات شما</span><%= order.customer_note %></div>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات پرداخت</h3></div>
+      <div class="card-body text-sm">
+        <div class="summary-row"><span>وضعیت</span>
+          <span class="badge <%= order.payment_status === 'paid' ? 'badge-success' : order.payment_status === 'refunded' ? 'badge-danger' : 'badge-warning' %>">
+            <%= order.payment_status === 'paid' ? 'پرداخت شده' : order.payment_status === 'refunded' ? 'بازگشت داده شد' : 'پرداخت نشده' %></span></div>
+        <div class="summary-row"><span>روش</span><span><%= order.payment_method === 'cod' ? 'پرداخت در محل' : order.payment_method === 'wallet' ? 'کیف پول' : order.payment_method === 'card2card' ? 'کارت به کارت' : (order.gateway || order.payment_method || '—') %></span></div>
+        <% if (order.gateway_ref) { %><div class="summary-row"><span>کد رهگیری</span><span class="mono text-xs" dir="ltr"><%= order.gateway_ref %></span></div><% } %>
+        <% if (order.paid_at) { %><div class="summary-row"><span>زمان پرداخت</span><span class="text-xs"><%= h.formatJalaliFull(order.paid_at) %></span></div><% } %>
+        <% if (order.invoice_no) { %><div class="summary-row"><span>شماره فاکتور</span><span class="mono text-xs" dir="ltr"><%= order.invoice_no %></span></div><% } %>
+      </div>
+      <% if (order.transactions && order.transactions.length) { %>
+        <div class="card-foot text-xs">
+          <div class="text-muted mb-6">تراکنش‌ها:</div>
+          <% order.transactions.forEach(function (tx) { %>
+            <div class="flex justify-between mb-6"><span class="mono" dir="ltr"><%= tx.reference || ('TX-' + tx.id) %></span>
+              <span class="mono <%= tx.amount > 0 ? 'text-success' : 'text-danger' %>"><%= tx.amount > 0 ? '+' : '' %><%= h.fa(tx.amount) %></span></div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <% if (order.sellers && order.sellers.length) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فروشندگان این سفارش</h3></div>
+        <div class="card-body stack" style="gap:10px">
+          <% order.sellers.forEach(function (sl) { %>
+            <a class="flex items-center gap-10" href="/store/<%= sl.shop_slug %>" style="text-decoration:none;color:inherit">
+              <img src="<%= sl.logo || '/img/placeholder-product.svg' %>" alt="" style="width:40px;height:40px;border-radius:10px;object-fit:cover">
+              <span class="grow"><b class="text-sm" style="display:block"><%= sl.shop_name %></b>
+                <span class="text-xs text-muted">امتیاز <%= h.toPersianDigits(Number(sl.score || 5).toFixed(1)) %></span></span>
+              <svg width="16" height="16" style="width:16px;height:16px;color:var(--text-3)"><use href="#i-chevron-left"/></svg>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (order.status === 'delivered') { %>
+      <div class="card"><div class="card-body text-center">
+        <svg width="28" height="28" style="color:var(--brand);width:28px;height:28px"><use href="#i-star"/></svg>
+        <div class="bold text-sm mt-10">نظر شما برای ما ارزشمند است</div>
+        <p class="text-xs text-muted">با ثبت دیدگاه، <%= h.toPersianDigits(setting('club_review_points', '20')) %> امتیاز باشگاه مشتریان بگیرید.</p>
+        <a class="btn btn-sm btn-outline w-100" href="/user/reviews">دیدگاه‌های من</a>
+      </div></div>
+    <% } %>
+  </aside>
+</div>
+
+<% if (canCancel) { %>
+<div class="modal-backdrop" id="cancelModal">
+  <div class="modal">
+    <div class="modal-head"><h3>لغو سفارش <%= order.code %></h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/user/orders/<%= order.code %>/cancel">
+      <div class="modal-body">
+        <div class="alert alert-warning mb-14"><svg><use href="#i-alert"/></svg>
+          <div class="body">پس از لغو، اگر مبلغی پرداخت کرده باشید به کیف پول شما بازگردانده می‌شود. این عملیات قابل بازگشت نیست.</div></div>
+        <div class="field mb-0"><label for="reason">دلیل لغو</label>
+          <select class="select" id="reason" name="reason">
+            <option>منصرف شدم</option><option>کالای اشتباه انتخاب کردم</option><option>تحویل به موقع ممکن نیست</option>
+            <option>قیمت بهتر پیدا کردم</option><option>مشکل در نشانی یا گیرنده</option><option>سایر موارد</option>
+          </select></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-danger" type="submit">لغو قطعی سفارش</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

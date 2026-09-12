@@ -1,0 +1,75 @@
+<%
+  const totalAmount = rows.reduce(function (s, r) { return s + (r.amount || 0); }, 0);
+  const notNotified = rows.filter(function (r) { return r.user_id && !r.notified_at; }).length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">سبدهای خرید رها شده</h2>
+    <div class="text-xs text-muted mt-4">سبدهایی که مشتری بدون تکمیل خرید رها کرده است — فرصت بازیابی فروش.</div>
+  </div>
+  <% if (can('notifications.send') && notNotified) { %>
+    <form method="post" action="/admin/abandoned-carts/notify" class="m-0">
+      <button class="btn btn-primary btn-sm" type="submit" data-confirm-click="برای <%= h.toPersianDigits(notNotified) %> سبد رها شده اعلان ارسال شود؟">
+        <svg><use href="#i-send"/></svg> ارسال اعلان بازیابی (<%= h.toPersianDigits(notNotified) %>)</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.length) %></div><div class="l">سبد رها شده</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(totalAmount) %></div><div class="l">ارزش ریالی از دست رفته (<%= site.currency %>)</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-users"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.filter(function (r) { return r.user_id; }).length) %></div><div class="l">کاربران شناسایی‌شده</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-send"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.filter(function (r) { return r.notified_at; }).length) %></div><div class="l">اعلان ارسال شده</div></div></div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>شناسه سبد</th><th>کاربر</th><th>تماس</th><th>اقلام</th><th>مبلغ سبد</th><th>کد تخفیف</th><th>آخرین فعالیت</th><th>اعلان</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td class="mono text-xs" dir="ltr">#<%= h.toPersianDigits(r.id) %></td>
+              <td class="text-xs">
+                <% if (r.user_id && can('users.view')) { %><a class="text-brand bold" href="/admin/people/users/<%= r.user_id %>"><%= r.name || 'کاربر' %></a>
+                <% } else { %><%= r.name || 'کاربر مهمان' %><% } %>
+                <div class="text-2xs text-muted">نشست: <span class="mono" dir="ltr"><%= h.truncate(r.session_id || '—', 12) %></span></div>
+              </td>
+              <td class="mono text-xs" dir="ltr"><%= h.toPersianDigits(r.phone || '—') %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.items_count) %></td>
+              <td class="mono text-xs bold"><%= h.fa(r.amount) %></td>
+              <td class="text-xs"><% if (r.coupon_code) { %><span class="badge badge-success mono" dir="ltr"><%= r.coupon_code %></span><% } else { %>—<% } %></td>
+              <td class="text-2xs"><%= h.formatJalali(r.updated_at) %> · <%= h.timeAgo(r.updated_at) %></td>
+              <td>
+                <% if (r.notified_at) { %><span class="badge badge-success">ارسال شده</span><div class="text-2xs text-muted"><%= h.formatJalali(r.notified_at) %></div>
+                <% } else if (r.user_id) { %><span class="badge badge-warning">قابل ارسال</span>
+                <% } else { %><span class="badge badge-outline">بدون حساب کاربری</span><% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-cart"/></svg>
+      <h4>سبد رها شده‌ای وجود ندارد</h4>
+      <p class="text-sm">وقتی مشتری سبد خرید را بدون پرداخت ترک کند، اینجا ثبت می‌شود.</p>
+      <a class="btn btn-primary btn-sm" href="/admin/orders">مشاهده سفارش‌ها</a></div>
+  <% } %>
+</section>
+
+<div class="alert alert-info mt-20"><svg><use href="#i-info"/></svg>
+  <div class="body">
+    برای افزایش نرخ بازیابی، یک کد تخفیف زمان‌دار بسازید و در متن اعلان ذکر کنید:
+    <% if (can('coupons.manage')) { %><a class="text-brand bold" href="/admin/coupons">ساخت کد تخفیف</a><% } %>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>

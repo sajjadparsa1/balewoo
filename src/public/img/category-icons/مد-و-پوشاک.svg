@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+<defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fffbeb"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs>
+<rect width="320" height="320" rx="28" fill="url(#c)"/>
+<circle cx="160" cy="132" r="74" fill="#d97706" opacity="0.10"/>
+<g transform="translate(112,84) scale(4)" fill="none" stroke="#d97706" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5 5 5.4 3 9.6l3.2 1.7V20.5h11.6V11.3L21 9.6l-2-4.2-3.5-1.9a3.6 3.6 0 0 1-7 0z"/></g>
+<g font-family="Vazirmatn, Tahoma, sans-serif" text-anchor="middle" direction="rtl">
+<text x="160" y="252" font-size="23" font-weight="700" fill="#d97706">مد و پوشاک</text>
+</g>
+</svg>

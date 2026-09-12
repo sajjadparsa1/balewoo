@@ -1,0 +1,122 @@
+<%- include('../partials/panel-head') %>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">ویرایش اطلاعات حساب</h3></div>
+    <div class="card-body">
+      <form method="post" action="/user/profile" enctype="multipart/form-data" data-upload-form>
+        <div class="flex items-center gap-14 mb-20 flex-wrap">
+          <div class="avatar lg" style="width:68px;height:68px;font-size:1.4rem">
+            <% if (user.avatar) { %><img src="<%= user.avatar %>" alt="<%= user.name || 'کاربر' %>">
+            <% } else { %><%= h.toPersianDigits(String(user.name || user.phone || 'ک').trim().charAt(0)) %><% } %>
+          </div>
+          <div class="grow">
+            <div class="field m-0"><label for="p_avatar">تصویر پروفایل</label>
+              <input class="input" id="p_avatar" name="avatar" type="file" accept="image/*">
+              <div class="help">تصویر مربعی با حجم کم بهترین نتیجه را می‌دهد.</div></div>
+          </div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="field"><label for="p_name">نام و نام خانوادگی <span class="req">*</span></label>
+            <input class="input" id="p_name" name="name" value="<%= user.name || '' %>" required></div>
+          <div class="field"><label for="p_phone">شماره موبایل</label>
+            <div class="input-group"><input class="input mono" id="p_phone" value="<%= user.phone || '' %>" dir="ltr" readonly disabled>
+              <span class="addon"><svg width="14" height="14" style="width:14px;height:14px"><use href="#i-lock"/></svg></span></div>
+            <div class="help">شماره موبایل شناسه حساب شماست و قابل تغییر نیست.</div></div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="field"><label for="p_email">ایمیل</label>
+            <input class="input mono" id="p_email" name="email" type="email" dir="ltr" value="<%= user.email || '' %>" placeholder="you@example.com"></div>
+          <div class="field"><label for="p_national">کد ملی</label>
+            <input class="input mono" id="p_national" name="national_id" dir="ltr" inputmode="numeric" maxlength="10" value="<%= user.national_id || '' %>">
+            <div class="help">برای صدور فاکتور رسمی و احراز هویت فروشنده لازم است.</div></div>
+        </div>
+
+        <div class="grid g-2">
+          <div class="field"><label for="p_gender">جنسیت</label>
+            <select class="select" id="p_gender" name="gender">
+              <option value="">انتخاب کنید…</option>
+              <option value="male" <%= user.gender === 'male' ? 'selected' : '' %>>مرد</option>
+              <option value="female" <%= user.gender === 'female' ? 'selected' : '' %>>زن</option>
+            </select></div>
+          <div class="field"><label for="p_birth">تاریخ تولد (شمسی)</label>
+            <input class="input mono" id="p_birth" name="birth_date" dir="ltr" placeholder="1370-05-12" value="<%= user.birth_date || '' %>">
+            <div class="help">برای ارسال هدیه تولد و تخفیف‌های مناسبتی.</div></div>
+        </div>
+
+        <div class="divider"></div>
+        <h4 class="text-sm mb-14 flex items-center gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--brand)"><use href="#i-lock"/></svg> تغییر گذرواژه</h4>
+        <div class="grid g-2">
+          <div class="field"><label for="p_pass">گذرواژه جدید</label>
+            <input class="input" id="p_pass" name="password" type="password" autocomplete="new-password" minlength="6" placeholder="حداقل ۶ کاراکتر"></div>
+          <div class="field"><label for="p_pass2">تکرار گذرواژه</label>
+            <input class="input" id="p_pass2" type="password" autocomplete="new-password" data-match="#p_pass" data-match-error="گذرواژه‌ها یکسان نیستند"></div>
+        </div>
+        <div class="help">اگر قصد تغییر گذرواژه ندارید، این بخش را خالی بگذارید.</div>
+
+        <div class="flex items-center justify-between gap-12 mt-20">
+          <span class="text-xs text-muted">آخرین ورود: <%= user.last_login_at ? h.formatJalaliFull(user.last_login_at) : '—' %></span>
+          <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">وضعیت حساب</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>شناسه کاربری</th><td class="mono" dir="ltr">#<%= h.toPersianDigits(user.id) %></td></tr>
+            <tr><th>نقش</th><td><span class="badge <%= user.role === 'staff' ? 'badge-primary' : user.role === 'seller' ? 'badge-success' : 'badge-outline' %>"><%= user.role === 'staff' ? 'کارمند' : user.role === 'seller' ? 'فروشنده' : 'مشتری' %></span></td></tr>
+            <tr><th>وضعیت</th><td><span class="badge <%= user.status === 'active' ? 'badge-success' : 'badge-danger' %>"><%= user.status === 'active' ? 'فعال' : 'مسدود' %></span></td></tr>
+            <tr><th>سطح باشگاه</th><td><%= user.club_level === 'gold' ? 'طلایی' : user.club_level === 'silver' ? 'نقره‌ای' : 'برنزی' %></td></tr>
+            <tr><th>عضویت</th><td class="text-xs"><%= h.formatJalali(user.created_at) %></td></tr>
+            <tr><th>کد همکاری در فروش</th><td class="mono" dir="ltr"><%= user.affiliate_code || '—' %></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <% if (seller) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فروشگاه شما</h3></div>
+        <div class="card-body">
+          <div class="flex items-center gap-10 mb-10">
+            <% if (seller.logo) { %><span class="thumb-sm"><img src="<%= seller.logo %>" alt=""></span><% } %>
+            <div class="grow"><b class="text-sm"><%= seller.shop_name %></b>
+              <span class="text-2xs text-muted" style="display:block">
+                <span class="badge <%= seller.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= seller.status === 'active' ? 'فعال' : 'در انتظار بررسی' %></span>
+              </span></div>
+          </div>
+          <a class="btn btn-sm btn-outline w-100" href="/seller/dashboard">ورود به پنل فروشنده</a>
+          <a class="btn btn-sm btn-ghost w-100 mt-6" href="/store/<%= seller.shop_slug %>" target="_blank">مشاهده فروشگاه عمومی</a>
+        </div>
+      </section>
+    <% } else if (String(setting('seller_registration_enabled', '1')) === '1') { %>
+      <section class="card">
+        <div class="card-body text-center" style="padding:24px">
+          <svg width="34" height="34" style="color:var(--brand);width:34px;height:34px"><use href="#i-store"/></svg>
+          <h3 class="text-sm mt-10 mb-6">فروشنده شوید</h3>
+          <p class="text-xs text-muted mb-14">فروشگاه خود را بسازید و محصولاتتان را بفروشید.</p>
+          <a class="btn btn-primary btn-sm w-100" href="/auth/seller/register"><svg><use href="#i-store"/></svg> ثبت‌نام فروشنده</a>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">دسترسی سریع</h3></div>
+      <div class="card-body stack" style="gap:10px">
+        <a class="link-row" href="/user/sessions"><span class="grow text-sm">نشست‌های فعال</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/user/addresses"><span class="grow text-sm">نشانی‌ها</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/user/bank-accounts"><span class="grow text-sm">حساب‌های بانکی</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/user/activity"><span class="grow text-sm">فعالیت‌های اخیر</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

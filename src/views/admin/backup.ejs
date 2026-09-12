@@ -1,0 +1,134 @@
+<%
+  const canManage = can('backup.manage');
+  const totalSize = files.reduce(function (s, f) { return s + f.size; }, 0);
+  const latest = files[0];
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">پشتیبان‌گیری و نگهداری <span class="badge badge-outline">نسخه <%= h.toPersianDigits(version) %></span></h2>
+  <% if (canManage) { %>
+    <form method="post" action="/admin/system/backup/create" class="m-0">
+      <button class="btn btn-sm btn-primary" type="submit" data-confirm-click="یک پشتیبان کامل از پایگاه داده ساخته شود؟">
+        <svg><use href="#i-database"/></svg> ساخت پشتیبان جدید</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-database"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(files.length) %></div><div class="l">پشتیبان موجود</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-package"/></svg></span>
+    <div><div class="v mono"><%= h.humanSize(totalSize) %></div><div class="l">حجم کل پشتیبان‌ها</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono text-sm"><%= latest ? h.formatJalali(latest.created_at) : '—' %></div><div class="l">آخرین پشتیبان</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-refresh"/></svg></span>
+    <div><div class="v mono text-sm"><%= h.toPersianDigits(version) %></div><div class="l">نسخه نصب‌شده</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">پشتیبان‌های پایگاه داده</h3>
+        <span class="text-2xs text-muted">فایل‌های ذخیره‌شده در پوشه داده برنامه</span></div>
+      <% if (files.length) { %>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th>نام فایل</th><th>حجم</th><th>تاریخ ساخت</th><th>عملیات</th></tr></thead>
+          <tbody><% files.forEach(function (f, i) { %>
+            <tr>
+              <td>
+                <div class="flex items-center gap-8">
+                  <svg style="width:15px;height:15px;color:var(--brand)"><use href="#i-database"/></svg>
+                  <span class="mono text-2xs" dir="ltr"><%= f.name %></span>
+                  <% if (i === 0) { %><span class="badge badge-success text-2xs">جدیدترین</span><% } %>
+                </div>
+              </td>
+              <td class="mono text-xs"><%= h.humanSize(f.size) %></td>
+              <td class="text-2xs"><%= h.formatJalaliFull(f.created_at) %><div class="text-muted"><%= h.timeAgo(f.created_at) %></div></td>
+              <td class="actions">
+                <% if (canManage) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/system/backup/download/<%= encodeURIComponent(f.name) %>" title="دانلود"><svg><use href="#i-download"/></svg></a>
+                  <form method="post" action="/admin/system/backup/delete/<%= encodeURIComponent(f.name) %>" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف پشتیبان"
+                            data-confirm-click="پشتیبان «<%= f.name %>» حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %></tbody></table></div>
+      <% } else { %>
+        <div class="empty">
+          <span class="ic"><svg><use href="#i-database"/></svg></span>
+          <h3>پشتیبانی ساخته نشده است</h3>
+          <p>پیش از هر تغییر عمده یا به‌روزرسانی، یک پشتیبان کامل بگیرید.</p>
+          <% if (canManage) { %>
+            <form method="post" action="/admin/system/backup/create" class="m-0">
+              <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-database"/></svg> ساخت اولین پشتیبان</button>
+            </form>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+
+    <% if (can('settings.manage')) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">نگهداری و بهینه‌سازی پایگاه داده</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/system/maintenance/optimize">
+            <label class="switch-row"><input type="checkbox" name="purge_views" value="1" checked><span>حذف بازدیدهای قدیمی‌تر از ۹۰ روز</span></label>
+            <label class="switch-row"><input type="checkbox" name="purge_activities" value="1" checked><span>حذف گزارش فعالیت‌های قدیمی‌تر از ۱۸۰ روز</span></label>
+            <label class="switch-row"><input type="checkbox" name="purge_sessions" value="1" checked><span>حذف نشست‌های خاتمه‌یافته قدیمی‌تر از ۳۰ روز</span></label>
+            <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body text-xs">
+              پس از پاکسازی، عملیات فشرده‌سازی (VACUUM) و بهینه‌سازی ایندکس‌ها (ANALYZE) اجرا می‌شود.
+            </div></div>
+            <button class="btn btn-sm btn-outline mt-10" type="submit" data-confirm-click="پاکسازی و بهینه‌سازی پایگاه داده اجرا شود؟">
+              <svg><use href="#i-zap"/></svg> اجرای بهینه‌سازی</button>
+          </form>
+          <div class="divider"></div>
+          <form method="post" action="/admin/system/maintenance/clear-cache" class="m-0">
+            <button class="btn btn-sm btn-ghost" type="submit"><svg><use href="#i-refresh"/></svg> پاکسازی کش صفحات</button>
+            <span class="text-2xs text-muted">اگر تغییرات طراحی یا تنظیمات را در سایت نمی‌بینید، کش را پاک کنید.</span>
+          </form>
+        </div>
+      </section>
+    <% } %>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">به‌روزرسانی سیستم</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th>نسخه نصب‌شده</th><td class="mono"><%= h.toPersianDigits(version) %></td></tr>
+          <tr><th>وضعیت</th><td><span class="badge badge-success">پایدار</span></td></tr>
+        </tbody></table>
+        <% if (canManage) { %>
+          <form method="post" action="/admin/system/update/check" class="m-0 mt-14">
+            <button class="btn btn-sm btn-outline w-100" type="submit"><svg><use href="#i-refresh"/></svg> بررسی نسخه جدید</button>
+          </form>
+        <% } %>
+        <div class="text-2xs text-muted mt-10">پیش از هر به‌روزرسانی، پشتیبان بگیرید و فایل‌های شخصی‌سازی‌شده را یادداشت کنید.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">راهنمای بازیابی</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.1">
+        <ol class="bullets m-0" style="list-style:decimal">
+          <li>فایل پشتیبان را دانلود کنید.</li>
+          <li>سرویس را متوقف کنید.</li>
+          <li>فایل پایگاه داده فعلی را با نسخه پشتیبان جایگزین کنید.</li>
+          <li>سرویس را دوباره اجرا کنید و ورود به پنل را بررسی کنید.</li>
+        </ol>
+        <div class="divider"></div>
+        <div class="stack" style="gap:8px">
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/media"><svg><use href="#i-image"/></svg> کتابخانه مدیا</a>
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/activities"><svg><use href="#i-activity"/></svg> گزارش فعالیت‌ها</a>
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/general"><svg><use href="#i-settings"/></svg> تنظیمات عمومی</a>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

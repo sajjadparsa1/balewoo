@@ -1,0 +1,71 @@
+<%- include('../layouts/head', { bodyClass: 'page-forgot' }) %>
+
+<main id="main" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:26px 16px;background:var(--bg)">
+  <div class="auth-card">
+    <div class="text-center mb-20">
+      <span style="width:62px;height:62px;border-radius:18px;background:var(--brand-50);color:var(--brand);display:inline-flex;align-items:center;justify-content:center">
+        <svg width="30" height="30" style="width:30px;height:30px"><use href="#i-key"/></svg>
+      </span>
+      <h1 style="font-size:1.15rem;margin:14px 0 6px">بازیابی گذرواژه</h1>
+      <p class="text-sm text-muted m-0">شماره موبایل خود را وارد کنید تا کد تایید برایتان پیامک شود.</p>
+    </div>
+
+    <% if (step === 'phone') { %>
+      <form method="post" action="/forgot/send">
+        <div class="field">
+          <label for="phone">شماره موبایل <span class="req">*</span></label>
+          <input class="input" id="phone" name="phone" type="tel" dir="ltr" required pattern="09[0-9]{9}" maxlength="11"
+                 placeholder="09xxxxxxxxx" autofocus style="text-align:center;font-size:1.05rem;letter-spacing:1px">
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit"><svg><use href="#i-send"/></svg> ارسال کد تایید</button>
+      </form>
+      <% if (dev) { %>
+        <div class="dev-code-hint mt-14">حالت آزمایشی — کد تایید شما: <b class="mono"><%= h.toPersianDigits(dev) %></b></div>
+      <% } %>
+    <% } else { %>
+      <form method="post" action="/forgot/reset" id="resetForm">
+        <p class="text-sm text-muted mb-14">کد ارسال‌شده به <b dir="ltr"><%= h.toPersianDigits(phone) %></b> و گذرواژه جدید را وارد کنید.</p>
+        <div class="field">
+          <label for="code">کد تایید <span class="req">*</span></label>
+          <input class="input" id="code" name="code" inputmode="numeric" required maxlength="6" dir="ltr" style="text-align:center;letter-spacing:6px;font-size:1.2rem" autofocus>
+        </div>
+        <div class="field">
+          <label for="password">گذرواژه جدید <span class="req">*</span></label>
+          <div class="input-group">
+            <input class="input" id="password" name="password" type="password" required minlength="6" autocomplete="new-password">
+            <button class="addon" type="button" onclick="var i=document.getElementById('password');i.type=i.type==='password'?'text':'password'" aria-label="نمایش"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-eye"/></svg></button>
+          </div>
+          <div class="help" id="pwHint">حداقل ۶ کاراکتر؛ ترکیب حروف و عدد توصیه می‌شود.</div>
+        </div>
+        <div class="field">
+          <label for="password2">تکرار گذرواژه <span class="req">*</span></label>
+          <input class="input" id="password2" type="password" required minlength="6" autocomplete="new-password">
+          <div class="error-text hidden" id="pwErr">گذرواژه‌ها یکسان نیستند.</div>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit"><svg><use href="#i-check"/></svg> تغییر گذرواژه و ورود</button>
+      </form>
+      <% if (dev) { %><div class="dev-code-hint mt-14">حالت آزمایشی — کد تایید شما: <b class="mono"><%= h.toPersianDigits(dev) %></b></div><% } %>
+      <a class="btn btn-ghost btn-block mt-10" href="/login?reset=1">تغییر شماره موبایل</a>
+      <script>
+        (function () {
+          var f = document.getElementById('resetForm');
+          if (!f) return;
+          f.addEventListener('submit', function (e) {
+            var a = document.getElementById('password').value, b = document.getElementById('password2').value;
+            if (a !== b) { e.preventDefault(); document.getElementById('pwErr').classList.remove('hidden'); }
+          });
+        })();
+      </script>
+    <% } %>
+
+    <div class="divider" style="margin:22px 0"></div>
+    <div class="text-center flex gap-10 justify-center flex-wrap">
+      <a class="text-sm text-brand" href="/login">بازگشت به صفحه ورود</a>
+      <span class="text-muted">·</span>
+      <a class="text-sm text-muted" href="/">صفحه نخست</a>
+    </div>
+  </div>
+</main>
+<script src="/js/app.js" defer></script>
+</body>
+</html>

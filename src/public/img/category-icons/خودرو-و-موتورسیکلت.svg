@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+<defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5f3ff"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs>
+<rect width="320" height="320" rx="28" fill="url(#c)"/>
+<circle cx="160" cy="132" r="74" fill="#7c3aed" opacity="0.10"/>
+<g transform="translate(112,84) scale(4)" fill="none" stroke="#7c3aed" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5v2.2h3v-2.2M16.5 16.5v2.2h3v-2.2"/><path d="M3 16.5v-4l2-4.6A2 2 0 0 1 6.8 6.6h10.4a2 2 0 0 1 1.8 1.3l2 4.6v4z"/><path d="M3.4 12.5h17.2M7 14.6h1.6M15.4 14.6H17"/></g>
+<g font-family="Vazirmatn, Tahoma, sans-serif" text-anchor="middle" direction="rtl">
+<text x="160" y="252" font-size="23" font-weight="700" fill="#7c3aed">خودرو و موتورسیکلت</text>
+</g>
+</svg>

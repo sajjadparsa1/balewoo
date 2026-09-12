@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+<defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0f9ff"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs>
+<rect width="320" height="320" rx="28" fill="url(#c)"/>
+<circle cx="160" cy="132" r="74" fill="#0284c7" opacity="0.10"/>
+<g transform="translate(112,84) scale(4)" fill="none" stroke="#0284c7" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5h18l-1.7 9a2 2 0 0 1-2 1.6H6.7a2 2 0 0 1-2-1.6z"/><path d="m8 9.5 2.4-6M16 9.5l-2.4-6M9.5 13.5v3M14.5 13.5v3"/></g>
+<g font-family="Vazirmatn, Tahoma, sans-serif" text-anchor="middle" direction="rtl">
+<text x="160" y="252" font-size="23" font-weight="700" fill="#0284c7">سوپرمارکت</text>
+</g>
+</svg>

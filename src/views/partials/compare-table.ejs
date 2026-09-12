@@ -1,0 +1,118 @@
+<%
+  // نام‌های داخلی تا با متغیرهای ورودی تداخل (TDZ) ایجاد نشود
+  const list = (typeof products !== 'undefined' && products) ? products : [];
+  const grps = (typeof groups !== 'undefined' && groups) ? groups : [];
+  // جمع‌آوری کلیدهای مشخصات
+  const specKeys = [];
+  list.forEach(function (p) { (p.specs || []).forEach(function (s) { if (!specKeys.includes(s.title)) specKeys.push(s.title); }); });
+%>
+<% if (!list.length) { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-compare"/></svg>
+    <h4>لیست مقایسه خالی است</h4>
+    <p class="text-sm">حداکثر ۴ محصول را انتخاب کنید تا مشخصات و قیمت آن‌ها را کنار هم ببینید.</p>
+    <a class="btn btn-primary" href="/products">انتخاب محصول</a>
+  </div></div>
+<% } else { %>
+  <div class="table-wrap card">
+    <table class="compare-table data" style="background:var(--surface)">
+      <thead>
+        <tr>
+          <th style="width:180px;background:var(--surface-2)">ویژگی</th>
+          <% list.forEach(function (p) { %>
+            <th style="text-align:center;min-width:190px">
+              <div class="flex flex-col items-center gap-8">
+                <a href="/product/<%= p.slug %>"><img src="<%= p.cover %>" alt="<%= p.title %>" style="width:96px;height:96px;object-fit:contain;border-radius:12px;background:var(--surface-2)"></a>
+                <a class="text-sm line-2 text-center" href="/product/<%= p.slug %>" style="font-weight:600"><%= p.title %></a>
+                <form method="post" action="/compare/remove" class="m-0">
+                  <input type="hidden" name="product_id" value="<%= p.id %>">
+                  <button class="btn btn-sm btn-ghost text-danger" type="submit"><svg><use href="#i-trash"/></svg> حذف</button>
+                </form>
+              </div>
+            </th>
+          <% }) %>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>قیمت</th>
+          <% const minPrice = Math.min.apply(null, list.map(function (p) { return p.final_price; })); %>
+          <% list.forEach(function (p) { %>
+            <td style="text-align:center" class="<%= p.final_price === minPrice ? 'best' : '' %>">
+              <div class="bold mono text-lg"><%= h.fa(p.final_price) %> <small><%= site.currency %></small></div>
+              <% if (p.old_price > p.final_price) { %><div class="del text-xs mono"><%= h.fa(p.old_price) %></div><% } %>
+              <% if (p.final_price === minPrice && list.length > 1) { %><span class="badge badge-success">ارزان‌ترین</span><% } %>
+            </td>
+          <% }) %>
+        </tr>
+        <tr>
+          <th>موجودی</th>
+          <% list.forEach(function (p) { %>
+            <td style="text-align:center">
+              <% if (p.in_stock) { %><span class="badge badge-success">موجود (<%= h.toPersianDigits(p.stock) %>)</span>
+              <% } else { %><span class="badge badge-danger">ناموجود</span><% } %>
+            </td>
+          <% }) %>
+        </tr>
+        <tr>
+          <th>امتیاز کاربران</th>
+          <% const maxRating = Math.max.apply(null, list.map(function (p) { return p.rating || 0; })); %>
+          <% list.forEach(function (p) { %>
+            <td style="text-align:center" class="<%= p.rating && p.rating === maxRating ? 'best' : '' %>">
+              <% if (p.rating_count) { %>
+                <span class="stars" style="justify-content:center"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= Math.round(p.rating) ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+                <div class="text-xs text-muted mt-6"><%= h.toPersianDigits(p.rating) %> از <%= h.toPersianDigits(p.rating_count) %> دیدگاه</div>
+              <% } else { %><span class="text-muted text-xs">بدون دیدگاه</span><% } %>
+            </td>
+          <% }) %>
+        </tr>
+        <tr><th>برند</th><% list.forEach(function (p) { %><td style="text-align:center"><%= p.brand_name ? p.brand_name : '—' %></td><% }) %></tr>
+        <tr><th>دسته‌بندی</th><% list.forEach(function (p) { %><td style="text-align:center"><%= p.category_name || '—' %></td><% }) %></tr>
+        <tr><th>فروشنده</th><% list.forEach(function (p) { %><td style="text-align:center"><%= p.seller_name || site.name %></td><% }) %></tr>
+        <tr><th>گارانتی</th><% list.forEach(function (p) { %><td style="text-align:center"><%= p.warranty || '—' %></td><% }) %></tr>
+        <tr><th>فروش</th><% list.forEach(function (p) { %><td style="text-align:center" class="mono"><%= h.toPersianDigits(p.sold || 0) %> عدد</td><% }) %></tr>
+        <% specKeys.forEach(function (k) { %>
+          <tr>
+            <th><%= k %></th>
+            <% list.forEach(function (p) { %>
+              <% const sp = (p.specs || []).find(function (s) { return s.title === k; }); %>
+              <td style="text-align:center"><%= sp ? sp.value : '—' %></td>
+            <% }) %>
+          </tr>
+        <% }) %>
+        <% grps.forEach(function (g) { %>
+          <% const opts = h.jparse(g.options, []); %>
+          <% const hasAny = list.some(function (p) { return (p.attributes && p.attributes[g.id] || []).length; }); %>
+          <% if (hasAny) { %>
+            <tr>
+              <th><%= g.name %></th>
+              <% list.forEach(function (p) { %>
+                <% const sel = ((p.attributes && p.attributes[g.id]) || []).map(String); %>
+                <td style="text-align:center">
+                  <% const titles = opts.filter(function (o) { return sel.includes(String(o.id)); }).map(function (o) { return o.title; }); %>
+                  <%= titles.length ? titles.join('، ') : '—' %>
+                </td>
+              <% }) %>
+            </tr>
+          <% } %>
+        <% }) %>
+        <tr>
+          <th>عملیات</th>
+          <% list.forEach(function (p) { %>
+            <td style="text-align:center">
+              <div class="flex gap-6 justify-center flex-wrap">
+                <a class="btn btn-sm btn-primary" href="/product/<%= p.slug %>">مشاهده</a>
+                <% if (p.in_stock) { %>
+                  <form method="post" action="/cart/add" class="m-0">
+                    <input type="hidden" name="product_id" value="<%= p.id %>">
+                    <button class="btn btn-sm btn-outline" type="submit"><svg><use href="#i-cart"/></svg> خرید</button>
+                  </form>
+                <% } %>
+              </div>
+            </td>
+          <% }) %>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<% } %>

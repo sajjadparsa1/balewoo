@@ -1,0 +1,183 @@
+<%
+  const s = allSettings;
+  const announcements = (s.announcement_text || '').split('|').map((x) => x.trim()).filter(Boolean);
+%>
+<a class="skip-link" href="#main">پرش به محتوا</a>
+
+<div class="topbar">
+  <div class="container">
+    <div class="topbar-strip">
+      <% if (announcements.length) { %>
+        <% announcements.forEach((a) => { %><span class="badge badge-primary" style="background:transparent;border-color:transparent"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-zap"/></svg> <%= a %></span><% }) %>
+      <% } else { %>
+        <span><svg width="13" height="13" style="width:13px;height:13px;vertical-align:-2px"><use href="#i-truck"/></svg> <%= s.free_shipping_text || 'ارسال رایگان برای سفارش‌های بالای ۵ میلیون تومان' %></span>
+      <% } %>
+    </div>
+    <div class="flex items-center gap-14">
+      <% if (site.phone) { %><a href="tel:<%= site.phone %>" class="flex items-center gap-4"><svg width="14" height="14" style="width:14px;height:14px"><use href="#i-phone"/></svg> <%= h.toPersianDigits(site.phone) %></a><% } %>
+      <a href="/page/how-to-buy">راهنمای خرید</a>
+      <a href="/faq">سوالات متداول</a>
+      <% if (site.multivendor) { %><a href="/auth/seller/register" class="text-brand semibold">فروشنده شوید</a><% } %>
+      <% if (user) { %>
+        <% if (user.is_staff) { %><a href="/admin/dashboard">پنل مدیریت</a><% } %>
+        <% if (user.seller_id) { %><a href="/seller/dashboard">پنل فروشنده</a><% } %>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <div class="header-main">
+      <button class="icon-btn" type="button" data-nav-toggle aria-label="منو" aria-expanded="false">
+        <svg><use href="#i-menu"/></svg>
+      </button>
+
+      <a class="brand-logo" href="/" aria-label="<%= site.name %>">
+        <img src="<%= site.logo %>" alt="<%= site.name %>" onerror="this.style.display='none'">
+        <span class="name"><%= site.name %><small><%= site.slogan %></small></span>
+      </a>
+
+      <form class="search-box" action="/products" method="get" role="search">
+        <div class="input-wrap">
+          <svg><use href="#i-search"/></svg>
+          <input type="search" name="search" value="<%= typeof query !== 'undefined' && query.search ? query.search : '' %>" placeholder="<%= s.search_placeholder || 'جستجو در میان هزاران کالا…' %>" autocomplete="off" aria-label="جستجوی محصول">
+        </div>
+        <div class="search-suggest" role="listbox" aria-label="پیشنهاد جستجو"></div>
+      </form>
+
+      <div class="header-actions">
+        <button class="icon-btn" type="button" data-theme-toggle aria-label="تغییر حالت شب و روز" title="حالت شب/روز">
+          <svg><use href="#i-moon"/></svg>
+        </button>
+
+        <% if (user) { %>
+          <div class="dropdown">
+            <button class="icon-btn" type="button" data-dropdown aria-label="اعلان‌ها" title="اعلان‌ها">
+              <svg><use href="#i-bell"/></svg>
+              <% if (notifyCount) { %><span class="count" data-notif-count><%= h.toPersianDigits(notifyCount) %></span><% } %>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dd-head"><span>اعلان‌ها</span><a href="/user/notifications?read=1" class="text-xs text-brand">خواندن همه</a></div>
+              <div id="notifDropdown" class="notif-list" style="max-height:340px;overflow:auto">
+                <div class="empty" style="padding:26px 12px"><span class="spinner"></span></div>
+              </div>
+              <div class="dd-foot"><a href="/user/notifications">مشاهده همه اعلان‌ها</a></div>
+            </div>
+          </div>
+
+          <div class="dropdown">
+            <button class="user-chip" type="button" data-dropdown aria-label="حساب کاربری">
+              <span class="avatar sm"><% if (user.avatar) { %><img src="<%= user.avatar %>" alt=""><% } else { %><%= (user.name || user.phone || '؟').slice(0, 1) %><% } %></span>
+              <span class="n"><%= user.name || user.phone || 'کاربر' %></span>
+              <svg width="14" height="14" style="width:14px;height:14px"><use href="#i-chevron-down"/></svg>
+            </button>
+            <div class="dropdown-menu small">
+              <a class="dd-item" href="/user/dashboard"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-grid"/></svg> داشبورد</a>
+              <a class="dd-item" href="/user/orders"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-order"/></svg> سفارش‌های من</a>
+              <a class="dd-item" href="/user/favorites"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-heart"/></svg> علاقمندی‌ها</a>
+              <a class="dd-item" href="/user/wallet"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-wallet"/></svg> کیف پول</a>
+              <a class="dd-item" href="/user/club"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-medal"/></svg> باشگاه مشتریان</a>
+              <a class="dd-item" href="/user/profile"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-user"/></svg> ویرایش پروفایل</a>
+              <a class="dd-item" href="/logout" style="color:var(--danger)"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-logout"/></svg> خروج از حساب</a>
+            </div>
+          </div>
+        <% } else { %>
+          <a class="btn btn-sm btn-outline" href="/login">
+            <svg><use href="#i-user"/></svg> ورود / ثبت‌نام
+          </a>
+        <% } %>
+
+        <a class="icon-btn" href="/user/favorites" aria-label="علاقه‌مندی‌ها" title="علاقه‌مندی‌ها">
+          <svg><use href="#i-heart"/></svg>
+        </a>
+
+        <a class="icon-btn" href="/cart" aria-label="سبد خرید" title="سبد خرید">
+          <svg><use href="#i-cart"/></svg>
+          <span class="count brand <%= cartCount ? '' : 'hidden' %>" data-cart-count data-n="<%= cartCount %>"><%= h.toPersianDigits(cartCount || 0) %></span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <nav class="main-nav" id="mainNav" aria-label="ناوبری اصلی">
+    <div class="container">
+      <% if (topCategories && topCategories.length) { %>
+        <div class="has-mega">
+          <button class="nav-link mega-trigger" type="button" data-mega-toggle aria-expanded="false">
+            <svg width="16" height="16" style="width:16px;height:16px"><use href="#i-grid"/></svg>
+            دسته‌بندی کالاها
+            <svg width="13" height="13" style="width:13px;height:13px"><use href="#i-chevron-down"/></svg>
+          </button>
+          <div class="mega">
+            <div class="container">
+              <div class="mega-grid">
+                <div class="mega-col">
+                  <h5>دسترسی سریع</h5>
+                  <ul>
+                    <li><a href="/products?special=1">فروش ویژه امروز</a></li>
+                    <li><a href="/products?off=1">کالاهای تخفیف‌دار</a></li>
+                    <li><a href="/products?sort=bestselling">پرفروش‌ترین‌ها</a></li>
+                    <li><a href="/products?sort=newest">جدیدترین‌ها</a></li>
+                    <li><a href="/brands">همه برندها</a></li>
+                    <% if (storyCount) { %><li><a href="/#stories">استوری‌های فروشگاه</a></li><% } %>
+                  </ul>
+                  <h5 class="mt-14">پرجستجوترین‌ها</h5>
+                  <ul>
+                    <% (typeof topSearches !== 'undefined' ? topSearches : []).slice(0, 5).forEach((t) => { %>
+                      <li><a href="/products?search=<%= encodeURIComponent(t.term) %>"><%= t.term %></a></li>
+                    <% }) %>
+                    <% if (typeof topSearches === 'undefined' || !topSearches.length) { %>
+                      <li><a href="/products?search=موبایل">موبایل</a></li>
+                      <li><a href="/products?search=لپ‌تاپ">لپ‌تاپ</a></li>
+                      <li><a href="/products?search=ساعت">ساعت هوشمند</a></li>
+                    <% } %>
+                  </ul>
+                </div>
+                <% topCategories.forEach((c) => { %>
+                  <div class="mega-col">
+                    <h5><a href="/products?cat=<%= encodeURIComponent(c.slug) %>"><%= c.name %></a></h5>
+                    <ul>
+                      <% (c.children || []).slice(0, 6).forEach((k) => { %>
+                        <li><a href="/products?cat=<%= encodeURIComponent(k.slug) %>"><%= k.name %></a></li>
+                      <% }) %>
+                      <% if (!(c.children || []).length) { %>
+                        <li><a href="/products?cat=<%= encodeURIComponent(c.slug) %>">مشاهده همه</a></li>
+                      <% } %>
+                    </ul>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% (menu || []).forEach((item) => { %>
+        <% if (item.children && item.children.length) { %>
+          <div class="has-mega">
+            <button class="nav-link" type="button" data-mega-toggle aria-expanded="false">
+              <%= item.title %> <svg width="13" height="13" style="width:13px;height:13px"><use href="#i-chevron-down"/></svg>
+            </button>
+            <div class="mega">
+              <div class="container">
+                <div class="mega-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+                  <% item.children.forEach((ch) => { %>
+                    <div class="mega-col">
+                      <h5><a href="<%= ch.url || '#' %>" target="<%= ch.target || '_self' %>"><%= ch.title %></a></h5>
+                      <% if (ch.children && ch.children.length) { %>
+                        <ul><% ch.children.forEach((g) => { %><li><a href="<%= g.url || '#' %>"><%= g.title %></a></li><% }) %></ul>
+                      <% } %>
+                    </div>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% } else { %>
+          <a class="nav-link <%= path === item.url ? 'active' : '' %>" href="<%= item.url || '#' %>" target="<%= item.target || '_self' %>"><%= item.title %></a>
+        <% } %>
+      <% }) %>
+    </div>
+  </nav>
+</header>

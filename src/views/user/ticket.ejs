@@ -1,0 +1,105 @@
+<%
+  const statusTitle = { open: 'باز', answered: 'پاسخ داده شده', closed: 'بسته شده', pending: 'در انتظار پاسخ شما' };
+  const statusBadge = { open: 'badge-danger', answered: 'badge-success', closed: 'badge-outline', pending: 'badge-warning' };
+  const visible = (messages || []).filter(function (m) { return !m.is_internal; });
+  const roleLabel = { user: 'شما', seller: 'فروشنده', admin: 'پشتیبانی', staff: 'کارشناس' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0" class="flex items-center gap-10 flex-wrap">
+      <%= ticket.subject %>
+      <span class="mono text-xs text-muted" dir="ltr"><%= ticket.code %></span>
+      <span class="badge <%= statusBadge[ticket.status] || 'badge-outline' %>"><%= statusTitle[ticket.status] || ticket.status %></span>
+    </h2>
+    <div class="text-xs text-muted mt-6">
+      ثبت: <%= h.formatJalaliFull(ticket.created_at) %>
+      · آخرین پیام: <%= ticket.last_message_at ? h.timeAgo(ticket.last_message_at) : '—' %>
+      · <%= h.toPersianDigits(ticket.messages_count || visible.length) %> پیام
+    </div>
+  </div>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/user/tickets"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+    <% if (ticket.status !== 'closed') { %>
+      <form method="post" action="/user/tickets/<%= ticket.code %>/close" class="m-0">
+        <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="تیکت بسته شود؟">بستن تیکت</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">گفتگو</h3>
+      <span class="text-xs text-muted">پاسخ‌های جدید در بالای همین صفحه نمایش داده می‌شوند.</span></div>
+    <div class="card-body chat" id="ticketChat">
+      <% visible.forEach(function (m) { %>
+        <% const mine = m.role_label === 'user' || m.user_id === user.id; %>
+        <div class="bubble <%= mine ? 'me' : 'them' %>">
+          <div class="bubble-head">
+            <b class="text-xs"><%= mine ? 'شما' : (roleLabel[m.role_label] || 'کارشناس پشتیبانی') %></b>
+            <span class="text-2xs text-muted"><%= h.formatJalali(m.created_at) %> · <%= h.timeAgo(m.created_at) %></span>
+          </div>
+          <div class="bubble-body text-sm" style="line-height:2"><%= m.body %></div>
+          <% if (m.attachment) { %>
+            <a class="attach-link text-xs" style="margin-top:6px" href="<%= m.attachment %>" target="_blank" rel="noopener">
+              <svg width="14" height="14" style="width:14px;height:14px"><use href="#i-paperclip"/></svg> مشاهده پیوست</a>
+          <% } %>
+        </div>
+      <% }) %>
+      <% if (!visible.length) { %>
+        <div class="empty"><svg><use href="#i-message"/></svg><h4>پیامی ثبت نشده است</h4></div>
+      <% } %>
+    </div>
+
+    <% if (ticket.status !== 'closed') { %>
+      <div class="card-foot">
+        <form method="post" action="/user/tickets/<%= ticket.code %>/reply" enctype="multipart/form-data" data-upload-form>
+          <div class="field">
+            <label for="r_body">پاسخ شما</label>
+            <textarea class="textarea" id="r_body" name="body" rows="4" required placeholder="پیام خود را بنویسید…"></textarea>
+          </div>
+          <div class="flex items-center justify-between gap-12 flex-wrap">
+            <div class="field m-0" style="flex:1;min-width:220px">
+              <input class="input input-sm" type="file" name="attachment" accept="image/*,.pdf,.zip">
+            </div>
+            <button class="btn btn-primary" type="submit"><svg><use href="#i-send"/></svg> ارسال پاسخ</button>
+          </div>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="card-foot">
+        <div class="alert alert-info m-0"><svg><use href="#i-info"/></svg><div class="body">این تیکت بسته شده است. برای ادامه گفتگو یک تیکت جدید ثبت کنید: <a class="text-brand bold" href="/user/tickets/new">تیکت جدید</a></div></div>
+      </div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">جزئیات تیکت</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>کد پیگیری</th><td class="mono" dir="ltr"><%= ticket.code %></td></tr>
+            <tr><th>دپارتمان</th><td><%= ticket.department %></td></tr>
+            <tr><th>اولویت</th><td><span class="badge <%= ticket.priority === 'critical' || ticket.priority === 'high' ? 'badge-danger' : ticket.priority === 'normal' ? 'badge-warning' : 'badge-outline' %>"><%= ticket.priority === 'critical' ? 'بحرانی' : ticket.priority === 'high' ? 'زیاد' : ticket.priority === 'normal' ? 'متوسط' : 'کم' %></span></td></tr>
+            <tr><th>وضعیت</th><td><span class="badge <%= statusBadge[ticket.status] || 'badge-outline' %>"><%= statusTitle[ticket.status] || ticket.status %></span></td></tr>
+            <% if (ticket.order_id) { %><tr><th>سفارش مرتبط</th><td class="mono" dir="ltr">#<%= h.toPersianDigits(ticket.order_id) %></td></tr><% } %>
+            <% if (ticket.assignee_id) { %><tr><th>کارشناس مسئول</th><td>تخصیص داده شده</td></tr><% } %>
+            <tr><th>آخرین بروزرسانی</th><td class="text-xs"><%= ticket.updated_at ? h.formatJalaliFull(ticket.updated_at) : '—' %></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">شرح اولیه</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2"><%= ticket.body || '—' %></div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  (function () { var c = document.getElementById('ticketChat'); if (c) c.scrollTop = c.scrollHeight; })();
+</script>

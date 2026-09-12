@@ -1,0 +1,41 @@
+    </div><!-- /.panel-content -->
+
+    <footer class="no-print" style="padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.76rem;color:var(--text-3);background:var(--surface)">
+      <div>© <%= h.toPersianDigits(year) %> — <%= site.name %> · نسخه <%= setting('app_version', '1.0.0') %></div>
+      <div class="flex items-center gap-10">
+        <a href="/" target="_blank">مشاهده فروشگاه</a>
+        <a href="/faq">راهنما</a>
+        <% if (site.email) { %><a href="mailto:<%= site.email %>">پشتیبانی</a><% } %>
+      </div>
+    </footer>
+  </div><!-- /.panel-main -->
+</div><!-- /.panel-layout -->
+
+<% if (typeof includeMediaModal !== 'undefined' && includeMediaModal) { %>
+<div class="modal-backdrop" id="mediaLibraryModal" data-url="<%= typeof mediaUrl !== 'undefined' ? mediaUrl : '' %>">
+  <div class="modal xl">
+    <div class="modal-head">
+      <h3>کتابخانه مدیا</h3>
+      <div class="flex gap-8 items-center">
+        <input class="input" id="mediaSearchInput" placeholder="جستجوی فایل…" style="width:200px">
+        <button class="btn btn-ghost btn-sm" type="button" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="media-grid" id="mediaGrid"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+      <button class="btn btn-primary" type="button" id="mediaInsertBtn"><svg><use href="#i-check"/></svg> انتخاب و درج</button>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<script src="/js/app.js" defer></script>
+<% if (allSettings.google_analytics) { %>
+<script async src="https://www.googletagmanager.com/gtag/js?id=<%= allSettings.google_analytics %>"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<%= allSettings.google_analytics %>');</script>
+<% } %>
+</body>
+</html>

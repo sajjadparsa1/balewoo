@@ -1,0 +1,102 @@
+<% const q = query || {}; %>
+<%- include('../layouts/head', { bodyClass: 'page-blog' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'مجله', url: '/blog' }].concat(q.cat || q.tag ? [{ name: q.cat || q.tag }] : []) }) %>
+
+  <div class="section-head">
+    <h2>مجله <%= site.name %></h2>
+    <form method="get" action="/blog" class="flex gap-8 m-0" style="max-width:320px">
+      <input class="input" type="search" name="search" value="<%= q.search || '' %>" placeholder="جستجو در مقالات…">
+      <button class="btn btn-primary" type="submit"><svg><use href="#i-search"/></svg></button>
+    </form>
+  </div>
+
+  <% if (categories && categories.length) { %>
+    <div class="flex gap-8 flex-wrap mb-20">
+      <a class="chip <%= !q.cat ? 'active' : '' %>" href="/blog">همه مطالب</a>
+      <% categories.forEach(function (c) { %>
+        <a class="chip <%= q.cat === c.slug ? 'active' : '' %>" href="/blog?cat=<%= encodeURIComponent(c.slug) %>"><%= c.name %></a>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="grid g-sidebar">
+    <aside class="stack" style="align-self:start">
+      <div class="card">
+        <div class="card-head"><h3 class="text-sm">پربازدیدترین‌ها</h3></div>
+        <div class="card-body stack" style="gap:12px">
+          <% (popular || []).forEach(function (pp) { %>
+            <a class="flex items-center gap-10" href="/blog/<%= pp.slug %>" style="text-decoration:none;color:inherit">
+              <img src="<%= pp.cover || '/img/placeholder-product.svg' %>" alt="<%= pp.title %>" style="width:56px;height:56px;border-radius:10px;object-fit:cover" loading="lazy">
+              <div class="grow"><div class="text-sm line-2"><%= pp.title %></div>
+                <div class="text-xs text-muted mt-6"><%= h.toPersianDigits(pp.views || 0) %> بازدید</div></div>
+            </a>
+          <% }) %>
+          <% if (!(popular || []).length) { %><p class="text-xs text-muted m-0">هنوز مقاله‌ای منتشر نشده است.</p><% } %>
+        </div>
+      </div>
+
+      <% if (tags && tags.length) { %>
+        <div class="card">
+          <div class="card-head"><h3 class="text-sm">برچسب‌ها</h3></div>
+          <div class="card-body flex gap-6 flex-wrap">
+            <% tags.forEach(function (tg) { %>
+              <a class="tag" href="/blog?tag=<%= encodeURIComponent(tg.slug || tg.name) %>" style="text-decoration:none">#<%= tg.name %></a>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="card">
+        <div class="card-body text-center">
+          <svg width="34" height="34" style="color:var(--brand)"><use href="#i-store"/></svg>
+          <div class="bold mt-10">فروشنده شوید</div>
+          <p class="text-xs text-muted">با راه‌اندازی فروشگاه اختصاصی در <%= site.name %>، محصولات خود را به هزاران خریدار عرضه کنید.</p>
+          <a class="btn btn-sm btn-outline w-100" href="/auth/seller/register">ثبت‌نام فروشندگان</a>
+        </div>
+      </div>
+    </aside>
+
+    <div>
+      <% if (posts && posts.length) { %>
+        <div class="grid g-3">
+          <% posts.forEach(function (post) { %>
+            <article class="post-card">
+              <a class="cover" href="/blog/<%= post.slug %>">
+                <img src="<%= post.cover || '/img/placeholder-product.svg' %>" alt="<%= post.title %>" loading="lazy">
+              </a>
+              <div class="body">
+                <div class="meta">
+                  <% if (post.cat_name) { %><a class="tag" href="/blog?cat=<%= encodeURIComponent(post.cat_slug) %>" style="text-decoration:none"><%= post.cat_name %></a><% } %>
+                  <span class="flex items-center gap-4"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-clock"/></svg> <%= h.formatJalali(post.published_at || post.created_at) %></span>
+                  <% if (post.kind === 'video') { %><span class="badge badge-info">ویدیو</span><% } %>
+                  <% if (post.kind === 'podcast') { %><span class="badge badge-warning">پادکست</span><% } %>
+                </div>
+                <a href="/blog/<%= post.slug %>" class="bold line-2" style="font-size:.95rem;line-height:1.9"><%= post.title %></a>
+                <p class="text-sm text-muted line-3 m-0"><%= post.excerpt || h.truncate(h.stripTags(post.body || ''), 150) %></p>
+                <div class="flex items-center justify-between mt-10 text-xs text-muted">
+                  <span><%= post.author_name || 'تیم محتوا' %></span>
+                  <a class="text-brand semibold" href="/blog/<%= post.slug %>">ادامه مطلب <svg width="12" height="12" style="width:12px;height:12px;vertical-align:-2px"><use href="#i-chevron-left"/></svg></a>
+                </div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+        <%- include('../partials/pagination', { pagination: pg, baseUrl: '/blog', extraQuery: { cat: q.cat || '', tag: q.tag || '', search: q.search || '' } }) %>
+      <% } else { %>
+        <div class="card"><div class="empty">
+          <svg><use href="#i-book"/></svg>
+          <h4>مقاله‌ای یافت نشد</h4>
+          <p class="text-sm">با تغییر فیلتر یا عبارت جستجو دوباره تلاش کنید.</p>
+          <a class="btn btn-outline" href="/blog">مشاهده همه مطالب</a>
+        </div></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

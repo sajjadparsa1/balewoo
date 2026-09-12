@@ -1,0 +1,193 @@
+<%
+  const isNew = !form;
+  const f = form || {};
+  const TYPES = [['text', 'متن کوتاه'], ['textarea', 'متن بلند'], ['number', 'عدد'], ['tel', 'تلفن'], ['email', 'ایمیل'], ['date', 'تاریخ'], ['file', 'فایل'], ['select', 'انتخابی (یک گزینه)'], ['radio', 'انتخابی (دکمه رادیویی)'], ['checkbox', 'چند انتخابی']];
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0"><%= isNew ? 'ساخت فرم جدید' : 'ویرایش فرم: ' + f.title %></h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/content/forms"><svg><use href="#i-chevron-right"/></svg> فهرست فرم‌ها</a>
+    <% if (!isNew) { %><a class="btn btn-sm btn-outline" href="/form/<%= f.slug %>" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg> مشاهده فرم</a><% } %>
+    <button class="btn btn-sm btn-primary" type="submit" form="formBuilder"><svg><use href="#i-save"/></svg> ذخیره فرم</button>
+  </div>
+</div>
+
+<form method="post" action="/admin/content/forms" id="formBuilder">
+  <% if (!isNew) { %><input type="hidden" name="id" value="<%= f.id %>"><% } %>
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">مشخصات فرم</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="fb_title">عنوان فرم <i class="req">*</i></label>
+              <input class="input" id="fb_title" name="title" value="<%= f.title || '' %>" required placeholder="تماس با ما"></div>
+            <div class="field"><label for="fb_slug">نامک (آدرس)</label>
+              <div class="input-group"><span class="mono text-2xs" dir="ltr">/form/</span>
+                <input class="input mono" id="fb_slug" name="slug" dir="ltr" value="<%= f.slug || '' %>" data-slug-from="#fb_title"></div></div>
+          </div>
+          <div class="field"><label for="fb_desc">توضیح بالای فرم</label>
+            <textarea class="textarea" id="fb_desc" name="description" rows="2"><%= f.description || '' %></textarea></div>
+          <div class="grid g-2">
+            <div class="field"><label for="fb_msg">پیام موفقیت</label>
+              <input class="input" id="fb_msg" name="success_msg" value="<%= f.success_msg || '' %>" placeholder="درخواست شما ثبت شد؛ به‌زودی پاسخ می‌دهیم."></div>
+            <div class="field"><label for="fb_email">ایمیل دریافت اطلاع‌رسانی</label>
+              <input class="input mono" id="fb_email" name="notify_email" dir="ltr" value="<%= f.notify_email || '' %>" placeholder="support@example.com">
+              <div class="help">با هر ارسال، یک ایمیل به این نشانی فرستاده می‌شود.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فیلدهای فرم <span class="badge badge-outline"><%= h.toPersianDigits(fields.length) %></span></h3>
+          <button class="btn btn-sm btn-ghost" type="button" data-repeater-add="#fieldTpl" data-repeater-target="#fieldRows"><svg><use href="#i-plus"/></svg> افزودن فیلد</button>
+        </div>
+        <div class="card-body">
+          <div class="text-2xs text-muted mb-10 flex items-center gap-8 flex-wrap">
+            <span class="badge badge-outline">برچسب</span> عنوانی که کاربر می‌بیند
+            <span class="badge badge-outline">نام</span> کلید ذخیره‌سازی داده (لاتین)
+            <span class="badge badge-outline">گزینه‌ها</span> هر خط یک گزینه — برای فیلدهای انتخابی
+          </div>
+          <div data-repeater id="fieldRows">
+            <% fields.forEach(function (fld, i) { %>
+              <div class="repeater-row" data-repeater-row>
+                <div class="grid g-3">
+                  <div class="field"><label>برچسب <i class="req">*</i></label>
+                    <input class="input input-sm" name="field_labels[]" value="<%= fld.label %>" required></div>
+                  <div class="field"><label>نام فیلد</label>
+                    <input class="input input-sm mono" name="field_names[]" dir="ltr" value="<%= fld.name %>"></div>
+                  <div class="field"><label>نوع</label>
+                    <select class="select" name="field_types[]">
+                      <% TYPES.forEach(function (t) { %><option value="<%= t[0] %>" <%= (fld.type || 'text') === t[0] ? 'selected' : '' %>><%= t[1] %></option><% }) %>
+                    </select></div>
+                </div>
+                <div class="grid g-2 mt-6">
+                  <div class="field"><label>متن راهنما (placeholder)</label>
+                    <input class="input input-sm" name="field_placeholders[]" value="<%= fld.placeholder || '' %>"></div>
+                  <div class="field"><label>گزینه‌ها (هر خط یکی)</label>
+                    <textarea class="textarea input-sm" name="field_options[]" rows="2"><%= (fld.options || []).join('\n') %></textarea></div>
+                </div>
+                <div class="flex items-center gap-12 mt-6">
+                  <label class="check text-xs m-0"><input type="checkbox" name="field_required[]" value="<%= i %>" <%= fld.required ? 'checked' : '' %> data-req> اجباری</label>
+                  <button class="btn btn-sm btn-ghost text-danger ms-auto" type="button" data-repeater-remove><svg><use href="#i-trash"/></svg> حذف فیلد</button>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+          <% if (!fields.length) { %>
+            <div class="empty" style="padding:20px"><p class="text-sm">هنوز فیلدی اضافه نشده — روی «افزودن فیلد» بزنید.</p></div>
+          <% } %>
+        </div>
+      </section>
+
+      <template id="fieldTpl">
+        <div class="repeater-row" data-repeater-row>
+          <div class="grid g-3">
+            <div class="field"><label>برچسب <i class="req">*</i></label>
+              <input class="input input-sm" name="field_labels[]" required></div>
+            <div class="field"><label>نام فیلد</label>
+              <input class="input input-sm mono" name="field_names[]" dir="ltr" placeholder="full_name"></div>
+            <div class="field"><label>نوع</label>
+              <select class="select" name="field_types[]">
+                <% TYPES.forEach(function (t) { %><option value="<%= t[0] %>"><%= t[1] %></option><% }) %>
+              </select></div>
+          </div>
+          <div class="grid g-2 mt-6">
+            <div class="field"><label>متن راهنما (placeholder)</label>
+              <input class="input input-sm" name="field_placeholders[]"></div>
+            <div class="field"><label>گزینه‌ها (هر خط یکی)</label>
+              <textarea class="textarea input-sm" name="field_options[]" rows="2"></textarea></div>
+          </div>
+          <div class="flex items-center gap-12 mt-6">
+            <label class="check text-xs m-0"><input type="checkbox" name="field_required[]" value="0" data-req> اجباری</label>
+            <button class="btn btn-sm btn-ghost text-danger ms-auto" type="button" data-repeater-remove><svg><use href="#i-trash"/></svg> حذف فیلد</button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">وضعیت</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="fb_status">وضعیت فرم</label>
+            <select class="select" id="fb_status" name="status">
+              <option value="active" <%= (f.status || 'active') === 'active' ? 'selected' : '' %>>فعال (قابل ارسال)</option>
+              <option value="inactive" <%= f.status === 'inactive' ? 'selected' : '' %>>غیرفعال</option>
+            </select></div>
+          <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body text-xs">
+            فرم‌های غیرفعال در آدرس <span class="mono" dir="ltr">/form/نامک</span> پیام «در دسترس نیست» نشان می‌دهند.
+          </div></div>
+        </div>
+      </section>
+
+      <% if (!isNew) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ارسال‌ها <span class="badge badge-outline"><%= h.toPersianDigits(submissions.length) %></span></h3></div>
+        <div class="card-body" style="padding:0">
+          <% if (submissions.length) { %>
+            <div class="stack" style="gap:0">
+              <% submissions.forEach(function (s) { %>
+                <div class="link-row" style="align-items:flex-start;padding:11px 14px">
+                  <div class="grow min-0">
+                    <div class="flex items-center gap-8 flex-wrap">
+                      <b class="text-xs"><%= s.name || 'مهمان' %></b>
+                      <% if (s.phone) { %><span class="mono text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(s.phone) %></span><% } %>
+                      <span class="badge <%= s.status === 'new' ? 'badge-info' : s.status === 'read' ? 'badge-outline' : 'badge-success' %> text-2xs"><%= s.status === 'new' ? 'جدید' : s.status === 'read' ? 'خوانده شده' : 'پیگیری شده' %></span>
+                    </div>
+                    <div class="text-2xs text-muted mt-4"><%= h.formatJalaliFull(s.created_at) %><% if (s.ip) { %> · <span class="mono" dir="ltr"><%= s.ip %></span><% } %></div>
+                    <table class="table-kv mt-6"><tbody>
+                      <% Object.keys(s.data || {}).forEach(function (k) { const v = s.data[k]; %>
+                        <tr><th><%= k %></th><td class="text-xs"><%= Array.isArray(v) ? v.join('، ') : (v == null || v === '' ? '—' : String(v)) %></td></tr>
+                      <% }) %>
+                    </tbody></table>
+                  </div>
+                  <form method="post" action="/admin/content/forms/submissions/<%= s.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف ارسال" data-confirm-click="این ارسال حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="empty" style="padding:22px"><p class="text-sm">ارسالی ثبت نشده است.</p></div>
+          <% } %>
+        </div>
+      </section>
+      <% } %>
+    </aside>
+  </div>
+</form>
+
+<script>
+  (function () {
+    const form = document.getElementById('formBuilder');
+    if (!form) return;
+    function renum() {
+      const rows = form.querySelectorAll('#fieldRows [data-repeater-row]');
+      rows.forEach(function (row, i) {
+        const req = row.querySelector('[data-req]');
+        if (req) req.value = String(i);
+      });
+    }
+    form.addEventListener('click', function (e) {
+      if (e.target.closest('[data-repeater-add]') || e.target.closest('[data-repeater-remove]')) setTimeout(renum, 0);
+    });
+    form.addEventListener('change', renum);
+    form.addEventListener('submit', function () {
+      renum();
+      // نام فیلدهای خالی از برچسب ساخته می‌شود
+      const labels = form.querySelectorAll('[name="field_labels[]"]');
+      const names = form.querySelectorAll('[name="field_names[]"]');
+      labels.forEach(function (l, i) {
+        if (names[i] && !names[i].value.trim()) {
+          names[i].value = 'f' + i + '_' + String(l.value).replace(/[^a-zA-Z0-9\u0600-\u06FF]+/g, '_').slice(0, 24);
+        }
+      });
+    });
+    renum();
+  })();
+</script>
+
+<%- include('../partials/panel-foot') %>

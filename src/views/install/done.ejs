@@ -1,0 +1,80 @@
+<%
+  const r = result || null;
+  const counts = r ? [
+    { t: 'کاربر', v: r.users || 0, icon: 'users' },
+    { t: 'فروشنده', v: r.sellers || 0, icon: 'store' },
+    { t: 'محصول', v: r.products || 0, icon: 'package' },
+    { t: 'مقاله', v: r.posts || 0, icon: 'file-text' },
+    { t: 'سفارش', v: r.orders || 0, icon: 'cart' },
+  ] : [];
+%>
+<%- include('_head', { step: step, title: 'نصب با موفقیت کامل شد', subtitle: 'فروشگاه شما آماده بهره‌برداری است. مسیر نصب از این پس قفل است.' }) %>
+
+<section class="card mb-20 install-done">
+  <div class="card-body text-center" style="padding:34px 24px">
+    <span class="done-ic"><svg><use href="#i-check"/></svg></span>
+    <h2 class="text-lg" style="margin:14px 0 6px">تبریک! <%= site.name %> راه‌اندازی شد</h2>
+    <p class="text-sm text-muted" style="max-width:560px;margin:0 auto;line-height:2.1">
+      حساب مدیر کل ساخته شد و اکنون وارد پنل مدیریت هستید.
+      <% if (r) { %>داده نمونه بر اساس حجم انتخابی ساخته شد؛ هر زمان خواستید می‌توانید آن را پاک کنید.<% } else { %>
+      فروشگاه بدون داده نمونه راه‌اندازی شد — از بخش «محصولات» اولین کالا را اضافه کنید.<% } %>
+    </p>
+    <% if (counts.length) { %>
+      <div class="done-counts mt-24">
+        <% counts.forEach(function (c) { %>
+          <div class="done-count">
+            <svg><use href="#i-<%= c.icon %>"/></svg>
+            <div class="v mono"><%= h.toPersianDigits(c.v) %></div>
+            <div class="l text-2xs text-muted"><%= c.t %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<section class="card mb-20">
+  <div class="card-head"><h3 class="text-sm">ورود به پنل‌ها</h3></div>
+  <div class="card-body">
+    <div class="grid g-3">
+      <a class="done-link" href="/admin/dashboard">
+        <svg><use href="#i-shield"/></svg>
+        <strong class="text-sm">پنل مدیریت</strong>
+        <span class="text-2xs text-muted">تنظیمات، سفارش‌ها، کاربران، مالی و محتوا</span>
+      </a>
+      <a class="done-link" href="/seller/dashboard">
+        <svg><use href="#i-store"/></svg>
+        <strong class="text-sm">پنل فروشنده</strong>
+        <span class="text-2xs text-muted">محصولات، موجودی، تسویه و گزارش فروش</span>
+      </a>
+      <a class="done-link" href="/user/dashboard">
+        <svg><use href="#i-user"/></svg>
+        <strong class="text-sm">پنل کاربر</strong>
+        <span class="text-2xs text-muted">سفارش‌ها، کیف پول، باشگاه مشتریان و نشانی‌ها</span>
+      </a>
+    </div>
+    <div class="divider"></div>
+    <a class="btn btn-primary w-100" style="justify-content:center" href="/"><svg><use href="#i-home"/></svg> مشاهده فروشگاه</a>
+  </div>
+</section>
+
+<section class="card mb-20">
+  <div class="card-head"><h3 class="text-sm">گام‌های بعدی پیشنهادی</h3></div>
+  <div class="card-body">
+    <ul class="bullets text-xs" style="line-height:2.2">
+      <li><a href="/admin/settings/general">تنظیمات عمومی</a> — لوگو، واحد پول، مالیات و ارسال رایگان.</li>
+      <li><a href="/admin/settings/gateways">درگاه‌های پرداخت</a> — کلیدهای زرین‌پال/زیبال را وارد و حالت آزمایشی را خاموش کنید.</li>
+      <li><a href="/admin/settings/sms">سرویس پیامک</a> — کلید ارسال کد ورود و اعلان سفارش را تنظیم کنید.</li>
+      <li><a href="/admin/shipping">روش‌های ارسال</a> — هزینه، زمان تحویل و امکان پرداخت در محل.</li>
+      <li><a href="/admin/content/pages">صفحه‌های اطلاعاتی</a> — قوانین، حریم خصوصی و درباره ما را با متن خودتان بازنویسی کنید.</li>
+      <li><a href="/admin/system/backup">پشتیبان‌گیری</a> — اولین پشتیبان پایگاه داده را بسازید.</li>
+    </ul>
+    <% if (r) { %>
+      <div class="alert alert-warning mt-14"><svg><use href="#i-alert"/></svg><div class="body text-xs">
+        داده نمونه فعال است. برای پاکسازی کامل و شروع از صفر، سرویس را متوقف و <span class="mono" dir="ltr">npm run reset</span> را اجرا کنید.
+      </div></div>
+    <% } %>
+  </div>
+</section>
+
+<%- include('_foot') %>

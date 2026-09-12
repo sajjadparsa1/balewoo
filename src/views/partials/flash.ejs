@@ -1,0 +1,12 @@
+<% if (typeof flash !== 'undefined' && flash && flash.message) { %>
+<div class="flash-wrap">
+  <div class="flash <%= flash.type || 'info' %>" data-auto>
+    <svg><use href="#i-<%= flash.type === 'success' ? 'check' : flash.type === 'danger' || flash.type === 'error' ? 'alert' : flash.type === 'warning' ? 'alert' : 'info' %>"/></svg>
+    <div><%= flash.message %></div>
+    <button class="close" aria-label="بستن">&times;</button>
+  </div>
+</div>
+<% } %>
+<% if (typeof errors !== 'undefined' && errors && Object.keys(errors).length) { %>
+<div class="flash-wrap"><div class="flash danger"><svg><use href="#i-alert"/></svg><div><%= Object.values(errors).join(' ') %></div></div></div>
+<% } %>

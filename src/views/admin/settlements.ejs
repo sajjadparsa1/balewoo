@@ -1,0 +1,92 @@
+<%
+  const canPay = can('settlements.manage');
+  const dueRows = rows.filter(function (r) { return r.status !== 'paid' && r.due_at && new Date(r.due_at.replace(' ', 'T') + 'Z') <= new Date(); });
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">تسویه حساب فروشندگان <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> رکورد</span></h2>
+  <% if (canPay) { %>
+    <form method="post" action="/admin/people/settlements/pay" class="m-0">
+      <input type="hidden" name="all_due" value="1">
+      <button class="btn btn-sm btn-primary" type="submit" <%= dueRows.length ? '' : 'disabled' %>
+              data-confirm-click="همه تسویه‌های سررسید شده پرداخت‌شده علامت بخورند؟">
+        <svg><use href="#i-send"/></svg> پرداخت همه سررسیدها (<%= h.toPersianDigits(dueRows.length) %>)</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.fa(dueTotal) %></div><div class="l">سررسید شده و پرداخت‌نشده</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(pendingTotal) %></div><div class="l">کل باز (شامل آینده)</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.fa(paidTotal) %></div><div class="l">پرداخت شده</div></div></div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <form method="post" action="/admin/people/settlements/pay" id="settleForm" class="m-0">
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr>
+            <% if (canPay) { %><th style="width:38px"><input type="checkbox" data-check-all="#settleForm [name='ids[]']"></th><% } %>
+            <th>شناسه</th><th>فروشگاه</th><th>سفارش</th><th>مبلغ فروش</th><th>کمیسیون</th>
+            <th>خالص پرداختی</th><th>سررسید</th><th>وضعیت</th>
+          </tr></thead>
+          <tbody>
+            <% rows.forEach(function (r) { %>
+              <tr>
+                <% if (canPay) { %>
+                  <td><% if (r.status !== 'paid') { %>
+                    <input type="checkbox" name="ids[]" value="<%= r.id %>">
+                  <% } else { %><svg style="width:14px;height:14px;opacity:.35"><use href="#i-check"/></svg><% } %></td>
+                <% } %>
+                <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(r.id) %></td>
+                <td class="text-xs">
+                  <% if (can('sellers.view')) { %><a class="bold" href="/admin/people/sellers/<%= r.seller_id %>"><%= r.shop_name %></a>
+                  <% } else { %><b><%= r.shop_name %></b><% } %>
+                  <div class="text-2xs text-muted mono" dir="ltr">seller #<%= h.toPersianDigits(r.seller_id) %></div>
+                </td>
+                <td class="text-2xs">
+                  <% if (r.order_code && can('orders.view')) { %><a class="mono" dir="ltr" href="/admin/orders/<%= r.order_code %>"><%= r.order_code %></a>
+                  <% } else { %><span class="mono"><%= r.order_code || '—' %></span><% } %>
+                  <% if (r.order_item_id) { %><div class="text-muted">قلم #<%= h.toPersianDigits(r.order_item_id) %></div><% } %>
+                </td>
+                <td class="mono text-xs"><%= h.fa(r.amount) %></td>
+                <td class="mono text-xs text-danger"><%= h.fa(r.commission) %></td>
+                <td class="mono text-xs bold"><%= h.fa(r.net) %></td>
+                <td class="text-2xs"><%= r.due_at ? h.formatJalali(r.due_at) : '—' %></td>
+                <td>
+                  <% if (r.status === 'paid') { %>
+                    <span class="badge badge-success">پرداخت شده</span>
+                    <% if (r.paid_at) { %><div class="text-2xs text-muted"><%= h.formatJalali(r.paid_at) %></div><% } %>
+                  <% } else { %>
+                    <span class="badge badge-warning">در انتظار</span>
+                    <% if (dueRows.indexOf(r) > -1) { %><div class="text-2xs text-danger">سررسید گذشته</div><% } %><% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% if (canPay) { %>
+        <div class="card-foot flex items-center justify-between gap-10 flex-wrap">
+          <div class="text-2xs text-muted">با انتخاب ردیف‌ها و ثبت، وضعیت آن‌ها «پرداخت شده» می‌شود و مبلغ به موجودی فروشنده افزوده می‌گردد.</div>
+          <button class="btn btn-sm btn-primary" type="submit" data-confirm-click="تسویه‌های انتخاب‌شده پرداخت‌شده علامت بخورند؟">
+            <svg><use href="#i-check"/></svg> پرداخت موارد انتخاب‌شده</button>
+        </div>
+      <% } %>
+    </form>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-bank"/></svg></span>
+      <h3>رکورد تسویه‌ای وجود ندارد</h3>
+      <p>پس از تحویل هر سفارش، سهم فروشنده بر اساس کمیسیون و چرخه تسویه محاسبه و در این فهرست ثبت می‌شود.</p>
+      <% if (can('settings.edit')) { %><a class="btn btn-sm btn-primary" href="/admin/settings/general?group=marketplace">تنظیمات کمیسیون و تسویه</a><% } %>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

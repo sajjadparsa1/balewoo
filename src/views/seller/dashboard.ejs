@@ -1,0 +1,167 @@
+<%
+  const STATUS = { pending: 'در انتظار پرداخت', paid: 'پرداخت شده', processing: 'در حال پردازش', shipping: 'ارسال شده', delivered: 'تحویل شده', canceled: 'لغو شده', returned: 'مرجوع شده' };
+  const chartLabels = salesChart.map(function (c) { return c.d.slice(5); });
+  const chartRevenue = salesChart.map(function (c) { return c.revenue || 0; });
+%>
+<%- include('../partials/panel-head') %>
+
+<% if (seller.status !== 'active') { %>
+  <div class="alert alert-warning mb-20"><svg><use href="#i-alert"/></svg>
+    <div class="body">فروشگاه شما در وضعیت <b><%= seller.status === 'pending' ? 'بررسی' : 'مسدود' %></b> است. تا تایید نهایی، محصولات شما در فروشگاه عمومی نمایش داده نمی‌شوند.
+      <% if (seller.status === 'pending') { %><a class="text-danger bold" href="/seller/store">تکمیل مدارک فروشگاه</a><% } %></div></div>
+<% } %>
+
+<div class="flex items-start justify-between gap-14 flex-wrap mb-20">
+  <div class="flex items-center gap-12">
+    <% if (seller.logo) { %><span class="thumb-sm" style="width:46px;height:46px"><img src="<%= seller.logo %>" alt=""></span><% } %>
+    <div>
+      <h2 style="font-size:1.1rem;margin:0">سلام، <%= seller.shop_name %></h2>
+      <div class="text-xs text-muted mt-4">
+        امتیاز فروشگاه: <span class="stars inline"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= Math.round(seller.score || 5) ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+        <span class="badge badge-success mono" dir="ltr"><%= h.toPersianDigits((seller.score || 5).toFixed(1)) %></span>
+        · نرخ موفقیت <%= h.toPersianDigits(seller.success_rate) %>٪
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/store/<%= seller.shop_slug %>" target="_blank"><svg><use href="#i-store"/></svg> فروشگاه من</a>
+    <a class="btn btn-sm btn-primary" href="/seller/products/create"><svg><use href="#i-plus"/></svg> افزودن محصول</a>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.revenue) %></div><div class="l">درآمد کل (<%= site.currency %>)</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-percent"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.commission) %></div><div class="l">کمیسیون کسرشده</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.wallet) %></div><div class="l">قابل برداشت</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.orders) %></div><div class="l">کل سفارش‌ها</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-truck"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.openOrders) %></div><div class="l">سفارش در جریان</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-box"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.products) %></div><div class="l">محصولات (<%= h.toPersianDigits(stats.active) %> فعال)</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="chart-box">
+      <h4>فروش ۳۰ روز اخیر</h4>
+      <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'line', labels: chartLabels, series: [{ data: chartRevenue }] }) %>'></canvas>
+      <% if (!salesChart.length) { %><div class="text-xs text-muted text-center mt-10">هنوز فروشی ثبت نشده است.</div><% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">سفارش‌های اخیر</h3><a class="text-xs text-brand" href="/seller/orders">همه سفارش‌ها</a></div>
+      <% if (recentOrders.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>کد سفارش</th><th>خریدار</th><th>تاریخ</th><th>مبلغ کل</th><th>وضعیت</th></tr></thead>
+            <tbody>
+              <% recentOrders.forEach(function (o) { %>
+                <tr>
+                  <td class="mono text-xs" dir="ltr"><%= o.code %></td>
+                  <td class="text-xs"><%= o.receiver_name || '—' %></td>
+                  <td class="text-xs"><%= h.formatJalali(o.created_at) %></td>
+                  <td class="mono text-xs"><%= h.fa(o.total) %></td>
+                  <td><span class="badge badge-outline"><%= STATUS[o.status] || o.status %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty"><svg><use href="#i-cart"/></svg><h4>سفارشی ندارید</h4>
+          <p class="text-sm">با افزودن محصول و فعال‌سازی فروشگاه، سفارش‌ها اینجا نمایش داده می‌شوند.</p>
+          <a class="btn btn-primary btn-sm" href="/seller/products/create">افزودن محصول</a></div>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">پرفروش‌ترین محصولات</h3></div>
+      <% if (topProducts.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>محصول</th><th>تعداد فروش</th><th>درآمد</th></tr></thead>
+            <tbody>
+              <% topProducts.forEach(function (t) { %>
+                <tr>
+                  <td class="text-xs"><%= h.truncate(t.title, 46) %></td>
+                  <td class="mono text-xs"><%= h.toPersianDigits(t.qty) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(t.revenue) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty"><svg><use href="#i-trending"/></svg><h4>داده‌ای برای نمایش نیست</h4>
+          <p class="text-sm">پس از اولین فروش موفق، آمار پرفروش‌ها ساخته می‌شود.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <% if (stats.pending) { %>
+      <div class="alert alert-warning"><svg><use href="#i-clock"/></svg>
+        <div class="body"><b><%= h.toPersianDigits(stats.pending) %></b> محصول در انتظار تایید مدیریت است.
+          <a class="text-danger bold" href="/seller/products?status=pending">مشاهده</a></div></div>
+    <% } %>
+    <% if (stats.questions) { %>
+      <div class="alert alert-info"><svg><use href="#i-question"/></svg>
+        <div class="body"><b><%= h.toPersianDigits(stats.questions) %></b> پرسش بی‌پاسخ دارید.
+          <a class="text-brand bold" href="/seller/questions">پاسخ دهید</a></div></div>
+    <% } %>
+    <% if (stats.tickets) { %>
+      <div class="alert alert-danger"><svg><use href="#i-life-buoy"/></svg>
+        <div class="body"><b><%= h.toPersianDigits(stats.tickets) %></b> تیکت باز دارید.
+          <a class="text-brand bold" href="/seller/tickets">مشاهده</a></div></div>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">نیازمند شارژ موجودی</h3><a class="text-xs text-brand" href="/seller/warehouses">انبارها</a></div>
+      <div class="card-body stack" style="gap:10px">
+        <% if (lowStock.length) { %>
+          <% lowStock.forEach(function (p) { %>
+            <div class="flex items-center gap-10">
+              <span class="grow text-xs line-2"><a href="/seller/products/<%= p.id %>/edit"><%= h.truncate(p.title, 40) %></a></span>
+              <span class="badge <%= p.stock > 0 ? 'badge-warning' : 'badge-danger' %>"><%= p.stock > 0 ? h.toPersianDigits(p.stock) + ' عدد' : 'ناموجود' %></span>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-xs text-muted m-0">همه محصولات موجودی کافی دارند.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">عملکرد فروشگاه</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>امتیاز</th><td class="mono"><%= h.toPersianDigits((stats.score || 5).toFixed(1)) %> از ۵</td></tr>
+            <tr><th>نرخ موفقیت</th><td class="mono text-success"><%= h.toPersianDigits(seller.success_rate) %>٪</td></tr>
+            <tr><th>نرخ لغو</th><td class="mono"><%= h.toPersianDigits(seller.cancel_rate) %>٪</td></tr>
+            <tr><th>نرخ مرجوعی</th><td class="mono"><%= h.toPersianDigits(seller.return_rate) %>٪</td></tr>
+            <tr><th>بازدید فروشگاه</th><td class="mono"><%= h.toPersianDigits(stats.views) %></td></tr>
+            <tr><th>کمیسیون شما</th><td class="mono"><%= h.toPersianDigits(seller.commission) %>٪</td></tr>
+            <tr><th>روزشمار تسویه</th><td class="mono"><%= h.toPersianDigits(seller.settlement_days) %> روز</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">دسترسی سریع</h3></div>
+      <div class="card-body stack" style="gap:10px">
+        <a class="link-row" href="/seller/pricing"><span class="grow text-sm">قیمت‌گذاری روی محصولات دیگران</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/seller/settlements"><span class="grow text-sm">تسویه حساب و برداشت وجه</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/seller/blog"><span class="grow text-sm">مقالات فروشگاه</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+        <a class="link-row" href="/seller/store"><span class="grow text-sm">ویرایش اطلاعات فروشگاه</span><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-chevron-left"/></svg></a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

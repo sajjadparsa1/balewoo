@@ -1,0 +1,199 @@
+<%
+  const q = query || {};
+  const keep = {};
+  ['cat', 'search', 'brand', 'min', 'max', 'stock', 'off', 'special', 'per'].forEach(function (k) { if (q[k]) keep[k] = q[k]; });
+  Object.keys(q).forEach(function (k) { if (/^attr\[\d+\]$/.test(k) && q[k]) keep[k] = q[k]; });
+  const sortOptions = [
+    ['newest', 'جدیدترین'], ['popular', 'محبوب‌ترین'], ['bestselling', 'پرفروش‌ترین'],
+    ['cheapest', 'ارزان‌ترین'], ['expensive', 'گران‌ترین'], ['discounted', 'بیشترین تخفیف'], ['rating', 'بالاترین امتیاز'],
+  ];
+%>
+<%- include('../layouts/head', { bodyClass: 'page-archive' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+
+  <%- include('../partials/breadcrumb', { items: [].concat(
+        category ? (category.parent_id ? [{ name: 'محصولات', url: '/products' }] : []) : [],
+        category ? [{ name: category.name, url: category.children && category.children.length ? '/products?cat=' + category.slug : null }]
+               : brand ? [{ name: 'برندها', url: '/brands' }, { name: brand.name }]
+               : q.search ? [{ name: 'جستجو' }, { name: q.search }] : [{ name: 'آرشیو محصولات' }]
+      ) }) %>
+
+  <div class="grid g-sidebar" id="filterForm-wrap">
+    <form id="filterForm" class="card filter-card" method="get" action="/products" data-auto="0" style="padding:4px 16px 12px;align-self:start">
+      <% Object.entries(keep).forEach(function (e) { if (!/^attr\[/.test(e[0])) { %><input type="hidden" name="<%= e[0] %>" value="<%= e[1] %>"><% } }) %>
+      <% Object.keys(q).forEach(function (k) { if (/^attr\[\d+\]$/.test(k) && q[k]) { %><input type="hidden" name="<%= k %>" value="<%= q[k] %>" data-attr-hidden="<%= k %>"><% } }) %>
+
+      <div class="filter-group" style="border-top:none">
+        <div class="fg-title"><span class="flex items-center gap-6"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-filter"/></svg> فیلترها</span>
+          <button class="btn btn-ghost btn-sm" type="button" data-filter-clear>پاک کردن</button></div>
+      </div>
+
+      <details class="filter-group" open>
+        <summary>وضعیت کالا</summary>
+        <div class="filter-options">
+          <label class="check"><input type="checkbox" name="stock" value="1" <%= q.stock === '1' ? 'checked' : '' %>> فقط کالاهای موجود</label>
+          <label class="check"><input type="checkbox" name="off" value="1" <%= q.off === '1' ? 'checked' : '' %>> دارای تخفیف</label>
+          <label class="check"><input type="checkbox" name="special" value="1" <%= q.special === '1' ? 'checked' : '' %>> فروش ویژه</label>
+        </div>
+      </details>
+
+      <details class="filter-group" open>
+        <summary>محدوده قیمت (<%= site.currency %>)</summary>
+        <div class="filter-options">
+          <div class="range-inputs">
+            <input type="number" name="min" class="input" placeholder="از" value="<%= q.min || '' %>" min="0" step="10000" data-filter-price>
+            <span class="text-muted">—</span>
+            <input type="number" name="max" class="input" placeholder="تا" value="<%= q.max || '' %>" min="0" step="10000" data-filter-price>
+          </div>
+          <% if (priceBounds && priceBounds.max) { %>
+            <div class="text-xs text-muted mt-6">از <%= h.fa(priceBounds.min) %> تا <%= h.fa(priceBounds.max) %> <%= site.currency %></div>
+          <% } %>
+          <button class="btn btn-sm btn-outline w-100 mt-10" type="submit">اعمال قیمت</button>
+        </div>
+      </details>
+
+      <% if (childCategories && childCategories.length) { %>
+      <details class="filter-group" open>
+        <summary><%= category ? 'زیردسته‌ها' : 'دسته‌بندی‌ها' %></summary>
+        <div class="filter-options">
+          <% childCategories.forEach(function (c) { %>
+            <a class="check" href="/products?cat=<%= encodeURIComponent(c.slug) %><%= q.search ? '&search=' + encodeURIComponent(q.search) : '' %>" style="<%= q.cat === c.slug ? 'color:var(--brand);font-weight:700' : '' %>">
+              <span class="check-box"><% if (q.cat === c.slug) { %>✓<% } %></span> <%= c.name %>
+            </a>
+          <% }) %>
+        </div>
+      </details>
+      <% } %>
+
+      <% if (brandsInResult && brandsInResult.length && !brand) { %>
+      <details class="filter-group">
+        <summary>برند</summary>
+        <div class="filter-options">
+          <% brandsInResult.forEach(function (b) { %>
+            <a class="check" href="/products?brand=<%= encodeURIComponent(b.slug) %><%= q.cat ? '&cat=' + encodeURIComponent(q.cat) : '' %>">
+              <span class="check-box"></span> <%= b.name %>
+            </a>
+          <% }) %>
+        </div>
+      </details>
+      <% } %>
+
+      <% (filterGroups || []).forEach(function (g) { %>
+        <% const sel = (attributes && attributes[g.id]) || []; %>
+        <details class="filter-group" <%= sel.length ? 'open' : '' %>>
+          <summary><%= g.name %> <% if (sel.length) { %><span class="badge badge-primary"><%= h.toPersianDigits(sel.length) %></span><% } %></summary>
+          <div class="filter-options">
+            <% if (g.type === 'color') { %>
+              <div class="color-swatches">
+                <% g.options.forEach(function (o) { %>
+                  <label class="swatch <%= sel.includes(String(o.id)) ? 'active' : '' %>" title="<%= o.title %>"
+                         style="background:<%= o.color || '#ccc' %>">
+                    <input type="checkbox" class="hidden" name="attr[<%= g.id %>]" value="<%= o.id %>" data-attr-group="<%= g.id %>" <%= sel.includes(String(o.id)) ? 'checked' : '' %>>
+                  </label>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <% g.options.forEach(function (o) { %>
+                <label class="check">
+                  <input type="checkbox" name="attr[<%= g.id %>]" value="<%= o.id %>" data-attr-group="<%= g.id %>" <%= sel.includes(String(o.id)) ? 'checked' : '' %>>
+                  <%= o.title %>
+                </label>
+              <% }) %>
+            <% } %>
+          </div>
+        </details>
+      <% }) %>
+
+      <button class="btn btn-primary btn-block mt-14" type="submit">اعمال فیلترها</button>
+    </form>
+
+    <div>
+      <div class="toolbar">
+        <div class="flex items-center gap-10">
+          <h1 style="font-size:1.05rem;margin:0"><%= title %></h1>
+          <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> کالا</span>
+        </div>
+        <div class="flex items-center gap-10 flex-wrap">
+          <form method="get" action="/products" class="flex items-center gap-8 m-0" id="sortForm">
+            <% Object.entries(keep).forEach(function (e) { %><input type="hidden" name="<%= e[0] %>" value="<%= e[1] %>"><% }) %>
+            <label class="text-sm text-muted" for="sortSel">مرتب‌سازی:</label>
+            <select id="sortSel" name="sort" class="select" onchange="this.form.submit()" style="width:auto">
+              <% sortOptions.forEach(function (o) { %>
+                <option value="<%= o[0] %>" <%= (q.sort || 'newest') === o[0] ? 'selected' : '' %>><%= o[1] %></option>
+              <% }) %>
+            </select>
+          </form>
+          <div class="btn-group">
+            <button class="btn btn-sm" type="button" data-view="grid" aria-label="نمایش شبکه‌ای"><svg width="15" height="15"><use href="#i-grid"/></svg></button>
+            <button class="btn btn-sm" type="button" data-view="list" aria-label="نمایش فهرستی"><svg width="15" height="15"><use href="#i-list"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <% const chips = []; %>
+      <% if (q.stock === '1') chips.push({ label: 'فقط موجود', drop: 'stock' }); %>
+      <% if (q.off === '1') chips.push({ label: 'دارای تخفیف', drop: 'off' }); %>
+      <% if (q.special === '1') chips.push({ label: 'فروش ویژه', drop: 'special' }); %>
+      <% if (q.min || q.max) chips.push({ label: 'قیمت ' + h.fa(q.min || 0) + ' تا ' + h.fa(q.max || '∞'), drop: ['min', 'max'] }); %>
+      <% if (chips.length) { %>
+        <div class="active-filters mb-14">
+          <% chips.forEach(function (c) { %>
+            <% const nq = Object.assign({}, keep); [].concat(c.drop).forEach(function (d) { delete nq[d]; }); %>
+            <a class="chip" href="/products?<%= new URLSearchParams(nq).toString() %>"><%= c.label %> <svg width="12" height="12"><use href="#i-x"/></svg></a>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (category && category.description) { %>
+        <div class="alert alert-info mb-14"><svg><use href="#i-info"/></svg><div class="body"><%- category.description %></div></div>
+      <% } %>
+
+      <% if (products && products.length) { %>
+        <div class="products-grid" id="productsGrid">
+          <% products.forEach(function (p) { %><%- include('../partials/product-card', { product: p }) %><% }) %>
+        </div>
+        <%- include('../partials/pagination', { pagination: pg, baseUrl: '/products', extraQuery: keep }) %>
+        <% if (category && category.seo_text) { %>
+          <div class="card mt-30"><div class="card-body article-body text-sm"><%- category.seo_text %></div></div>
+        <% } %>
+      <% } else { %>
+        <div class="card">
+          <div class="empty">
+            <svg><use href="#i-search"/></svg>
+            <h4>محصولی با این فیلترها پیدا نشد</h4>
+            <p class="text-sm">فیلترها را تغییر دهید یا عبارت دیگری را جستجو کنید.</p>
+            <div class="flex gap-8 justify-center flex-wrap">
+              <a class="btn btn-outline" href="/products">پاک کردن فیلترها</a>
+              <a class="btn btn-primary" href="/products?sort=bestselling">مشاهده پرفروش‌ها</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</main>
+
+<script>
+  // تبدیل چند چک‌باکس یک گروه به یک فیلد hidden با مقدار «1,2»
+  document.querySelectorAll('#filterForm input[data-attr-group]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var gid = cb.dataset.attrGroup;
+      var vals = Array.from(document.querySelectorAll('#filterForm input[data-attr-group="' + gid + '"]:checked')).map(function (x) { return x.value; });
+      var name = 'attr[' + gid + ']';
+      var hidden = document.querySelector('#filterForm [data-attr-hidden="' + CSS.escape(name) + '"]') || (function () {
+        var i = document.createElement('input'); i.type = 'hidden'; i.name = name; i.dataset.attrHidden = name;
+        document.getElementById('filterForm').appendChild(i); return i;
+      })();
+      hidden.value = vals.join(',');
+      cb.name = ''; // از ارسال تکراری جلوگیری شود
+      Array.from(document.querySelectorAll('#filterForm input[data-attr-group="' + gid + '"]')).forEach(function (x) { x.name = ''; });
+      document.getElementById('filterForm').submit();
+    });
+  });
+</script>
+
+<%- include('../partials/store-footer') %>

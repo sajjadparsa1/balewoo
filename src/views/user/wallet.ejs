@@ -1,0 +1,121 @@
+<%
+  const typeTitles = {
+    deposit: 'واریز', withdraw: 'برداشت', order: 'پرداخت سفارش', refund: 'بازگشت وجه', commission: 'کمیسیون فروش',
+    affiliate: 'پورسانت همکاری', adjust: 'تعدیل توسط مدیر', charge_wallet: 'شارژ کیف پول', preinvoice: 'پرداخت پیش‌فاکتور',
+    withdraw_request: 'درخواست برداشت', points: 'امتیاز', settlement: 'تسویه حساب',
+  };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(user.wallet || 0) %></div><div class="l">موجودی فعلی (<%= site.currency %>)</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-trend-up"/></svg></span>
+    <div><div class="v mono"><%= h.fa(income || 0) %></div><div class="l">مجموع واریزی‌ها</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-trend-down"/></svg></span>
+    <div><div class="v mono"><%= h.fa(outcome || 0) %></div><div class="l">مجموع برداشت‌ها</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-medal"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(user.points || 0) %></div><div class="l">امتیاز باشگاه مشتریان</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3>تراکنش‌های کیف پول</h3>
+        <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> تراکنش</span></div>
+      <% if (rows.length) { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>تاریخ</th><th>نوع</th><th>شرح</th><th>درگاه / مرجع</th><th>مبلغ</th><th>موجودی</th><th>وضعیت</th></tr></thead>
+            <tbody>
+              <% rows.forEach(function (tx) { %>
+                <tr>
+                  <td class="text-xs"><%= h.formatJalali(tx.created_at) %><div class="text-muted" style="font-size:.7rem"><%= String(tx.created_at || '').slice(11, 16) %></div></td>
+                  <td class="text-xs"><%= typeTitles[tx.type] || tx.type %></td>
+                  <td class="text-xs"><%= tx.description || '—' %></td>
+                  <td class="text-xs"><%= tx.gateway === 'system' ? 'داخلی' : (tx.gateway || '—') %>
+                    <% if (tx.reference) { %><div class="text-muted mono" dir="ltr" style="font-size:.7rem"><%= tx.reference %></div><% } %></td>
+                  <td class="mono bold <%= tx.amount > 0 ? 'text-success' : 'text-danger' %>"><%= tx.amount > 0 ? '+' : '' %><%= h.fa(tx.amount) %></td>
+                  <td class="mono text-xs"><%= h.fa(tx.balance) %></td>
+                  <td><span class="badge <%= tx.status === 'success' ? 'badge-success' : tx.status === 'pending' ? 'badge-warning' : 'badge-danger' %>">
+                    <%= tx.status === 'success' ? 'موفق' : tx.status === 'pending' ? 'در انتظار' : tx.status === 'failed' ? 'ناموفق' : 'لغو شده' %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <%- include('../partials/pagination', { pagination: pg, baseUrl: '/user/wallet', extraQuery: {} }) %>
+      <% } else { %>
+        <div class="empty"><svg><use href="#i-wallet"/></svg><h4>تراکنشی ثبت نشده است</h4>
+          <p class="text-sm">با شارژ کیف پول یا اولین خرید، تراکنش‌های شما در این فهرست نمایش داده می‌شود.</p></div>
+      <% } %>
+    </section>
+
+    <% if (monthly && monthly.length) { %>
+      <section class="chart-box">
+        <h4>گردش مالی ۶ ماه اخیر</h4>
+        <canvas class="chart" data-chart='<%- JSON.stringify({
+          type: 'bar',
+          labels: monthly.map(function (m) { return m.m.slice(5); }).reverse(),
+          series: [
+            { data: monthly.map(function (m) { return m.income; }).reverse() },
+            { data: monthly.map(function (m) { return m.outcome; }).reverse(), color: '#ef4444' }
+          ]
+        }) %>'></canvas>
+        <div class="legend mt-14" data-donut-legend='<%- JSON.stringify({ labels: ['واریزی', 'برداشت'], values: [income || 0, outcome || 0] }) %>'></div>
+      </section>
+    <% } %>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">شارژ کیف پول</h3></div>
+      <div class="card-body">
+        <form method="post" action="/payment/wallet/charge">
+          <div class="field">
+            <label for="amount">مبلغ (<%= site.currency %>)</label>
+            <input class="input mono" id="amount" name="amount" type="number" min="1000" step="1000" value="500000" required>
+            <div class="help">حداقل مبلغ شارژ <%= h.fa(1000) %> <%= site.currency %></div>
+          </div>
+          <div class="flex gap-6 flex-wrap mb-14">
+            <% [100000, 500000, 1000000, 5000000].forEach(function (a) { %>
+              <button class="chip" type="button" onclick="document.getElementById('amount').value='<%= a %>'"><%= h.fa(a) %></button>
+            <% }) %>
+          </div>
+          <div class="field">
+            <label for="gateway">درگاه پرداخت</label>
+            <select class="select" id="gateway" name="gateway">
+              <% (gateways || []).filter(function (g) { return g.type === 'online' || g.type === 'installment'; }).forEach(function (g) { %>
+                <option value="<%= g.key %>"><%= g.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-zap"/></svg> شارژ کیف پول</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">برداشت وجه</h3></div>
+      <div class="card-body">
+        <p class="text-xs text-muted m-0 mb-14">برای انتقال موجودی به حساب بانکی، ابتدا حساب خود را ثبت و پس از تایید، درخواست برداشت بدهید.</p>
+        <a class="btn btn-sm btn-outline btn-block mb-6" href="/user/bank-accounts">حساب‌های بانکی</a>
+        <a class="btn btn-sm btn-block" href="/user/withdrawals">درخواست برداشت</a>
+        <div class="text-xs text-muted mt-10">حداقل مبلغ برداشت: <b class="mono"><%= h.fa(setting('min_withdraw_amount', '50000')) %></b> <%= site.currency %></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-body">
+        <div class="bold text-sm mb-6 flex items-center gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--brand)"><use href="#i-info"/></svg> نکات کیف پول</div>
+        <ul class="text-xs text-muted" style="line-height:2.2;padding-inline-start:16px;margin:0">
+          <li>مبلغ سفارش‌های لغوشده به‌صورت خودکار به کیف پول بازمی‌گردد.</li>
+          <li>پرداخت از کیف پول بدون کارمزد و آنی است.</li>
+          <li>در صورت انتخاب همزمان کیف پول و درگاه، ابتدا از موجودی کسر می‌شود.</li>
+        </ul>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

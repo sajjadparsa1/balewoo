@@ -1,0 +1,89 @@
+<%
+  const STATUS = { pending: ['در انتظار تایید', 'badge-warning'], approved: ['تایید شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'], spam: ['اسپم', 'badge-danger'] };
+  const counts = { pending: 0, approved: 0, rejected: 0, spam: 0 };
+  rows.forEach(function (c) { if (counts[c.status] !== undefined) counts[c.status]++; });
+  const canManage = can('posts.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">دیدگاه‌های مجله <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> دیدگاه</span></h2>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/admin/content/posts"><svg><use href="#i-book"/></svg> مقالات</a>
+    <a class="btn btn-sm" href="/admin/content/reviews"><svg><use href="#i-star"/></svg> دیدگاه محصولات</a>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <% Object.keys(STATUS).forEach(function (k) { %>
+    <div class="stat-card <%= k === 'approved' ? 'success' : k === 'pending' ? 'warning' : k === 'rejected' ? 'danger' : '' %>">
+      <span class="ic"><svg><use href="#i-<%= k === 'approved' ? 'check' : k === 'pending' ? 'clock' : 'ban' %>"/></svg></span>
+      <div><div class="v mono"><%= h.toPersianDigits(counts[k]) %></div><div class="l"><%= STATUS[k][0] %></div></div></div>
+  <% }) %>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>نویسنده</th><th>دیدگاه</th><th>مقاله</th><th>تاریخ</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %></tr></thead>
+        <tbody>
+          <% rows.forEach(function (c) { const st = STATUS[c.status] || [c.status, 'badge-outline']; %>
+            <tr>
+              <td class="text-xs">
+                <div class="flex items-center gap-10">
+                  <span class="avatar sm"><%= String(c.author || 'ک').trim().charAt(0) %></span>
+                  <div>
+                    <b class="block text-xs"><%= c.author || 'مهمان' %></b>
+                    <% if (c.user_id && can('users.view')) { %>
+                      <a class="text-2xs mono" dir="ltr" href="/admin/people/users/<%= c.user_id %>">#<%= h.toPersianDigits(c.user_id) %></a>
+                    <% } else { %><span class="text-2xs text-muted">کاربر مهمان</span><% } %>
+                  </div>
+                </div>
+              </td>
+              <td style="max-width:420px">
+                <div class="text-xs" style="line-height:1.9"><%= h.truncate(c.body, 190) %></div>
+                <% if (c.parent_id) { %><span class="badge badge-outline text-2xs mt-4">پاسخ به دیدگاه #<%= h.toPersianDigits(c.parent_id) %></span><% } %>
+              </td>
+              <td class="text-xs">
+                <a href="/blog/<%= c.slug %>" target="_blank" rel="noopener"><%= h.truncate(c.title, 34) %></a>
+              </td>
+              <td class="text-2xs"><%= h.formatJalali(c.created_at) %><div class="text-muted"><%= h.timeAgo(c.created_at) %></div></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <% if (canManage) { %>
+                <td class="actions">
+                  <% if (c.status !== 'approved') { %>
+                    <form method="post" action="/admin/content/comments/<%= c.id %>/status" class="m-0">
+                      <input type="hidden" name="status" value="approved">
+                      <button class="btn btn-sm btn-ghost text-success" type="submit" title="تایید"><svg><use href="#i-check"/></svg></button>
+                    </form>
+                  <% } %>
+                  <% if (c.status !== 'rejected') { %>
+                    <form method="post" action="/admin/content/comments/<%= c.id %>/status" class="m-0">
+                      <input type="hidden" name="status" value="rejected">
+                      <button class="btn btn-sm btn-ghost" type="submit" title="رد"><svg><use href="#i-x"/></svg></button>
+                    </form>
+                  <% } %>
+                  <form method="post" action="/admin/content/comments/<%= c.id %>/status" class="m-0">
+                    <input type="hidden" name="status" value="spam">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="اسپم" data-confirm-click="دیدگاه به‌عنوان اسپم علامت‌گذاری شود؟"><svg><use href="#i-ban"/></svg></button>
+                  </form>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot text-2xs text-muted">۲۰۰ دیدگاه اخیر مجله.</div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-comment"/></svg></span>
+      <h3>دیدگاهی روی مقالات ثبت نشده است</h3>
+      <p>با فعال بودن بخش دیدگاه در تنظیمات محتوا، خوانندگان می‌توانند زیر مقالات نظر بدهند.</p>
+      <a class="btn btn-sm btn-primary" href="/admin/content/posts">مدیریت مقالات</a>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

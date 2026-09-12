@@ -1,0 +1,194 @@
+<%
+  const STATUS = { open: ['باز', 'badge-info'], answered: ['پاسخ داده شده', 'badge-success'], pending: ['در انتظار مشتری', 'badge-warning'], closed: ['بسته شده', 'badge-outline'] };
+  const PRIORITY = { low: ['کم', 'badge-outline'], normal: ['عادی', 'badge-info'], high: ['زیاد', 'badge-warning'], critical: ['بحرانی', 'badge-danger'] };
+  const DEPT = { support: 'پشتیبانی', sales: 'فروش', finance: 'مالی', technical: 'فنی', sellers: 'امور فروشندگان' };
+  const ROLE_LABEL = { user: 'کاربر', admin: 'مدیر', staff: 'کارشناس', seller: 'فروشنده', buyer: 'خریدار' };
+  const st = STATUS[ticket.status] || [ticket.status, 'badge-outline'];
+  const pr = PRIORITY[ticket.priority] || [ticket.priority, 'badge-outline'];
+  const canManage = can('tickets.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.1rem;margin:0" class="flex items-center gap-10 flex-wrap">
+      <%= ticket.subject %>
+      <span class="mono text-xs text-muted" dir="ltr"><%= ticket.code %></span>
+      <span class="badge <%= st[1] %>"><%= st[0] %></span>
+      <span class="badge <%= pr[1] %>">اولویت: <%= pr[0] %></span>
+    </h2>
+    <div class="text-xs text-muted mt-6">
+      <%= DEPT[ticket.department] || ticket.department %> ·
+      ثبت <%= h.formatJalaliFull(ticket.created_at) %> ·
+      آخرین پیام <%= ticket.last_message_at ? h.timeAgo(ticket.last_message_at) : '—' %> ·
+      <%= h.toPersianDigits(messages.length) %> پیام
+    </div>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/system/tickets"><svg><use href="#i-chevron-right"/></svg> تیکت‌ها</a>
+    <% if (canManage) { %>
+      <form method="post" action="/admin/system/tickets/<%= ticket.code %>/status" class="m-0">
+        <input type="hidden" name="status" value="<%= ticket.status === 'closed' ? 'open' : 'closed' %>">
+        <button class="btn btn-sm <%= ticket.status === 'closed' ? 'btn-outline' : 'btn-danger' %>" type="submit"
+                data-confirm-click="<%= ticket.status === 'closed' ? 'تیکت دوباره باز شود؟' : 'تیکت بسته شود؟' %>">
+          <svg><use href="#i-<%= ticket.status === 'closed' ? 'refresh' : 'check' %>"/></svg> <%= ticket.status === 'closed' ? 'بازگشایی' : 'بستن تیکت' %></button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">گفتگو</h3>
+      <span class="text-2xs text-muted">یادداشت‌های داخلی برای کاربر ارسال نمی‌شوند و فقط در پنل مدیریت قابل مشاهده‌اند</span></div>
+    <div class="card-body chat" id="ticketChat">
+      <% if (ticket.body) { %>
+        <div class="bubble them">
+          <div class="bubble-head">
+            <b class="text-xs">شرح اولیه — <%= ticket.owner_type === 'seller' ? (seller ? seller.shop_name : 'فروشنده') : (owner ? owner.name : 'کاربر') %></b>
+            <span class="text-2xs text-muted"><%= h.timeAgo(ticket.created_at) %></span>
+          </div>
+          <div class="bubble-body text-sm" style="line-height:2"><%= ticket.body %></div>
+        </div>
+      <% } %>
+      <% messages.forEach(function (m) {
+           const mine = m.role_label === 'admin' || m.role_label === 'staff'; %>
+        <div class="bubble <%= mine ? 'me' : 'them' %>" <% if (m.is_internal) { %>style="border:1px dashed var(--warning);background:color-mix(in srgb, var(--warning) 8%, var(--surface-2))"<% } %>>
+          <div class="bubble-head">
+            <b class="text-xs"><%= m.author || (ROLE_LABEL[m.role_label] || 'کارشناس') %></b>
+            <% if (m.is_internal) { %><span class="badge badge-warning text-2xs">یادداشت داخلی</span><% } %>
+            <span class="text-2xs"><%= h.formatJalaliFull(m.created_at) %> · <%= h.timeAgo(m.created_at) %></span>
+          </div>
+          <div class="bubble-body text-sm" style="line-height:2"><%= m.body %></div>
+          <% if (m.attachment) { %>
+            <a class="attach-link text-xs" style="margin-top:6px" href="<%= m.attachment %>" target="_blank" rel="noopener">
+              <svg style="width:14px;height:14px"><use href="#i-paperclip"/></svg> مشاهده پیوست</a>
+          <% } %>
+        </div>
+      <% }) %>
+      <% if (!messages.length && !ticket.body) { %>
+        <div class="empty"><svg><use href="#i-message"/></svg><h4>پیامی ثبت نشده است</h4></div>
+      <% } %>
+    </div>
+
+    <% if (canManage) { %>
+      <div class="card-foot">
+        <form method="post" action="/admin/system/tickets/<%= ticket.code %>/reply" enctype="multipart/form-data" data-upload-form>
+          <div class="field"><label for="r_body">پاسخ کارشناس</label>
+            <textarea class="textarea" id="r_body" name="body" rows="4" required placeholder="پاسخ خود را بنویسید…"></textarea></div>
+          <div class="flex items-center gap-12 flex-wrap">
+            <div class="field m-0" style="flex:1;min-width:200px">
+              <input class="input input-sm" type="file" name="attachment" accept="image/*,.pdf,.zip"></div>
+            <div class="field m-0" style="width:auto">
+              <select class="select" name="assignee_id">
+                <option value="">کارشناس مسئول (بدون تغییر)</option>
+                <% admins.forEach(function (a) { %><option value="<%= a.id %>" <%= ticket.assignee_id === a.id ? 'selected' : '' %>><%= a.name || 'بدون نام' %></option><% }) %>
+              </select></div>
+            <label class="check text-xs m-0"><input type="checkbox" name="internal" value="1"> یادداشت داخلی (برای کاربر ارسال نشود)</label>
+            <label class="check text-xs m-0"><input type="checkbox" name="close" value="1"> بستن تیکت پس از ارسال</label>
+            <button class="btn btn-primary ms-auto" type="submit"><svg><use href="#i-send"/></svg> ارسال پاسخ</button>
+          </div>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="card-foot"><div class="alert alert-warning m-0"><svg><use href="#i-lock"/></svg><div class="body">برای پاسخ‌دادن به دسترسی «مدیریت تیکت‌ها» نیاز دارید.</div></div></div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">درخواست‌دهنده</h3></div>
+      <div class="card-body">
+        <% if (ticket.owner_type === 'seller' && seller) { %>
+          <table class="table-kv"><tbody>
+            <tr><th>فروشگاه</th><td class="text-xs"><%= seller.shop_name %></td></tr>
+            <tr><th>تماس</th><td class="mono text-xs" dir="ltr"><%= h.toPersianDigits(seller.phone || '—') %></td></tr>
+            <tr><th>وضعیت</th><td><span class="badge <%= seller.status === 'active' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= seller.status %></span></td></tr>
+          </tbody></table>
+          <% if (can('sellers.view')) { %><a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/people/sellers/<%= seller.id %>">پروفایل فروشگاه</a><% } %>
+        <% } else if (owner) { %>
+          <div class="flex items-center gap-10 mb-10">
+            <span class="avatar"><%= String(owner.name || owner.phone || 'ک').trim().charAt(0) %></span>
+            <div>
+              <b class="text-sm block"><%= owner.name || 'بدون نام' %></b>
+              <span class="mono text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(owner.phone || '') %></span>
+            </div>
+          </div>
+          <table class="table-kv"><tbody>
+            <tr><th>نقش</th><td class="text-xs"><%= owner.role %></td></tr>
+            <tr><th>سطح باشگاه</th><td class="text-xs"><%= owner.club_level || '—' %></td></tr>
+            <tr><th>کیف پول</th><td class="mono text-xs"><%= h.fa(owner.wallet || 0) %></td></tr>
+            <tr><th>آخرین فعالیت</th><td class="text-xs"><%= owner.last_seen_at ? h.timeAgo(owner.last_seen_at) : '—' %></td></tr>
+          </tbody></table>
+          <% if (can('users.view')) { %><a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/people/users/<%= owner.id %>">پروفایل کاربر</a><% } %>
+          <% if (can('notifications.send')) { %>
+            <form method="post" action="/admin/system/notifications/send" class="mt-10">
+              <input type="hidden" name="segment" value="phones">
+              <input type="hidden" name="phones" value="<%= owner.phone %>">
+              <input type="hidden" name="title" value="پیگیری تیکت <%= ticket.code %>">
+              <input type="hidden" name="body" value="تیکت شما بررسی شد؛ برای دیدن پاسخ به پنل کاربری مراجعه کنید.">
+              <input type="hidden" name="link" value="/user/tickets/<%= ticket.code %>">
+              <button class="btn btn-sm btn-ghost w-100" type="submit"><svg><use href="#i-send"/></svg> ارسال اعلان پیگیری</button>
+            </form>
+          <% } %>
+        <% } else { %>
+          <p class="text-xs text-muted m-0">درخواست‌دهنده شناسایی نشد.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <% if (order) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سفارش مرتبط</h3></div>
+        <div class="card-body">
+          <table class="table-kv"><tbody>
+            <tr><th>کد سفارش</th><td class="mono text-xs" dir="ltr"><%= order.code %></td></tr>
+            <tr><th>تاریخ</th><td class="text-xs"><%= order.jalali_date %></td></tr>
+            <tr><th>مبلغ</th><td class="mono text-xs"><%= h.fa(order.total) %></td></tr>
+            <tr><th>وضعیت</th><td class="text-xs"><%= order.status_title %></td></tr>
+            <tr><th>پرداخت</th><td><span class="badge <%= order.payment_status === 'paid' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= order.payment_status === 'paid' ? 'پرداخت شده' : 'پرداخت نشده' %></span></td></tr>
+            <tr><th>اقلام</th><td class="text-xs"><%= h.toPersianDigits(order.items.length) %> قلم</td></tr>
+          </tbody></table>
+          <div class="stack mt-10" style="gap:0">
+            <% order.items.slice(0, 4).forEach(function (i) { %>
+              <div class="link-row" style="padding:7px 0">
+                <div class="grow min-0"><span class="text-xs block truncate"><%= i.title %></span>
+                  <span class="text-2xs text-muted"><%= h.toPersianDigits(i.qty) %> × <%= h.fa(i.price) %></span></div>
+                <span class="mono text-xs"><%= h.fa(i.total) %></span>
+              </div>
+            <% }) %>
+          </div>
+          <% if (can('orders.view')) { %><a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/orders/<%= order.code %>">مشاهده سفارش</a><% } %>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">جزئیات تیکت</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th>کد پیگیری</th><td class="mono text-xs" dir="ltr"><%= ticket.code %></td></tr>
+          <tr><th>دپارتمان</th><td class="text-xs"><%= DEPT[ticket.department] || ticket.department %></td></tr>
+          <tr><th>اولویت</th><td><span class="badge <%= pr[1] %> text-2xs"><%= pr[0] %></span></td></tr>
+          <tr><th>کارشناس مسئول</th><td class="text-xs"><%= ticket.assignee_id ? '#' + h.toPersianDigits(ticket.assignee_id) : 'تخصیص نیافته' %></td></tr>
+          <% if (ticket.product_id) { %><tr><th>محصول</th><td class="mono text-xs">#<%= h.toPersianDigits(ticket.product_id) %></td></tr><% } %>
+          <tr><th>بروزرسانی</th><td class="text-xs"><%= ticket.updated_at ? h.formatJalali(ticket.updated_at) : '—' %></td></tr>
+        </tbody></table>
+        <% if (canManage) { %>
+          <form method="post" action="/admin/system/tickets/<%= ticket.code %>/status" class="mt-14">
+            <div class="field"><label for="st_sel">تغییر وضعیت</label>
+              <select class="select" id="st_sel" name="status">
+                <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>" <%= ticket.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option><% }) %>
+              </select></div>
+            <button class="btn btn-sm btn-outline w-100" type="submit"><svg><use href="#i-save"/></svg> اعمال وضعیت</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  (function () { var c = document.getElementById('ticketChat'); if (c) c.scrollTop = c.scrollHeight; })();
+</script>

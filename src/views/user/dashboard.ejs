@@ -1,0 +1,124 @@
+<%- include('../partials/panel-head') %>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card"><span class="ic"><svg><use href="#i-order"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.orders) %></div><div class="l">کل سفارش‌ها (<%= h.toPersianDigits(stats.paidOrders) %> پرداخت‌شده)</div></div></div>
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.wallet) %></div><div class="l">موجودی کیف پول (<%= site.currency %>)</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-medal"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.points) %></div><div class="l">امتیاز باشگاه مشتریان</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-chart"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.spending) %></div><div class="l">مجموع خرید (<%= site.currency %>)</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-heart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.favorites) %></div><div class="l">علاقه‌مندی‌ها</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-gift"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.affiliate) %></div><div class="l">درآمد همکاری در فروش</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3>سفارش‌های اخیر</h3><a class="text-sm text-brand" href="/user/orders">همه سفارش‌ها</a></div>
+      <% if (recentOrders.length) { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>کد سفارش</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th>پرداخت</th><th></th></tr></thead>
+            <tbody>
+              <% recentOrders.forEach(function (o) { %>
+                <tr>
+                  <td class="mono" dir="ltr"><a class="text-brand" href="/user/orders/<%= o.code %>"><%= o.code %></a></td>
+                  <td class="text-xs"><%= h.formatJalali(o.created_at) %></td>
+                  <td class="mono"><%= h.fa(o.total) %></td>
+                  <td><span class="badge badge-<%= (o.status_meta && o.status_meta.color) || (o.status === 'delivered' ? 'success' : o.status === 'canceled' ? 'danger' : o.status === 'pending' ? 'warning' : 'info') %>"><%= o.status_title %></span></td>
+                  <td><span class="badge <%= o.payment_status === 'paid' ? 'badge-success' : o.payment_status === 'refunded' ? 'badge-danger' : 'badge-outline' %>"><%= o.payment_status === 'paid' ? 'پرداخت شده' : o.payment_status === 'refunded' ? 'بازگشت وجه' : 'پرداخت نشده' %></span></td>
+                  <td class="actions"><a class="btn btn-sm btn-ghost" href="/user/orders/<%= o.code %>"><svg><use href="#i-eye"/></svg></a></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty"><svg><use href="#i-cart"/></svg><h4>هنوز سفارشی ثبت نکرده‌اید</h4>
+          <a class="btn btn-primary btn-sm" href="/products">شروع خرید</a></div>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3>پیشنهاد ویژه برای شما</h3><a class="text-sm text-brand" href="/products?sort=popular">مشاهده همه</a></div>
+      <div class="card-body">
+        <div class="products-grid">
+          <% (suggestions || []).forEach(function (p) { %><%- include('../partials/product-card', { product: p }) %><% }) %>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-body flex items-center gap-14">
+        <span class="avatar lg"><% if (user.avatar) { %><img src="<%= user.avatar %>" alt=""><% } else { %><%= (user.name || user.phone || 'ک').slice(0, 1) %><% } %></span>
+        <div class="grow">
+          <div class="bold"><%= user.name || 'کاربر بالی‌وو' %></div>
+          <div class="text-xs text-muted" dir="ltr"><%= h.toPersianDigits(user.phone) %></div>
+          <% if (level) { %><span class="badge mt-6" style="background:<%= level.color || 'var(--brand-50)' %>;color:#fff"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-medal"/></svg> <%= level.title || level.level %></span><% } %>
+        </div>
+        <a class="btn btn-sm btn-outline" href="/user/profile">ویرایش</a>
+      </div>
+      <div class="card-foot text-xs text-muted flex items-center justify-between">
+        <span>عضو از <%= h.formatJalaliLong(user.created_at) %></span>
+        <span><%= h.toPersianDigits(user.login_count || 0) %> ورود</span>
+      </div>
+    </section>
+
+    <% if (nextLevel) { %>
+      <% const need = Math.max(0, nextLevel.min_points - (user.points || 0)); %>
+      <% const progress = Math.min(100, Math.round(((user.points || 0) / nextLevel.min_points) * 100)); %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ارتقا به سطح <%= nextLevel.title || nextLevel.level %></h3></div>
+        <div class="card-body">
+          <div class="progress mb-10"><i style="width:<%= progress %>%"></i></div>
+          <div class="text-xs text-muted flex justify-between">
+            <span><%= h.toPersianDigits(user.points || 0) %> امتیاز فعلی</span>
+            <span><%= h.toPersianDigits(need) %> امتیاز باقی‌مانده</span>
+          </div>
+          <a class="btn btn-sm btn-outline btn-block mt-14" href="/user/club">جزئیات باشگاه مشتریان</a>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">دسترسی سریع</h3></div>
+      <div class="card-body grid g-2" style="gap:10px">
+        <a class="btn btn-sm" href="/user/orders"><svg><use href="#i-order"/></svg> سفارش‌ها</a>
+        <a class="btn btn-sm" href="/user/wallet"><svg><use href="#i-wallet"/></svg> کیف پول</a>
+        <a class="btn btn-sm" href="/user/favorites"><svg><use href="#i-heart"/></svg> علاقمندی</a>
+        <a class="btn btn-sm" href="/user/addresses"><svg><use href="#i-pin"/></svg> نشانی‌ها</a>
+        <a class="btn btn-sm" href="/user/tickets/new"><svg><use href="#i-ticket"/></svg> تیکت جدید</a>
+        <a class="btn btn-sm" href="/user/affiliate"><svg><use href="#i-link"/></svg> همکاری در فروش</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اعلان‌های اخیر</h3><a class="text-xs text-brand" href="/user/notifications">همه</a></div>
+      <div class="card-body p-0">
+        <div class="notif-list" style="max-height:280px">
+          <% const _notifs = (notifications && notifications.rows) || notifications || []; %>
+          <% (_notifs || []).slice(0, 6).forEach(function (n) { %>
+            <a class="notif-item <%= n.read_at ? '' : 'unread' %>" href="<%= n.link || '/user/notifications' %>">
+              <span class="ic"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-bell"/></svg></span>
+              <span class="grow"><b class="text-xs" style="display:block"><%= n.title %></b>
+                <span class="text-xs text-muted"><%= h.timeAgo(n.created_at) %></span></span>
+            </a>
+          <% }) %>
+          <% if (!_notifs.length) { %><div class="empty" style="padding:26px"><span class="text-xs">اعلانی ندارید</span></div><% } %>
+        </div>
+      </div>
+    </section>
+
+    <% if (stats.tickets) { %>
+      <div class="alert alert-info"><svg><use href="#i-ticket"/></svg><div class="body">شما <%= h.toPersianDigits(stats.tickets) %> تیکت باز دارید. <a class="text-brand bold" href="/user/tickets">مشاهده</a></div></div>
+    <% } %>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

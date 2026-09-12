@@ -1,0 +1,39 @@
+<% const statusTitle = { pending: 'در انتظار تایید', approved: 'منتشر شده', rejected: 'رد شده' }; %>
+<%- include('../partials/panel-head') %>
+
+<section class="card">
+  <div class="card-head"><h3>دیدگاه‌های من</h3>
+    <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> دیدگاه</span></div>
+  <% if (rows.length) { %>
+    <div class="card-body stack" style="gap:0">
+      <% rows.forEach(function (r) { %>
+        <div class="review-item">
+          <div class="review-head">
+            <a href="/product/<%= r.slug %>" class="grow">
+              <b class="text-sm line-2"><%= h.truncate(r.title, 70) %></b>
+            </a>
+            <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+            <span class="badge <%= r.status === 'approved' ? 'badge-success' : r.status === 'pending' ? 'badge-warning' : 'badge-danger' %>"><%= statusTitle[r.status] || r.status %></span>
+          </div>
+          <% if (r.body) { %><p class="text-sm text-2 m-0" style="line-height:2"><%= r.body %></p><% } %>
+          <div class="flex items-center justify-between gap-10 mt-10 flex-wrap">
+            <span class="text-xs text-muted"><%= h.formatJalali(r.created_at) %> · <%= h.timeAgo(r.created_at) %><% if (r.is_buyer) { %> · <span class="badge badge-success">خریدار</span><% } %></span>
+            <a class="btn btn-sm btn-ghost" href="/product/<%= r.slug %>#reviews">مشاهده در صفحه محصول</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-star"/></svg>
+      <h4>هنوز دیدگاهی ثبت نکرده‌اید</h4>
+      <p class="text-sm">با ثبت دیدگاه، <%= h.toPersianDigits(setting('club_review_points', '20')) %> امتیاز باشگاه مشتریان دریافت می‌کنید.</p>
+      <a class="btn btn-primary btn-sm" href="/user/orders">از سفارش‌های من شروع کنید</a></div>
+  <% } %>
+</section>
+
+<div class="card mt-20">
+  <div class="card-head"><h3 class="text-sm">پرسش‌های من</h3><a class="text-xs text-brand" href="/user/questions">مشاهده همه</a></div>
+  <div class="card-body text-xs text-muted">پرسش‌هایی که درباره محصولات پرسیده‌اید همراه با پاسخ فروشنده در بخش «پرسش‌های من» نگهداری می‌شود.</div>
+</div>
+
+<%- include('../partials/panel-foot') %>

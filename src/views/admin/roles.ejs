@@ -1,0 +1,294 @@
+<%
+  const permCount = (p) => (p || []).indexOf('*') > -1 ? 'همه دسترسی‌ها' : h.toPersianDigits((p || []).length) + ' دسترسی';
+  const canAdmins = can('admins.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">نقش‌ها و مدیران <span class="badge badge-outline"><%= h.toPersianDigits(roles.length) %> نقش</span></h2>
+  <div class="text-xs text-muted">دسترسی‌ها به شکل «ماژول.عمل» هستند؛ <span class="mono" dir="ltr">catalog.*</span> یعنی همه عمل‌های یک ماژول.</div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-body" data-tabs style="padding-top:0">
+        <div class="tabs">
+          <% roles.forEach(function (r, i) { %>
+            <button class="tab-btn <%= i === 0 ? 'active' : '' %>" type="button" data-tab="role-<%= r.id %>">
+              <%= r.name %>
+              <% if (r.is_system) { %><span class="badge badge-info text-2xs">سیستمی</span><% } %>
+            </button>
+          <% }) %>
+          <% if (can('roles.manage')) { %><button class="tab-btn" type="button" data-tab="role-new"><svg style="width:13px;height:13px;vertical-align:-2px"><use href="#i-plus"/></svg> نقش جدید</button><% } %>
+          <% if (canAdmins) { %><button class="tab-btn" type="button" data-tab="t-admins">مدیران <span class="badge badge-outline"><%= h.toPersianDigits(admins.length) %></span></button><% } %>
+        </div>
+
+        <% roles.forEach(function (r, i) { const perms = r.permissions || []; const superAll = perms.indexOf('*') > -1; %>
+          <div class="tab-pane <%= i === 0 ? 'active' : '' %>" data-pane="role-<%= r.id %>">
+            <form method="post" action="/admin/people/roles" data-role-form>
+              <input type="hidden" name="id" value="<%= r.id %>">
+              <div class="grid g-2 mb-14">
+                <div class="field"><label for="rn_<%= r.id %>">نام نقش</label>
+                  <input class="input" id="rn_<%= r.id %>" name="name" value="<%= r.name %>" required <%= can('roles.manage') ? '' : 'disabled' %>></div>
+                <div class="field"><label for="rs_<%= r.id %>">شناسه (slug)</label>
+                  <input class="input mono" id="rs_<%= r.id %>" value="<%= r.slug %>" dir="ltr" disabled></div>
+              </div>
+
+              <div class="flex items-center justify-between gap-10 flex-wrap mb-14">
+                <div class="text-xs text-muted">وضعیت فعلی: <b><%= permCount(perms) %></b></div>
+                <% if (can('roles.manage')) { %>
+                  <div class="flex gap-8 flex-wrap">
+                    <label class="check m-0 text-xs"><input type="checkbox" name="permissions" value="*" <%= superAll ? 'checked' : '' %> data-wildcard-all> دسترسی کامل (مدیر کل)</label>
+                    <button class="btn btn-sm btn-ghost" type="button" data-perm-toggle="all" data-scope="#pane-role-<%= r.id %>">انتخاب همه</button>
+                    <button class="btn btn-sm btn-ghost" type="button" data-perm-toggle="none" data-scope="#pane-role-<%= r.id %>">پاکسازی</button>
+                  </div>
+                <% } %>
+              </div>
+
+              <div class="grid g-2" id="pane-role-<%= r.id %>">
+                <% groups.forEach(function (g) {
+                     const hasGroup = perms.indexOf(g.key + '.*') > -1;
+                     const chosen = g.items.filter(function (it) { return perms.indexOf(it[0]) > -1; }).length; %>
+                  <div class="card">
+                    <div class="card-head">
+                      <h3 class="text-sm flex items-center gap-8"><svg style="width:15px;height:15px"><use href="#i-<%= g.icon %>"/></svg> <%= g.title %></h3>
+                      <% if (can('roles.manage')) { %>
+                        <label class="check m-0 text-2xs" title="همه عمل‌های این ماژول">
+                          <input type="checkbox" name="permissions" value="<%= g.key %>.*" <%= hasGroup ? 'checked' : '' %> data-wildcard-mod="<%= g.key %>"> <span class="mono" dir="ltr"><%= g.key %>.*</span></label>
+                      <% } %>
+                    </div>
+                    <div class="card-body" style="padding:12px 16px">
+                      <% g.items.forEach(function (it) { %>
+                        <label class="check text-xs" style="margin-bottom:8px">
+                          <input type="checkbox" name="permissions" value="<%= it[0] %>"
+                                 <%= (perms.indexOf(it[0]) > -1 || hasGroup || superAll) ? 'checked' : '' %>
+                                 <%= (hasGroup || superAll) ? 'disabled' : '' %> data-mod="<%= g.key %>">
+                          <span><%= it[1] %> <span class="mono text-2xs text-muted" dir="ltr"><%= it[0] %></span></span>
+                        </label>
+                      <% }) %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <% if (can('roles.manage')) { %>
+                <div class="flex items-center justify-between gap-10 flex-wrap mt-16 pt-16" style="border-top:1px solid var(--border)">
+                  <% if (!r.is_system) { %>
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" form="delRole_<%= r.id %>"
+                            data-confirm-click="نقش «<%= r.name %>» حذف شود؟"><svg><use href="#i-trash"/></svg> حذف نقش</button>
+                  <% } else { %>
+                    <span class="text-2xs text-muted">نقش‌های سیستمی حذف نمی‌شوند.</span>
+                  <% } %>
+                  <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره دسترسی‌ها</button>
+                </div>
+              <% } %>
+            </form>
+            <% if (!r.is_system) { %>
+              <form method="post" action="/admin/people/roles/<%= r.id %>/delete" id="delRole_<%= r.id %>" class="hidden"></form>
+            <% } %>
+          </div>
+        <% }) %>
+
+        <% if (can('roles.manage')) { %>
+          <div class="tab-pane" data-pane="role-new">
+            <form method="post" action="/admin/people/roles" data-role-form>
+              <div class="grid g-2 mb-14">
+                <div class="field"><label for="new_role_name">نام نقش <i class="req">*</i></label>
+                  <input class="input" id="new_role_name" name="name" required placeholder="مثلا سرپرست انبار"></div>
+                <div class="field"><label for="new_role_slug">شناسه لاتین</label>
+                  <input class="input mono" id="new_role_slug" name="slug" dir="ltr" placeholder="warehouse-lead" data-slug-from="#new_role_name"></div>
+              </div>
+              <div class="flex gap-10 flex-wrap mb-14">
+                <button class="btn btn-sm btn-ghost" type="button" data-perm-toggle="all" data-scope="#pane-new">انتخاب همه دسترسی‌ها</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-perm-toggle="none" data-scope="#pane-new">پاکسازی</button>
+              </div>
+              <div class="grid g-2" id="pane-new">
+                <% groups.forEach(function (g) { %>
+                  <div class="card">
+                    <div class="card-head"><h3 class="text-sm flex items-center gap-8"><svg style="width:15px;height:15px"><use href="#i-<%= g.icon %>"/></svg> <%= g.title %></h3>
+                      <label class="check m-0 text-2xs"><input type="checkbox" name="permissions" value="<%= g.key %>.*" data-wildcard-mod="<%= g.key %>"> <span class="mono" dir="ltr"><%= g.key %>.*</span></label></div>
+                    <div class="card-body" style="padding:12px 16px">
+                      <% g.items.forEach(function (it) { %>
+                        <label class="check text-xs" style="margin-bottom:8px">
+                          <input type="checkbox" name="permissions" value="<%= it[0] %>" data-mod="<%= g.key %>">
+                          <span><%= it[1] %></span>
+                        </label>
+                      <% }) %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+              <div class="flex justify-end mt-16">
+                <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-plus"/></svg> ایجاد نقش</button>
+              </div>
+            </form>
+          </div>
+        <% } %>
+
+        <% if (canAdmins) { %>
+          <div class="tab-pane" data-pane="t-admins">
+            <div class="flex items-center justify-between gap-10 mb-14">
+              <div class="text-sm bold">کاربران دارای دسترسی پنل مدیریت</div>
+              <button class="btn btn-sm btn-primary" type="button" data-modal-open="adminModal"><svg><use href="#i-plus"/></svg> افزودن مدیر</button>
+            </div>
+            <% if (admins.length) { %>
+              <div class="table-wrap"><table class="data compact">
+                <thead><tr><th>مدیر</th><th>موبایل</th><th>نقش</th><th>آخرین ورود</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                <tbody><% admins.forEach(function (a) { %>
+                  <tr>
+                    <td class="text-xs">
+                      <div class="flex items-center gap-10">
+                        <span class="avatar sm"><%= String(a.name || a.phone || 'م').trim().charAt(0) %></span>
+                        <div>
+                          <a class="bold" href="/admin/people/users/<%= a.id %>"><%= a.name || 'بدون نام' %></a>
+                          <% if (a.is_super || a.role === 'admin') { %><span class="badge badge-danger text-2xs">مدیر کل</span><% } %>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(a.phone) %></td>
+                    <td class="text-xs"><%= a.role_name || (a.role === 'admin' ? 'مدیر کل' : 'بدون نقش خاص') %></td>
+                    <td class="text-2xs"><%= a.last_login_at ? h.timeAgo(a.last_login_at) : '—' %></td>
+                    <td><span class="badge <%= a.status === 'active' ? 'badge-success' : 'badge-danger' %> text-2xs"><%= a.status === 'active' ? 'فعال' : 'مسدود' %></span></td>
+                    <td class="actions">
+                      <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                              onclick='openAdmin(<%- JSON.stringify({ user_id: a.id, phone: a.phone, name: a.name || '', email: a.email || '', role_id: a.role_id || '', is_super: a.role === 'admin' || a.is_super ? 1 : 0 }) %>)'><svg><use href="#i-edit"/></svg></button>
+                      <form method="post" action="/admin/people/admins/<%= a.id %>/remove" class="m-0">
+                        <button class="btn btn-sm btn-ghost text-danger" type="submit" title="لغو دسترسی مدیریتی"
+                                data-confirm-click="دسترسی مدیریتی این کاربر لغو و به مشتری تبدیل شود؟"><svg><use href="#i-ban"/></svg></button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %></tbody></table></div>
+              <div class="text-2xs text-muted mt-10">حداقل یک مدیر کل باید همیشه باقی بماند؛ لغو دسترسی آخرین مدیر کل مسدود است.</div>
+            <% } else { %>
+              <div class="empty" style="padding:22px"><p class="text-sm">هنوز مدیری تعریف نشده است.</p></div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">راهنمای دسترسی‌ها</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.1">
+        <b class="text-foreground">سطح‌های دسترسی:</b>
+        <div class="mt-6">
+          <span class="mono badge badge-outline" dir="ltr">*</span> همه ماژول‌ها و همه عمل‌ها<br>
+          <span class="mono badge badge-outline" dir="ltr">sales.*</span> همه عمل‌های یک ماژول<br>
+          <span class="mono badge badge-outline" dir="ltr">orders.view</span> یک عمل مشخص
+        </div>
+        <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body">
+          انتخاب «دسترسی کامل» یا «<span class="mono" dir="ltr">ماژول.*</span>» زیرمجموعه‌ها را قفل می‌کند؛ برای محدودکردن دقیق‌تر، ابتدا آن‌ها را بردارید.
+        </div></div>
+        <b class="text-foreground">نقش کاربر:</b> فقط کاربران با نقش «کارمند» یا «مدیر» می‌توانند وارد پنل مدیریت شوند؛ نقش ACL دامنه دسترسی آن‌ها را تعیین می‌کند.
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">فهرست ماژول‌ها</h3></div>
+      <div class="card-body chips">
+        <% groups.forEach(function (g) { %>
+          <span class="chip"><svg style="width:12px;height:12px"><use href="#i-<%= g.icon %>"/></svg> <%= g.title %>
+            <span class="mono text-2xs" dir="ltr">(<%= h.toPersianDigits(g.items.length) %>)</span></span>
+        <% }) %>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<% if (canAdmins) { %>
+<div class="modal-backdrop" id="adminModal">
+  <div class="modal">
+    <div class="modal-head"><h3>افزودن / ویرایش مدیر</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/admins">
+      <input type="hidden" name="user_id" id="ad_user_id" value="">
+      <div class="modal-body">
+        <div class="field"><label for="ad_select">انتخاب کاربر ثبت‌نام‌شده</label>
+          <select class="select" id="ad_select">
+            <option value="">— انتخاب کنید —</option>
+            <% allAdmins.forEach(function (u) { %>
+              <option value="<%= u.id %>" data-name="<%= u.name || '' %>" data-phone="<%= u.phone %>" data-email="<%= u.email || '' %>">
+                <%= u.name || 'بدون نام' %> — <%= h.toPersianDigits(u.phone) %></option>
+            <% }) %>
+          </select></div>
+        <div class="grid g-2">
+          <div class="field"><label for="ad_name">نام</label><input class="input" id="ad_name" name="name"></div>
+          <div class="field"><label for="ad_phone">موبایل <i class="req">*</i></label>
+            <input class="input mono" id="ad_phone" name="phone" dir="ltr" required placeholder="09xxxxxxxxx"></div>
+        </div>
+        <div class="field"><label for="ad_email">ایمیل</label>
+          <input class="input mono" id="ad_email" name="email" dir="ltr"></div>
+        <div class="grid g-2">
+          <div class="field"><label for="ad_role">نقش ACL</label>
+            <select class="select" id="ad_role" name="role_id">
+              <option value="">مدیر کل (دسترسی کامل)</option>
+              <% roles.forEach(function (r) { %><option value="<%= r.id %>"><%= r.name %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="ad_pass">گذرواژه اولیه</label>
+            <input class="input" id="ad_pass" name="password" type="password" autocomplete="new-password" placeholder="خالی = بدون تغییر"></div>
+        </div>
+        <label class="switch-row"><input type="checkbox" name="is_super" id="ad_super" value="1"><span>مدیر کل باشد (نادیده‌گرفتن نقش و دسترسی کامل)</span></label>
+        <div class="alert alert-warning mt-14"><svg><use href="#i-alert"/></svg><div class="body">
+          با ذخیره، نقش کاربر به «مدیر/کارمند» تغییر می‌کند و اعلان فعال‌سازی دسترسی برایش ارسال می‌شود.
+        </div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره مدیر</button></div>
+    </form>
+  </div>
+</div>
+
+<% } %>
+
+<script>
+  (function () {
+    const sel = document.getElementById('ad_select');
+    if (sel) {
+    sel.addEventListener('change', function () {
+      const o = sel.options[sel.selectedIndex];
+      document.getElementById('ad_user_id').value = sel.value;
+      document.getElementById('ad_name').value = o.dataset.name || '';
+      document.getElementById('ad_phone').value = o.dataset.phone || '';
+      document.getElementById('ad_email').value = o.dataset.email || '';
+    });
+    window.openAdmin = function (a) {
+      sel.value = '';
+      document.getElementById('ad_user_id').value = a.user_id;
+      document.getElementById('ad_name').value = a.name || '';
+      document.getElementById('ad_phone').value = a.phone || '';
+      document.getElementById('ad_email').value = a.email || '';
+      document.getElementById('ad_role').value = a.role_id || '';
+      document.getElementById('ad_super').checked = !!a.is_super;
+      document.getElementById('ad_pass').value = '';
+      if (window.openModal) window.openModal('adminModal');
+    };
+    // انتخاب کاربر موجود برای ویرایش: شناسه را همگام نگه می‌داریم
+    }
+    document.querySelectorAll('[data-role-form]').forEach(function (f) {
+      f.addEventListener('change', function () {
+        const wild = f.querySelector('[data-wildcard-all]');
+        if (wild) f.querySelectorAll('[data-wildcard-mod]').forEach(function (m) { m.checked = false; m.disabled = wild.checked; });
+        f.querySelectorAll('[data-wildcard-mod]').forEach(function (m) {
+          const mod = m.dataset.wildcardMod;
+          f.querySelectorAll('[data-mod="' + mod + '"]').forEach(function (c) { c.disabled = m.checked; if (m.checked) c.checked = true; });
+        });
+      });
+    });
+    document.querySelectorAll('[data-perm-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const scope = document.querySelector(btn.dataset.scope) || document;
+        const on = btn.dataset.permToggle === 'all';
+        scope.querySelectorAll('input[type="checkbox"][name="permissions"]').forEach(function (c) {
+          if (c.value === '*') return;
+          c.checked = on; c.disabled = false;
+        });
+        scope.querySelectorAll('[data-wildcard-mod]').forEach(function (m) { m.checked = on; });
+      });
+    });
+  })();
+</script>
+
+<%- include('../partials/panel-foot') %>

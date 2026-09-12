@@ -1,0 +1,169 @@
+<%
+  const POS = { home: 'صفحه اصلی', top: 'نوار بالای سایت', sidebar: 'ستون کناری', footer: 'پابرگ', product: 'صفحه محصول', category: 'صفحه دسته', cart: 'سبد خرید', blog: 'مجله' };
+  const canManage = can('banners.manage');
+  const isActive = function (b) {
+    if (b.status !== 'active') return false;
+    const t = Date.now();
+    if (b.starts_at && new Date(String(b.starts_at).replace(' ', 'T') + 'Z').getTime() > t) return false;
+    if (b.ends_at && new Date(String(b.ends_at).replace(' ', 'T') + 'Z').getTime() < t) return false;
+    return true;
+  };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">بنرها و جایگاه‌های تبلیغاتی <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> بنر</span></h2>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/admin/content/stories"><svg><use href="#i-image"/></svg> استوری‌ها</a>
+    <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="bnModal" onclick="openBn(null)"><svg><use href="#i-plus"/></svg> بنر جدید</button><% } %>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <% Object.keys(POS).slice(0, 5).forEach(function (k) {
+       const list = rows.filter(function (r) { return r.position === k; }); %>
+    <div class="stat-card"><span class="ic"><svg><use href="#i-layout"/></svg></span>
+      <div><div class="v mono"><%= h.toPersianDigits(list.length) %></div><div class="l"><%= POS[k] %> — <%= h.toPersianDigits(list.filter(isActive).length) %> فعال</div></div></div>
+  <% }) %>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th style="width:120px">تصویر</th><th>عنوان / لینک</th><th>جایگاه</th><th>ترتیب</th>
+          <th>بازه نمایش</th><th>بازدید / کلیک</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %>
+        </tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td>
+                <% if (r.image) { %><img class="thumb-sm" style="width:96px;height:52px" src="<%= r.image %>" alt="">
+                <% } else { %><span class="thumb-sm" style="display:inline-flex;align-items:center;justify-content:center;width:96px;height:52px"><svg style="width:16px;height:16px;opacity:.4"><use href="#i-image"/></svg></span><% } %>
+                <% if (r.image_dark) { %><div class="text-2xs text-muted mt-4">تصویر حالت تیره دارد</div><% } %>
+              </td>
+              <td>
+                <b class="text-xs block"><%= r.title || 'بدون عنوان' %></b>
+                <span class="mono text-2xs text-muted" dir="ltr"><%= r.link || '—' %></span>
+              </td>
+              <td><span class="badge badge-outline text-2xs"><%= POS[r.position] || r.position %></span></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.sort || 0) %></td>
+              <td class="text-2xs">
+                <% if (r.starts_at || r.ends_at) { %>
+                  <%= r.starts_at ? h.formatJalali(r.starts_at) : 'اکنون' %> تا <%= r.ends_at ? h.formatJalali(r.ends_at) : 'بدون پایان' %>
+                <% } else { %><span class="text-muted">همیشگی</span><% } %>
+              </td>
+              <td class="text-2xs">
+                <span class="mono"><%= h.toPersianDigits(r.views || 0) %></span> / <span class="mono"><%= h.toPersianDigits(r.clicks || 0) %></span>
+                <% if (r.views) { %><div class="text-muted">نرخ کلیک <%= h.toPersianDigits(Math.round((r.clicks / r.views) * 100)) %>٪</div><% } %>
+              </td>
+              <td>
+                <% if (isActive(r)) { %><span class="badge badge-success">در حال نمایش</span>
+                <% } else if (r.status !== 'active') { %><span class="badge badge-warning">غیرفعال</span>
+                <% } else { %><span class="badge badge-danger">خارج از بازه</span><% } %>
+              </td>
+              <% if (canManage) { %>
+                <td class="actions">
+                  <% if (r.link) { %><a class="btn btn-sm btn-ghost" href="<%= r.link %>" target="_blank" rel="noopener" title="مشاهده لینک"><svg><use href="#i-eye"/></svg></a><% } %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openBn(<%- JSON.stringify(r) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/content/banners/<%= r.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف"
+                            data-confirm-click="بنر «<%= r.title || r.position %>» حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-layout"/></svg></span>
+      <h3>بنری ساخته نشده است</h3>
+      <p>بنرهای صفحه اصلی، ستون کناری و پابرگ را بسازید و بازه نمایش کمپین را تعیین کنید.</p>
+      <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="bnModal" onclick="openBn(null)"><svg><use href="#i-plus"/></svg> ساخت بنر</button><% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="bnModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="bnTitle">بنر جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/banners" enctype="multipart/form-data">
+      <input type="hidden" name="id" id="bnId">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="bn_name">عنوان (برای مدیریت)</label>
+            <input class="input" id="bn_name" name="title" placeholder="کمپین نوروزی"></div>
+          <div class="field"><label for="bn_link">لینک مقصد</label>
+            <input class="input mono" id="bn_link" name="link" dir="ltr" placeholder="/products?cat=mobile"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="bn_img">تصویر (حالت روشن)</label>
+            <input class="input" id="bn_img" name="image" type="file" accept="image/*">
+            <input class="input mono mt-6" name="image_url" id="bn_img_url" dir="ltr" placeholder="یا آدرس تصویر">
+            <img id="bnPrev" alt="" class="mt-6" style="display:none;width:100%;max-height:120px;object-fit:cover;border-radius:10px">
+          </div>
+          <div class="field"><label for="bn_imgd">تصویر حالت تیره (اختیاری)</label>
+            <input class="input" id="bn_imgd" name="image_dark" type="file" accept="image/*">
+            <input class="input mono mt-6" name="image_dark_url" id="bn_imgd_url" dir="ltr" placeholder="یا آدرس تصویر تیره"></div>
+        </div>
+        <div class="grid g-4">
+          <div class="field"><label for="bn_pos">جایگاه</label>
+            <select class="select" id="bn_pos" name="position">
+              <% Object.keys(POS).forEach(function (k) { %><option value="<%= k %>"><%= POS[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="bn_sort">ترتیب</label>
+            <input class="input mono" id="bn_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+          <div class="field"><label for="bn_start">شروع نمایش</label>
+            <input class="input mono" id="bn_start" name="starts_at" dir="ltr" placeholder="2026-09-20 00:00:00"></div>
+          <div class="field"><label for="bn_end">پایان نمایش</label>
+            <input class="input mono" id="bn_end" name="ends_at" dir="ltr" placeholder="2026-10-05 23:59:59"></div>
+        </div>
+        <div class="field"><label for="bn_status">وضعیت</label>
+          <select class="select" id="bn_status" name="status">
+            <option value="active">فعال</option><option value="inactive">غیرفعال</option>
+          </select></div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body text-xs">
+          اندازه پیشنهادی: بنر اصلی ۱۹۲۰×۵۰۰، ستون کناری ۴۰۰×۵۰۰، پابرگ ۱۲۰۰×۲۰۰ پیکسل.
+        </div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره بنر</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openBn(r) {
+    document.getElementById('bnTitle').textContent = r ? 'ویرایش بنر' : 'بنر جدید';
+    document.getElementById('bnId').value = r ? r.id : '';
+    document.getElementById('bn_name').value = r ? (r.title || '') : '';
+    document.getElementById('bn_link').value = r ? (r.link || '') : '';
+    document.getElementById('bn_img_url').value = r ? (r.image || '') : '';
+    document.getElementById('bn_imgd_url').value = r ? (r.image_dark || '') : '';
+    document.getElementById('bn_pos').value = r ? (r.position || 'home') : 'home';
+    document.getElementById('bn_sort').value = r ? (r.sort || 0) : 0;
+    document.getElementById('bn_start').value = r ? (r.starts_at || '') : '';
+    document.getElementById('bn_end').value = r ? (r.ends_at || '') : '';
+    document.getElementById('bn_status').value = r ? (r.status || 'active') : 'active';
+    const prev = document.getElementById('bnPrev');
+    if (r && r.image) { prev.src = r.image; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+    document.getElementById('bn_img').value = '';
+    document.getElementById('bn_imgd').value = '';
+  }
+  (function () {
+    const img = document.getElementById('bn_img');
+    if (!img) return;
+    img.addEventListener('change', function () {
+      const prev = document.getElementById('bnPrev');
+      if (img.files && img.files[0]) { prev.src = URL.createObjectURL(img.files[0]); prev.style.display = 'block'; }
+    });
+  })();
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

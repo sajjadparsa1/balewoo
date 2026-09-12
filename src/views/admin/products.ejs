@@ -1,0 +1,166 @@
+<%
+  const STATUS = {
+    active: ['فعال', 'badge-success'], pending: ['در انتظار تایید', 'badge-warning'],
+    inactive: ['غیرفعال', 'badge-outline'], rejected: ['رد شده', 'badge-danger'], draft: ['پیش‌نویس', 'badge-outline'],
+  };
+  const catOptions = [];
+  (function walk(list, depth) {
+    (list || []).forEach(function (c) { catOptions.push({ id: c.id, name: '—'.repeat(depth) + (depth ? ' ' : '') + c.name }); walk(c.children, depth + 1); });
+  })(categories, 0);
+  const qs = function (over) {
+    const p = Object.assign({}, query, over);
+    const s = Object.keys(p).filter(function (k) { return p[k] !== '' && p[k] != null; })
+      .map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+    return s ? '?' + s : '';
+  };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">محصولات فروشگاه</h2>
+    <div class="text-xs text-muted mt-4">مدیریت همه محصولات سایت و محصولات ثبت‌شده توسط فروشندگان.</div>
+  </div>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/admin/products<%= qs({ trashed: query.trashed === '1' ? '' : '1' }) %>">
+      <svg><use href="#i-trash"/></svg> <%= query.trashed === '1' ? 'خروج از سطل زباله' : 'سطل زباله' %></a>
+    <% if (can('products.create')) { %><a class="btn btn-sm btn-primary" href="/admin/products/create"><svg><use href="#i-plus"/></svg> محصول جدید</a><% } %>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <form method="get" action="/admin/products" class="table-toolbar">
+      <% if (query.trashed) { %><input type="hidden" name="trashed" value="<%= query.trashed %>"><% } %>
+      <input class="input input-sm" type="search" name="search" value="<%= query.search || '' %>" placeholder="جستجو در عنوان یا SKU…" style="min-width:200px">
+      <select class="select input-sm" name="status" style="width:auto">
+        <option value="">همه وضعیت‌ها</option>
+        <% Object.keys(STATUS).forEach(function (k) { %>
+          <option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option>
+        <% }) %>
+      </select>
+      <select class="select input-sm" name="seller" style="width:auto">
+        <option value="">همه فروشندگان</option>
+        <% sellers.forEach(function (s) { %>
+          <option value="<%= s.id %>" <%= String(query.seller) === String(s.id) ? 'selected' : '' %>><%= s.shop_name %></option>
+        <% }) %>
+      </select>
+      <select class="select input-sm" name="category" style="width:auto">
+        <option value="">همه دسته‌ها</option>
+        <% catOptions.forEach(function (c) { %>
+          <option value="<%= c.id %>" <%= String(query.category) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+      <select class="select input-sm" name="sort" style="width:auto">
+        <option value="newest" <%= query.sort === 'newest' ? 'selected' : '' %>>جدیدترین</option>
+        <option value="bestselling" <%= query.sort === 'bestselling' ? 'selected' : '' %>>پرفروش‌ترین</option>
+        <option value="popular" <%= query.sort === 'popular' ? 'selected' : '' %>>پربازدیدترین</option>
+        <option value="cheapest" <%= query.sort === 'cheapest' ? 'selected' : '' %>>ارزان‌ترین</option>
+        <option value="expensive" <%= query.sort === 'expensive' ? 'selected' : '' %>>گران‌ترین</option>
+      </select>
+      <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-filter"/></svg> اعمال فیلتر</button>
+      <a class="btn btn-sm btn-ghost" href="/admin/products">پاکسازی</a>
+    </form>
+  </div>
+
+  <% if (rows.length) { %>
+    <form method="post" action="/admin/products/bulk" id="bulkForm">
+      <div class="table-toolbar" style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)">
+        <label class="check m-0 text-xs"><input type="checkbox" data-check-all="#bulkForm"> انتخاب همه</label>
+        <% if (can('products.edit')) { %>
+          <select class="select input-sm" name="action" style="width:auto">
+            <option value="activate">فعال‌سازی</option>
+            <option value="deactivate">غیرفعال‌سازی</option>
+            <option value="special">نشان‌گذاری به‌عنوان ویژه</option>
+            <option value="unspecial">حذف نشان ویژه</option>
+            <option value="increase">افزایش قیمت (درصدی)</option>
+            <option value="decrease">کاهش قیمت (درصدی)</option>
+            <option value="delete">انتقال به سطل زباله</option>
+          </select>
+          <input class="input input-sm mono" name="percent" dir="ltr" placeholder="درصد" style="width:80px">
+          <button class="btn btn-sm btn-primary" type="submit" data-confirm-click="عملیات گروهی روی محصولات انتخاب‌شده انجام شود؟">اجرا</button>
+        <% } %>
+        <span class="text-xs text-muted ms-auto"><%= h.toPersianDigits(pg.total) %> محصول</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr>
+            <% if (can('products.edit')) { %><th style="width:34px"></th><% } %>
+            <th></th><th>محصول</th><th>فروشنده</th><th>دسته</th><th>قیمت</th><th>موجودی</th><th>فروش</th><th>بازدید</th><th>وضعیت</th><th>عملیات</th>
+          </tr></thead>
+          <tbody>
+            <% rows.forEach(function (p) { %>
+              <% const st = STATUS[p.status] || [p.status, 'badge-outline']; %>
+              <tr>
+                <% if (can('products.edit')) { %><td><label class="check m-0"><input type="checkbox" name="ids" value="<%= p.id %>"></label></td><% } %>
+                <td><span class="thumb-sm"><img src="<%= p.cover %>" alt="" loading="lazy"></span></td>
+                <td>
+                  <% if (can('products.edit')) { %><a class="text-sm bold line-2" href="/admin/products/<%= p.id %>/edit"><%= h.truncate(p.title, 44) %></a>
+                  <% } else { %><b class="text-sm line-2"><%= h.truncate(p.title, 44) %></b><% } %>
+                  <div class="text-2xs text-muted mt-4">
+                    <a href="/product/<%= p.slug %>" target="_blank" class="mono" dir="ltr"><%= h.truncate(p.slug, 30) %></a>
+                    <% if (p.sku) { %> · SKU: <span class="mono" dir="ltr"><%= p.sku %></span><% } %>
+                    <% if (p.is_special) { %> · <span class="badge badge-primary text-2xs">ویژه</span><% } %>
+                    <% if (p.is_featured) { %> · <span class="badge badge-info text-2xs">پیشنهادی</span><% } %>
+                    <% if (p.is_inquiry) { %> · <span class="badge badge-outline text-2xs">استعلامی</span><% } %>
+                  </div>
+                </td>
+                <td class="text-xs"><% if (p.seller_name) { %><% if (can('sellers.view')) { %><a class="text-brand" href="/admin/people/sellers/<%= p.seller_id %>"><%= h.truncate(p.seller_name, 20) %></a><% } else { %><%= h.truncate(p.seller_name, 20) %><% } %><% } else { %><span class="text-muted">—</span><% } %></td>
+                <td class="text-xs"><%= p.category_name || '—' %></td>
+                <td class="mono text-xs">
+                  <%= h.fa(p.price) %>
+                  <% if (p.old_price > p.price) { %><div class="text-2xs text-muted"><s><%= h.fa(p.old_price) %></s> <span class="text-danger"><%= h.toPersianDigits(p.discount_percent) %>٪</span></div><% } %>
+                </td>
+                <td><span class="badge <%= p.stock > 5 ? 'badge-success' : p.stock > 0 ? 'badge-warning' : 'badge-danger' %>"><%= h.toPersianDigits(p.stock) %></span></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(p.sold || 0) %></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(p.views || 0) %></td>
+                <td><span class="badge <%= st[1] %>"><%= st[0] %></span>
+                  <% if (p.status === 'rejected' && p.reject_reason) { %><div class="text-2xs text-danger mt-4"><%= h.truncate(p.reject_reason, 30) %></div><% } %></td>
+                <td class="actions">
+                  <% if (p.status === 'pending' && can('products.approve')) { %>
+                    <form method="post" action="/admin/products/<%= p.id %>/approve" class="m-0">
+                      <button class="btn btn-sm btn-primary" type="submit" title="تایید و انتشار"><svg><use href="#i-check"/></svg></button></form>
+                    <button class="btn btn-sm btn-ghost text-danger" type="button" data-modal-open="rejectModal-<%= p.id %>" title="رد محصول"><svg><use href="#i-x"/></svg></button>
+                  <% } %>
+                  <% if (can('products.edit')) { %><a class="btn btn-sm btn-ghost" href="/admin/products/<%= p.id %>/edit" title="ویرایش"><svg><use href="#i-edit"/></svg></a><% } %>
+                  <a class="btn btn-sm btn-ghost" href="/product/<%= p.slug %>" target="_blank" title="مشاهده در فروشگاه"><svg><use href="#i-eye"/></svg></a>
+                  <% if (can('products.delete')) { %>
+                    <form method="post" action="/admin/products/<%= p.id %>/delete" class="m-0">
+                      <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="محصول به سطل زباله منتقل شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button></form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </form>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/products', extraQuery: query }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-box"/></svg>
+      <h4>محصولی یافت نشد</h4>
+      <p class="text-sm"><%= query.trashed === '1' ? 'سطل زباله خالی است.' : 'با تغییر فیلترها جستجو کنید یا محصول جدیدی بسازید.' %></p>
+      <% if (can('products.create')) { %><a class="btn btn-primary btn-sm" href="/admin/products/create">افزودن محصول</a><% } %></div>
+  <% } %>
+</section>
+
+<% rows.filter(function (p) { return p.status === 'pending' && can('products.approve'); }).forEach(function (p) { %>
+<div class="modal-backdrop" id="rejectModal-<%= p.id %>">
+  <div class="modal">
+    <div class="modal-head"><h3>رد محصول</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/products/<%= p.id %>/reject">
+      <div class="modal-body">
+        <div class="text-sm mb-14"><b><%= h.truncate(p.title, 60) %></b></div>
+        <div class="field"><label for="rr_<%= p.id %>">دلیل رد <span class="req">*</span></label>
+          <textarea class="textarea" id="rr_<%= p.id %>" name="reason" rows="3" required placeholder="مثلاً: تصاویر نامناسب یا مشخصات ناقص است."></textarea>
+          <div class="help">دلیل رد برای فروشنده ارسال می‌شود تا محصول را اصلاح کند.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-danger" type="submit"><svg><use href="#i-x"/></svg> رد محصول</button></div>
+    </form>
+  </div>
+</div>
+<% }) %>
+
+<%- include('../partials/panel-foot') %>

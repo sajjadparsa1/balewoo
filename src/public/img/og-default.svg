@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+<radialGradient id="gl" cx="78%" cy="24%" r="52%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="630" fill="url(#bg)"/>
+<rect width="1200" height="630" fill="url(#gl)"/>
+<circle cx="120" cy="560" r="190" fill="#ffffff" opacity="0.06"/>
+<circle cx="1090" cy="90" r="150" fill="#ffffff" opacity="0.07"/>
+<g transform="translate(84,84) scale(3.2)"><g>
+<defs><linearGradient id="mk" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#c7d2fe"/></linearGradient></defs>
+<rect x="1" y="1" width="30" height="30" rx="9" fill="url(#mk)"/>
+<path d="M9 12.5h14l-1.6 9.2a2 2 0 0 1-2 1.7h-6.8a2 2 0 0 1-2-1.7L9 12.5z" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/>
+<path d="M12.2 12.5 16 5.6l3.8 6.9" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+</g></g>
+<g font-family="Vazirmatn, Tahoma, sans-serif" direction="rtl">
+<text x="1116" y="300" text-anchor="end" font-size="72" font-weight="700" fill="#ffffff">بالی‌وو شاپ</text>
+<text x="1116" y="368" text-anchor="end" font-size="34" fill="#e0e7ff">فروشگاه اینترنتی چند فروشنده</text>
+<text x="1116" y="440" text-anchor="end" font-size="26" fill="#c7d2fe">خرید امن · ارسال سریع · باشگاه مشتریان · همکاری در فروش</text>
+</g>
+</svg>

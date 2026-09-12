@@ -1,0 +1,190 @@
+<%
+  const canUpload = can('media.upload'), canDelete = can('media.delete');
+  const folderList = folders.map(function (f) { return f.folder; }).filter(Boolean);
+  const imgCount = rows.filter(function (r) { return String(r.mime || '').indexOf('image') === 0; }).length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">کتابخانه مدیا <span class="badge badge-outline"><%= h.toPersianDigits(stats.files) %> فایل</span></h2>
+  <div class="text-xs text-muted">حجم کل: <span class="mono bold"><%= h.humanSize(stats.bytes) %></span></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <% if (canUpload) { %>
+      <section class="card mb-20">
+        <div class="card-head"><h3 class="text-sm">بارگذاری فایل</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/system/media/upload" enctype="multipart/form-data" data-upload-form>
+            <div class="grid g-2">
+              <div>
+                <div class="dropzone" data-dropzone data-target="#m_files">
+                  <svg><use href="#i-upload"/></svg>
+                  <div class="text-sm">رها کردن فایل‌ها یا کلیک برای انتخاب</div>
+                  <div class="dz-hint text-xs">حداکثر ۱۲ فایل در هر بار — jpg, png, webp, gif, svg, pdf, mp4</div>
+                </div>
+                <input class="input mt-10" id="m_files" name="files" type="file" multiple
+                       accept="image/*,application/pdf,video/mp4">
+              </div>
+              <div class="stack">
+                <div class="field"><label for="m_folder">پوشه مقصد</label>
+                  <input class="input mono" id="m_folder" name="folder" dir="ltr" list="folderList" value="<%= query.folder && query.folder !== '/' ? query.folder : '/' %>" placeholder="/products">
+                  <datalist id="folderList">
+                    <% folderList.forEach(function (f) { %><option value="<%= f %>"></option><% }) %>
+                  </datalist>
+                  <div class="help">پوشه‌های پیشنهادی: <span class="mono" dir="ltr">/products /banners /posts /branding /tickets</span></div></div>
+                <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-upload"/></svg> بارگذاری</button>
+                <div class="text-2xs text-muted">تصاویر بزرگ به‌صورت خودکار بهینه و بندانگشتی ساخته می‌شود.</div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card mb-20">
+      <div class="card-body">
+        <form class="filters" method="get" action="/admin/system/media">
+          <div class="field grow"><label for="f_q">جستجو در نام یا متن جایگزین</label>
+            <input class="input input-sm" id="f_q" type="search" name="q" value="<%= query.q || '' %>"></div>
+          <div class="field"><label for="f_folder">پوشه</label>
+            <select class="select" id="f_folder" name="folder">
+              <option value="/">همه پوشه‌ها</option>
+              <% folderList.forEach(function (f) { %><option value="<%= f %>" <%= query.folder === f ? 'selected' : '' %>><%= f %></option><% }) %>
+            </select></div>
+          <div class="flex gap-8 align-end">
+            <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg> فیلتر</button>
+            <a class="btn btn-sm btn-ghost" href="/admin/system/media">پاکسازی</a>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">فایل‌ها <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %></span></h3>
+        <span class="text-2xs text-muted"><%= h.toPersianDigits(imgCount) %> تصویر در این صفحه</span></div>
+      <% if (rows.length) { %>
+        <div class="card-body">
+          <div class="media-grid">
+            <% rows.forEach(function (m) { const isImg = String(m.mime || '').indexOf('image') === 0; %>
+              <div class="media-item" data-path="<%= m.path %>" data-id="<%= m.id %>">
+                <div class="prev">
+                  <% if (isImg) { %><img src="<%= m.path %>" alt="<%= m.alt || m.filename %>" loading="lazy">
+                  <% } else { %>
+                    <div class="flex items-center justify-center" style="height:100%;flex-direction:column;gap:6px;color:var(--text-3)">
+                      <svg style="width:26px;height:26px"><use href="#i-file"/></svg>
+                      <span class="mono text-2xs"><%= String(m.mime || '').split('/')[1] || 'file' %></span>
+                    </div>
+                  <% } %>
+                </div>
+                <div class="meta">
+                  <div class="n" title="<%= m.filename %>"><%= m.filename %></div>
+                  <div class="text-muted text-2xs"><%= h.humanSize(m.size) %><% if (m.width) { %> · <%= h.toPersianDigits(m.width) %>×<%= h.toPersianDigits(m.height) %><% } %></div>
+                  <div class="text-muted text-2xs mono" dir="ltr"><%= m.folder %></div>
+                </div>
+                <div class="flex gap-4" style="padding:6px 8px;border-top:1px solid var(--border)">
+                  <button class="btn btn-sm btn-ghost grow" type="button" title="کپی آدرس"
+                          data-copy-url="<%= m.path %>"><svg><use href="#i-copy"/></svg></button>
+                  <a class="btn btn-sm btn-ghost grow" href="<%= m.path %>" target="_blank" rel="noopener" title="باز کردن"><svg><use href="#i-eye"/></svg></a>
+                  <% if (canUpload) { %>
+                    <button class="btn btn-sm btn-ghost grow" type="button" title="ویرایش"
+                            onclick='openMedia(<%- JSON.stringify({ id: m.id, alt: m.alt || '', folder: m.folder, filename: m.filename, path: m.path, size: m.size, mime: m.mime, width: m.width, height: m.height, downloads: m.downloads, created_at: m.created_at }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <% } %>
+                  <% if (canDelete) { %>
+                    <form method="post" action="/admin/system/media/<%= m.id %>/delete" class="m-0 grow">
+                      <button class="btn btn-sm btn-ghost text-danger w-100" type="submit" title="حذف"
+                              data-confirm-click="فایل «<%= m.filename %>» برای همیشه حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                    </form>
+                  <% } %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+        <%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/system/media', extraQuery: query }) %>
+      <% } else { %>
+        <div class="empty">
+          <span class="ic"><svg><use href="#i-image"/></svg></span>
+          <h3>فایلی یافت نشد</h3>
+          <p>اولین تصاویر محصولات یا بنرها را بارگذاری کنید.</p>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">پوشه‌ها</h3></div>
+      <div class="card-body chips">
+        <a class="chip <%= !query.folder || query.folder === '/' ? 'active' : '' %>" href="/admin/system/media">همه</a>
+        <% folderList.forEach(function (f) { %>
+          <a class="chip <%= query.folder === f ? 'active' : '' %>" href="/admin/system/media?folder=<%= encodeURIComponent(f) %>">
+            <svg style="width:12px;height:12px"><use href="#i-folder"/></svg> <%= f %></a>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">راهنما</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.1">
+        <ul class="bullets m-0">
+          <li>«متن جایگزین» برای سئوی تصاویر و دسترسی‌پذیری استفاده می‌شود.</li>
+          <li>با دکمه کپی، آدرس فایل برای استفاده در بنرها و صفحات در کلیپ‌بورد قرار می‌گیرد.</li>
+          <li>در فرم محصولات و بنرها می‌توانید مستقیماً از کتابخانه انتخاب کنید.</li>
+        </ul>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<% if (canUpload) { %>
+<div class="modal-backdrop" id="mediaModal">
+  <div class="modal">
+    <div class="modal-head"><h3>ویرایش فایل</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="" id="mediaForm">
+      <div class="modal-body">
+        <div class="text-center mb-14" id="mdPreview"></div>
+        <div class="field"><label for="md_alt">متن جایگزین (alt)</label>
+          <input class="input" id="md_alt" name="alt" placeholder="توضیح کوتاه تصویر برای سئو"></div>
+        <div class="field"><label for="md_folder">پوشه</label>
+          <input class="input mono" id="md_folder" name="folder" dir="ltr" list="folderList"></div>
+        <table class="table-kv"><tbody id="mdInfo"></tbody></table>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openMedia(m) {
+    document.getElementById('mediaForm').action = '/admin/system/media/' + m.id + '/update';
+    document.getElementById('md_alt').value = m.alt || '';
+    document.getElementById('md_folder').value = m.folder || '/';
+    const prev = document.getElementById('mdPreview');
+    prev.innerHTML = String(m.mime || '').indexOf('image') === 0
+      ? '<img src="' + m.path + '" alt="" style="max-height:180px;border-radius:12px">'
+      : '<span class="mono text-xs">' + (m.mime || 'file') + '</span>';
+    const rows = [
+      ['نام فایل', m.filename],
+      ['آدرس', '<span class="mono text-2xs" dir="ltr">' + m.path + '</span>'],
+      ['حجم', (m.size / 1024).toFixed(0) + ' KB'],
+      ['ابعاد', m.width ? (m.width + '×' + m.height) : '—'],
+      ['دانلودها', m.downloads || 0],
+    ];
+    document.getElementById('mdInfo').innerHTML = rows.map(function (r) {
+      return '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>';
+    }).join('');
+    if (window.openModal) window.openModal('mediaModal');
+  }
+  document.querySelectorAll('[data-copy-url]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const url = location.origin + b.dataset.copyUrl;
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () { window.prompt('آدرس فایل:', url); });
+      else window.prompt('آدرس فایل:', url);
+    });
+  });
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

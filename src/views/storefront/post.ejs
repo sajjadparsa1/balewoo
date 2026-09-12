@@ -1,0 +1,143 @@
+<%- include('../layouts/head', { bodyClass: 'page-post' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'مجله', url: '/blog' }].concat(post.cat_name ? [{ name: post.cat_name, url: '/blog?cat=' + post.cat_slug }] : [], [{ name: h.truncate(post.title, 50) }]) }) %>
+
+  <div class="grid g-sidebar">
+    <article>
+      <header class="mb-20">
+        <% if (post.cat_name) { %><a class="badge badge-primary mb-10" href="/blog?cat=<%= encodeURIComponent(post.cat_slug) %>"><%= post.cat_name %></a><% } %>
+        <h1 style="font-size:1.4rem;line-height:2;margin-bottom:10px"><%= post.title %></h1>
+        <div class="flex items-center gap-14 flex-wrap text-xs text-muted">
+          <span class="flex items-center gap-4"><span class="avatar sm"><%= (post.author_name || 'ب').slice(0, 1) %></span> <%= post.author_name || 'تیم محتوای ' + site.name %></span>
+          <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-clock"/></svg> <%= h.formatJalaliLong(post.published_at || post.created_at) %></span>
+          <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-eye"/></svg> <%= h.toPersianDigits(post.views || 0) %> بازدید</span>
+          <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-comment"/></svg> <%= h.toPersianDigits(comments.length) %> دیدگاه</span>
+          <button class="btn btn-sm btn-ghost" type="button" onclick="navigator.share?navigator.share({title:document.title,url:location.href}):navigator.clipboard.writeText(location.href).then(function(){toast('لینک کپی شد','success')})">
+            <svg><use href="#i-share"/></svg> اشتراک
+          </button>
+        </div>
+      </header>
+
+      <% if (post.cover) { %>
+        <figure class="mb-20 m-0" style="border-radius:var(--radius-lg);overflow:hidden">
+          <img src="<%= post.cover %>" alt="<%= post.title %>" style="width:100%;display:block">
+        </figure>
+      <% } %>
+
+      <% if (post.excerpt) { %>
+        <p class="text-lg text-2 mb-20" style="line-height:2.2;font-weight:500"><%= post.excerpt %></p>
+      <% } %>
+
+      <div class="article-body"><%- post.body %></div>
+
+      <% if (post.video_url) { %>
+        <div class="mt-20" style="aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000">
+          <iframe src="<%= post.video_url %>" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" title="ویدیوی مقاله"></iframe>
+        </div>
+      <% } %>
+      <% if (post.audio_url) { %>
+        <div class="card mt-20"><div class="card-body">
+          <div class="semibold mb-10 flex items-center gap-8"><svg width="17" height="17" style="width:17px;height:17px;color:var(--brand)"><use href="#i-headset"/></svg> نسخه صوتی</div>
+          <audio controls src="<%= post.audio_url %>" style="width:100%"></audio>
+        </div></div>
+      <% } %>
+
+      <% if (post.tags && post.tags.length) { %>
+        <div class="flex gap-6 flex-wrap mt-30">
+          <% post.tags.forEach(function (tg) { %>
+            <a class="tag" href="/blog?tag=<%= encodeURIComponent(typeof tg === 'string' ? tg : tg.slug || tg.name) %>" style="text-decoration:none">#<%= typeof tg === 'string' ? tg : tg.name %></a>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (mentioned && mentioned.length) { %>
+        <section class="section">
+          <div class="section-head"><h2>محصولات ذکرشده در این مقاله</h2></div>
+          <div class="products-grid">
+            <% mentioned.forEach(function (mp) { %><%- include('../partials/product-card', { product: mp }) %><% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="section" id="comments">
+        <div class="section-head"><h2>دیدگاه‌ها (<%= h.toPersianDigits(comments.length) %>)</h2></div>
+
+        <% if (user) { %>
+          <form class="card mb-20" method="post" action="/blog/<%= post.slug %>/comment">
+            <div class="card-body">
+              <div class="field mb-10">
+                <label for="cBody">دیدگاه شما</label>
+                <textarea class="textarea" id="cBody" name="body" required minlength="5" maxlength="2000" placeholder="نظر خود را درباره این مطلب بنویسید…"></textarea>
+              </div>
+              <button class="btn btn-primary btn-sm" type="submit"><svg><use href="#i-send"/></svg> ارسال دیدگاه</button>
+              <span class="text-xs text-muted" style="margin-inline-start:10px">دیدگاه‌ها پس از تایید منتشر می‌شوند.</span>
+            </div>
+          </form>
+        <% } else { %>
+          <div class="alert alert-info mb-20"><svg><use href="#i-info"/></svg><div class="body">برای ارسال دیدگاه <a class="text-brand bold" href="/login?prev=<%= encodeURIComponent(path) %>">وارد حساب کاربری</a> شوید.</div></div>
+        <% } %>
+
+        <% if (comments.length) { %>
+          <div class="card"><div class="card-body">
+            <% comments.forEach(function (c) { %>
+              <div class="activity-item">
+                <span class="avatar"><%= (c.author || 'ک').slice(0, 1) %></span>
+                <div class="grow">
+                  <div class="flex items-center gap-8"><b class="text-sm"><%= c.author || 'کاربر' %></b>
+                    <span class="text-xs text-muted"><%= h.formatJalali(c.created_at) %> · <%= h.timeAgo(c.created_at) %></span></div>
+                  <p class="text-sm m-0 mt-6" style="line-height:2"><%= c.body %></p>
+                </div>
+              </div>
+            <% }) %>
+          </div></div>
+        <% } else { %>
+          <div class="card"><div class="empty"><svg><use href="#i-comment"/></svg><h4>هنوز دیدگاهی ثبت نشده</h4><p class="text-sm">اولین دیدگاه را شما بنویسید.</p></div></div>
+        <% } %>
+      </section>
+    </article>
+
+    <aside class="stack" style="align-self:start">
+      <% if (related && related.length) { %>
+        <div class="card">
+          <div class="card-head"><h3 class="text-sm">مطالب مرتبط</h3></div>
+          <div class="card-body stack" style="gap:12px">
+            <% related.forEach(function (rp) { %>
+              <a class="flex items-center gap-10" href="/blog/<%= rp.slug %>" style="text-decoration:none;color:inherit">
+                <img src="<%= rp.cover || '/img/placeholder-product.svg' %>" alt="<%= rp.title %>" style="width:60px;height:60px;border-radius:10px;object-fit:cover" loading="lazy">
+                <div class="grow"><div class="text-sm line-2"><%= rp.title %></div>
+                  <div class="text-xs text-muted mt-6"><%= h.formatJalali(rp.published_at || rp.created_at) %></div></div>
+              </a>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="card">
+        <div class="card-head"><h3 class="text-sm">پیشنهاد خرید</h3></div>
+        <div class="card-body stack" style="gap:10px">
+          <% (typeof topProducts !== 'undefined' ? topProducts : []).forEach(function (tp) { %>
+            <a class="flex items-center gap-10" href="/product/<%= tp.slug %>" style="text-decoration:none;color:inherit">
+              <img src="<%= tp.cover %>" alt="" style="width:46px;height:46px;border-radius:9px;object-fit:cover">
+              <div class="grow"><div class="text-xs line-2"><%= tp.title %></div><div class="text-xs text-brand bold mono"><%= h.fa(tp.final_price) %></div></div>
+            </a>
+          <% }) %>
+          <a class="btn btn-sm btn-outline w-100" href="/products?sort=bestselling">مشاهده پرفروش‌ترین‌ها</a>
+        </div>
+      </div>
+
+      <% if (post.seller_name) { %>
+        <div class="card"><div class="card-body text-center">
+          <div class="text-xs text-muted">نویسنده فروشنده</div>
+          <div class="bold mt-6"><%= post.seller_name %></div>
+          <a class="btn btn-sm btn-outline w-100 mt-10" href="/products">مشاهده محصولات</a>
+        </div></div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

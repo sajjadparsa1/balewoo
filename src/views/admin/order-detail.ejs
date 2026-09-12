@@ -1,0 +1,272 @@
+<%
+  const PAY = { unpaid: ['پرداخت نشده', 'badge-warning'], paid: ['پرداخت شده', 'badge-success'], refunded: ['بازگشت وجه', 'badge-danger'], partial: ['پرداخت جزئی', 'badge-info'] };
+  const pay = PAY[order.payment_status] || [order.payment_status, 'badge-outline'];
+  const ITEM_STATUS = { pending: 'در انتظار', processing: 'آماده‌سازی', shipping: 'ارسال شده', delivered: 'تحویل شده', canceled: 'لغو شده', returned: 'مرجوع شده' };
+  const flow = ['pending', 'paid', 'processing', 'shipping', 'delivered'];
+  const curIdx = flow.indexOf(order.status);
+  const statusTitleLocal = function (k) { return (statuses[k] || { title: k }).title; };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.08rem;margin:0" class="flex items-center gap-10 flex-wrap">
+      سفارش <span class="mono" dir="ltr"><%= order.code %></span>
+      <span class="badge" style="background:var(--brand-50);color:var(--brand)"><%= order.status_title %></span>
+      <span class="badge <%= pay[1] %>"><%= pay[0] %></span>
+    </h2>
+    <div class="text-xs text-muted mt-6"><%= order.jalali_date %> · <%= h.toPersianDigits(order.items.length) %> قلم · مبلغ کل <b class="mono"><%= h.fa(order.total) %> <%= site.currency %></b></div>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/orders"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+    <% if (can('orders.invoice')) { %>
+      <a class="btn btn-sm btn-outline" href="/admin/orders/<%= order.code %>/invoice" target="_blank"><svg><use href="#i-print"/></svg> فاکتور</a>
+      <a class="btn btn-sm btn-outline" href="/admin/orders/<%= order.code %>/label" target="_blank"><svg><use href="#i-truck"/></svg> برچسب ارسال</a>
+    <% } %>
+    <% if (order.user_id && can('users.view')) { %>
+      <a class="btn btn-sm btn-outline" href="/admin/people/users/<%= order.user_id %>"><svg><use href="#i-user"/></svg> پروفایل مشتری</a>
+    <% } %>
+  </div>
+</div>
+
+<div class="steps mb-20">
+  <% flow.forEach(function (k, i) { %>
+    <div class="step <%= i < curIdx ? 'done' : '' %> <%= i === curIdx ? 'active' : '' %>">
+      <span class="n"><%= h.toPersianDigits(i + 1) %></span>
+      <span class="t"><%= (statuses[k] || { title: k }).title %></span>
+    </div>
+  <% }) %>
+  <% if (order.status === 'canceled' || order.status === 'returned') { %>
+    <div class="step active"><span class="n">!</span><span class="t"><%= order.status_title %></span></div>
+  <% } %>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اقلام سفارش</h3>
+        <span class="text-xs text-muted">وضعیت هر قلم را می‌توانید مستقل تغییر دهید.</span></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th></th><th>محصول</th><th>فروشنده</th><th>تعداد</th><th>فی</th><th>تخفیف</th><th>افزودنی‌ها</th><th>جمع</th><th>کمیسیون</th><th>وضعیت قلم</th></tr></thead>
+          <tbody>
+            <% order.items.forEach(function (it) { %>
+              <tr>
+                <td><span class="thumb-sm"><img src="<%= it.image || '/img/placeholder-product.svg' %>" alt="" loading="lazy"></span></td>
+                <td>
+                  <% if (it.product_slug) { %><a class="text-sm bold" href="/product/<%= it.product_slug %>" target="_blank"><%= h.truncate(it.title, 40) %></a>
+                  <% } else { %><b class="text-sm"><%= h.truncate(it.title, 40) %></b><% } %>
+                  <% if (it.variant_title) { %><div class="text-2xs text-muted"><%= it.variant_title %></div><% } %>
+                  <% if (it.tracking_code) { %><div class="text-2xs mono text-muted" dir="ltr">رهگیری: <%= h.toPersianDigits(it.tracking_code) %></div><% } %>
+                </td>
+                <td class="text-xs"><% if (it.seller_id && can('sellers.view')) { %><a class="text-brand" href="/admin/people/sellers/<%= it.seller_id %>">فروشنده #<%= h.toPersianDigits(it.seller_id) %></a><% } else { %><span class="text-muted">—</span><% } %></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(it.qty) %></td>
+                <td class="mono text-xs"><%= h.fa(it.price) %></td>
+                <td class="mono text-xs text-success"><%= it.discount ? '− ' + h.fa(it.discount) : '—' %></td>
+                <td class="text-2xs">
+                  <% (it.options || []).forEach(function (o) { %><div><%= o.title %><% if (o.price) { %> (<span class="mono"><%= h.fa(o.price) %></span>)<% } %></div><% }) %>
+                  <% if (!(it.options || []).length) { %>—<% } %>
+                </td>
+                <td class="mono text-xs bold"><%= h.fa(it.total) %></td>
+                <td class="mono text-xs text-danger"><%= it.commission ? '− ' + h.fa(it.commission) : '—' %></td>
+                <td>
+                  <% if (can('orders.manage')) { %>
+                    <form method="post" action="/admin/orders/<%= order.code %>/item-status" class="flex gap-6 m-0">
+                      <input type="hidden" name="item_id" value="<%= it.id %>">
+                      <select class="select input-sm" name="status" style="width:auto">
+                        <% Object.keys(ITEM_STATUS).forEach(function (k) { %>
+                          <option value="<%= k %>" <%= it.status === k ? 'selected' : '' %>><%= ITEM_STATUS[k] %></option><% }) %>
+                      </select>
+                      <button class="btn btn-sm btn-ghost" type="submit" title="ذخیره"><svg><use href="#i-save"/></svg></button>
+                    </form>
+                  <% } else { %>
+                    <span class="badge badge-outline"><%= ITEM_STATUS[it.status] || it.status %></span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot">
+        <div class="summary-row"><span>جمع اقلام</span><span class="mono"><%= h.fa(order.subtotal) %></span></div>
+        <% if (order.items_discount) { %><div class="summary-row"><span>تخفیف محصولات</span><span class="discount mono">− <%= h.fa(order.items_discount) %></span></div><% } %>
+        <% if (order.coupon_discount) { %><div class="summary-row"><span>کد تخفیف <span class="mono" dir="ltr"><%= order.coupon_code %></span></span><span class="discount mono">− <%= h.fa(order.coupon_discount) %></span></div><% } %>
+        <% if (order.points_discount) { %><div class="summary-row"><span>تخفیف امتیاز باشگاه (<%= h.toPersianDigits(order.points_used) %> امتیاز)</span><span class="discount mono">− <%= h.fa(order.points_discount) %></span></div><% } %>
+        <% if (order.wallet_used) { %><div class="summary-row"><span>پرداخت از کیف پول</span><span class="discount mono">− <%= h.fa(order.wallet_used) %></span></div><% } %>
+        <div class="summary-row"><span>هزینه ارسال (<%= order.shipping_title || '—' %>)</span><span class="mono"><%= order.shipping_cost ? h.fa(order.shipping_cost) : 'رایگان' %></span></div>
+        <% if (order.vat) { %><div class="summary-row"><span>مالیات بر ارزش افزوده</span><span class="mono"><%= h.fa(order.vat) %></span></div><% } %>
+        <% if (order.commission_total) { %><div class="summary-row"><span>مجموع کمیسیون فروشندگان</span><span class="mono text-danger">− <%= h.fa(order.commission_total) %></span></div><% } %>
+        <div class="summary-row total"><span>مبلغ نهایی</span><span class="mono"><%= h.fa(order.total) %> <%= site.currency %></span></div>
+        <% if (invoice && invoice.amountInWords) { %><div class="text-xs text-muted mt-6">به حروف: <%= invoice.amountInWords %></div><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">تاریخچه وضعیت‌ها</h3></div>
+      <div class="card-body">
+        <% if (order.history.length) { %>
+          <div class="timeline">
+            <% order.history.forEach(function (hh) { %>
+              <div class="timeline-item done">
+                <span class="tl-ic"><svg><use href="#i-<%= (statuses[hh.status] || { icon: 'activity' }).icon || 'activity' %>"/></svg></span>
+                <div class="grow">
+                  <b class="text-sm"><%= statusTitleLocal(hh.status) %></b>
+                  <% if (hh.note) { %><div class="text-xs text-muted mt-4"><%= hh.note %></div><% } %>
+                  <div class="text-2xs text-muted mt-4"><%= h.formatJalaliFull(hh.created_at) %><% if (hh.actor) { %> · توسط <%= hh.actor %><% } %></div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %><p class="text-xs text-muted m-0">رویدادی ثبت نشده است.</p><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">تراکنش‌های پرداخت</h3></div>
+      <% if (order.transactions.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>شناسه</th><th>نوع</th><th>درگاه</th><th>مبلغ</th><th>کد پیگیری</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+            <tbody>
+              <% order.transactions.forEach(function (t) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(t.id) %></td>
+                  <td class="text-xs"><%= t.type %></td>
+                  <td class="text-xs"><%= t.gateway || '—' %></td>
+                  <td class="mono text-xs bold"><%= h.fa(Math.abs(t.amount)) %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= t.reference || '—' %></td>
+                  <td><span class="badge <%= t.status === 'success' || t.status === 'paid' ? 'badge-success' : t.status === 'failed' ? 'badge-danger' : 'badge-warning' %>"><%= t.status %></span></td>
+                  <td class="text-2xs"><%= h.formatJalali(t.created_at) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:22px"><svg><use href="#i-wallet"/></svg><p class="text-sm">تراکنشی ثبت نشده است.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <% if (can('orders.manage')) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">تغییر وضعیت سفارش</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/orders/<%= order.code %>/status">
+            <div class="field"><label for="os_status">وضعیت جدید</label>
+              <select class="select" id="os_status" name="status">
+                <% Object.keys(statuses).forEach(function (k) { %>
+                  <option value="<%= k %>" <%= order.status === k ? 'selected' : '' %>><%= statuses[k].title %></option><% }) %>
+              </select></div>
+            <div class="field"><label for="os_note">یادداشت داخلی</label>
+              <input class="input" id="os_note" name="note" placeholder="توضیح برای سوابق (اختیاری)"></div>
+            <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-save"/></svg> ثبت وضعیت</button>
+            <div class="help mt-6">با تغییر وضعیت، برای مشتری اعلان و پیامک ارسال می‌شود.</div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">کد رهگیری پستی</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/orders/<%= order.code %>/tracking">
+            <div class="field"><label for="ot_code">کد رهگیری</label>
+              <input class="input mono" id="ot_code" name="tracking_code" dir="ltr" value="<%= order.tracking_code || '' %>" required></div>
+            <div class="field"><label for="ot_carrier">شرکت حمل‌ونقل</label>
+              <input class="input" id="ot_carrier" name="carrier" placeholder="پست پیشتاز / تیپاکس / اسنپ‌باکس"></div>
+            <button class="btn btn-outline btn-block" type="submit"><svg><use href="#i-truck"/></svg> ثبت و اطلاع‌رسانی</button>
+          </form>
+        </div>
+      </section>
+
+      <% if (order.payment_status !== 'paid') { %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">تایید دستی پرداخت</h3></div>
+          <div class="card-body">
+            <form method="post" action="/admin/orders/<%= order.code %>/mark-paid">
+              <div class="field"><label for="mp_gateway">روش پرداخت</label>
+                <select class="select" id="mp_gateway" name="gateway">
+                  <option value="manual">تایید دستی</option>
+                  <option value="card2card">کارت به کارت</option>
+                  <option value="cod">پرداخت در محل</option>
+                  <% (gateways || []).filter(function (g) { return g.type === 'online'; }).forEach(function (g) { %>
+                    <option value="<%= g.key %>"><%= g.name %></option><% }) %>
+                </select></div>
+              <div class="field"><label for="mp_ref">کد پیگیری بانکی</label>
+                <input class="input mono" id="mp_ref" name="reference" dir="ltr" placeholder="MANUAL-1234"></div>
+              <button class="btn btn-success btn-block" type="submit" data-confirm-click="پرداخت این سفارش به‌صورت دستی تایید شود؟"><svg><use href="#i-check"/></svg> تایید پرداخت</button>
+            </form>
+          </div>
+        </section>
+      <% } %>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">مشتری و گیرنده</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <% if (order.user) { %>
+              <tr><th>نام کاربر</th><td><% if (can('users.view')) { %><a class="text-brand" href="/admin/people/users/<%= order.user.id %>"><%= order.user.name || '—' %></a><% } else { %><%= order.user.name || '—' %><% } %></td></tr>
+              <tr><th>موبایل</th><td class="mono" dir="ltr"><%= h.toPersianDigits(order.user.phone || '') %></td></tr>
+              <% if (order.user.email) { %><tr><th>ایمیل</th><td class="mono text-xs" dir="ltr"><%= order.user.email %></td></tr><% } %>
+            <% } else { %>
+              <tr><th>خرید</th><td>مهمان (<span class="mono" dir="ltr"><%= h.toPersianDigits(order.guest_phone || '') %></span>)</td></tr>
+            <% } %>
+            <tr><th>گیرنده</th><td><%= order.receiver_name || '—' %></td></tr>
+            <tr><th>تلفن گیرنده</th><td class="mono" dir="ltr"><%= h.toPersianDigits(order.receiver_phone || '') %></td></tr>
+            <tr><th>نشانی</th><td class="text-xs" style="line-height:2"><%= [order.address.province, order.address.city, order.address.address].filter(Boolean).join('، ') || '—' %></td></tr>
+            <% if (order.postal_code) { %><tr><th>کد پستی</th><td class="mono" dir="ltr"><%= h.toPersianDigits(order.postal_code) %></td></tr><% } %>
+            <% if (order.lat && order.lng) { %><tr><th>مختصات</th><td class="mono text-xs" dir="ltr"><%= order.lat %>, <%= order.lng %></td></tr><% } %>
+            <% if (order.customer_note) { %><tr><th>یادداشت مشتری</th><td class="text-xs"><%= order.customer_note %></td></tr><% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <% if (order.sellers.length) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فروشندگان این سفارش</h3></div>
+        <div class="card-body stack" style="gap:9px">
+          <% order.sellers.forEach(function (s) { %>
+            <div class="flex items-center gap-10">
+              <% if (s.logo) { %><span class="thumb-sm" style="width:28px;height:28px"><img src="<%= s.logo %>" alt=""></span><% } %>
+              <span class="grow"><% if (can('sellers.view')) { %><a class="text-xs bold" href="/admin/people/sellers/<%= s.id %>"><%= s.shop_name %></a><% } else { %><b class="text-xs"><%= s.shop_name %></b><% } %>
+                <span class="text-2xs text-muted" style="display:block">کمیسیون <%= h.toPersianDigits(s.commission) %>٪ · امتیاز <%= h.toPersianDigits((s.score || 5).toFixed(1)) %></span></span>
+              <span class="badge <%= s.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= s.status === 'active' ? 'فعال' : s.status %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات سفارش</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>شناسه</th><td class="mono" dir="ltr">#<%= h.toPersianDigits(order.id) %></td></tr>
+            <tr><th>روش ارسال</th><td class="text-xs"><%= order.shipping_title || '—' %></td></tr>
+            <tr><th>پرداخت</th><td class="text-xs"><%= order.payment_method || '—' %><% if (order.gateway_ref) { %> · <span class="mono" dir="ltr"><%= order.gateway_ref %></span><% } %></td></tr>
+            <% if (order.paid_at) { %><tr><th>زمان پرداخت</th><td class="text-xs"><%= h.formatJalaliFull(order.paid_at) %></td></tr><% } %>
+            <% if (order.invoice_no) { %><tr><th>شماره فاکتور</th><td class="mono" dir="ltr"><%= order.invoice_no %></td></tr><% } %>
+            <tr><th>یادداشت داخلی</th><td class="text-xs"><%= order.admin_note || '—' %></td></tr>
+            <tr><th>آخرین بروزرسانی</th><td class="text-xs"><%= order.updated_at ? h.formatJalaliFull(order.updated_at) : '—' %></td></tr>
+          </tbody>
+        </table>
+        <% if (can('orders.manage')) { %>
+          <form method="post" action="/admin/orders/<%= order.code %>/status" class="mt-14">
+            <input type="hidden" name="status" value="<%= order.status %>">
+            <div class="field m-0"><label for="an_note">ذخیره یادداشت داخلی</label>
+              <input class="input input-sm" id="an_note" name="note" value="<%= order.admin_note || '' %>"></div>
+            <button class="btn btn-sm btn-outline btn-block mt-10" type="submit">ذخیره یادداشت</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

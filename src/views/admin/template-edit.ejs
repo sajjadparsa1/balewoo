@@ -1,0 +1,290 @@
+<%
+  const ROUTES = { home: 'صفحه نخست', category: 'صفحه دسته‌بندی', custom: 'صفحه دلخواه' };
+  const THEMES = { classic: 'کلاسیک', modern: 'مدرن', minimal: 'مینیمال', fashion: 'مد و پوشاک', fresh: 'سوپرمارکت', tools: 'ابزارآلات' };
+  const SOURCES = { special: 'فروش ویژه', bestseller: 'پرفروش‌ترین', newest: 'جدیدترین', popular: 'محبوبترین', discounted: 'تخفیف‌دار', manual: 'انتخاب دستی محصولات' };
+  const POSITIONS = { home: 'صفحه اصلی', top: 'نوار بالا', sidebar: 'ستون کناری', footer: 'پابرگ', product: 'صفحه محصول', category: 'صفحه دسته', cart: 'سبد خرید', blog: 'مجله' };
+  const TYPE_ICON = { slider: 'image', stories: 'image', services: 'shield', categories: 'layers', product_list: 'box', brands: 'tag', blog: 'book', banner: 'layout', stores: 'store', html: 'code', text: 'file' };
+  const canManage = can('templates.manage');
+  const previewUrl = t.route === 'home' ? '/' : t.route === 'category' ? '/products' : '/';
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <div class="flex items-center gap-10 flex-wrap">
+    <h2 style="font-size:1.1rem;margin:0"><%= t.name %></h2>
+    <span class="badge badge-outline"><%= ROUTES[t.route] || t.route %></span>
+    <span class="badge badge-outline"><%= THEMES[t.theme] || t.theme %></span>
+    <% if (t.is_active) { %><span class="badge badge-success">قالب فعال</span><% } else { %><span class="badge badge-warning">غیرفعال</span><% } %>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/content/templates"><svg><use href="#i-chevron-right"/></svg> قالب‌ها</a>
+    <a class="btn btn-sm btn-outline" href="<%= previewUrl %>" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg> پیش‌نمایش</a>
+    <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="tplSettings"><svg><use href="#i-settings"/></svg> مشخصات قالب</button><% } %>
+  </div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head">
+        <h3 class="text-sm">چیدمان بخش‌ها <span class="badge badge-outline"><%= h.toPersianDigits(sections.length) %></span></h3>
+        <span class="text-2xs text-muted">با کشیدن یا دکمه‌های بالا/پایین ترتیب عوض می‌شود و خودکار ذخیره می‌گردد</span>
+      </div>
+      <div class="card-body">
+        <% if (!sections.length) { %>
+          <div class="empty" style="padding:26px">
+            <span class="ic"><svg><use href="#i-layout"/></svg></span>
+            <h3>هنوز بخشی اضافه نشده است</h3>
+            <p>از فهرست کنار صفحه، بخش‌های دلخواه (اسلایدر، دسته‌بندی‌ها، لیست محصولات و…) را اضافه کنید.</p>
+          </div>
+        <% } %>
+        <div id="builderCanvas">
+          <% sections.forEach(function (sec, i) { %>
+            <div class="canvas-section" data-section-id="<%= sec.id %>">
+              <span class="handle"><svg><use href="#i-menu"/></svg></span>
+              <span class="mono text-2xs text-muted"><%= h.toPersianDigits(i + 1) %></span>
+              <span class="ic" style="color:var(--brand)"><svg style="width:16px;height:16px"><use href="#i-<%= TYPE_ICON[sec.type] || 'layout' %>"/></svg></span>
+              <div class="grow min-0">
+                <b class="text-xs block truncate"><%= sec.title || sec.type %></b>
+                <span class="text-2xs text-muted">
+                  <%= sec.type %>
+                  <% if (sec.source) { %> · <%= SOURCES[sec.source] || sec.source %><% } %>
+                  <% if (sec.limit) { %> · <%= h.toPersianDigits(sec.limit) %> مورد<% } %>
+                  <% if (sec.position) { %> · جایگاه <%= POSITIONS[sec.position] || sec.position %><% } %>
+                  <% if (sec.categoryId) { %> · دسته #<%= h.toPersianDigits(sec.categoryId) %><% } %>
+                  <% if (sec.content || sec.body) { %> · دارای متن<% } %>
+                </span>
+              </div>
+              <span class="type-badge mono" dir="ltr"><%= sec.type %></span>
+              <% if (canManage) { %>
+                <div class="flex gap-4">
+                  <button class="btn btn-sm btn-ghost" type="button" data-move-section="up" title="بالا"><svg><use href="#i-arrow-up"/></svg></button>
+                  <button class="btn btn-sm btn-ghost" type="button" data-move-section="down" title="پایین" style="transform:rotate(180deg)"><svg><use href="#i-arrow-up"/></svg></button>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش بخش"
+                          onclick='openSec(<%- JSON.stringify(sec) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/content/templates/<%= t.id %>/sections" class="m-0">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="section_id" value="<%= sec.id %>">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف بخش"
+                            data-confirm-click="بخش «<%= sec.title || sec.type %>» از چیدمان حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+
+        <form method="post" action="/admin/content/templates/<%= t.id %>/sections" id="builderOrderForm" class="hidden">
+          <input type="hidden" name="action" value="reorder">
+          <input type="hidden" name="order" value="[]">
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">افزودن بخش</h3></div>
+      <div class="card-body" style="padding:10px 14px">
+        <% if (canManage) { %>
+          <div class="stack" style="gap:6px">
+            <% types.forEach(function (ty) { %>
+              <button class="btn btn-sm btn-ghost w-100 justify-start" type="button" style="justify-content:flex-start"
+                      onclick='openAdd(<%- JSON.stringify(ty) %>)'>
+                <svg style="width:15px;height:15px"><use href="#i-<%= TYPE_ICON[ty.type] || 'layout' %>"/></svg>
+                <%= ty.title %>
+                <span class="mono text-2xs text-muted ms-auto" dir="ltr"><%= ty.type %></span>
+              </button>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p class="text-xs text-muted m-0">برای تغییر چیدمان به دسترسی «قالب و صفحه‌ساز» نیاز دارید.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">راهنمای بخش‌ها</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.1">
+        <b class="text-foreground">اسلایدر:</b> بنرهای جایگاه «صفحه اصلی» را از بخش بنرها مدیریت کنید.<br>
+        <b class="text-foreground">خدمات:</b> از تنظیمات عمومی (ویجت خدمات) خوانده می‌شود.<br>
+        <b class="text-foreground">لیست محصولات:</b> منبع را انتخاب کنید یا محصولات را دستی بچینید.<br>
+        <b class="text-foreground">استوری‌ها:</b> استوری‌های فعال فروشندگان را نشان می‌دهد.
+      </div>
+    </section>
+  </aside>
+</div>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="tplSettings">
+  <div class="modal">
+    <div class="modal-head"><h3>مشخصات قالب</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/templates">
+      <input type="hidden" name="id" value="<%= t.id %>">
+      <div class="modal-body">
+        <div class="field"><label for="ts_name">نام قالب <i class="req">*</i></label>
+          <input class="input" id="ts_name" name="name" value="<%= t.name %>" required></div>
+        <div class="grid g-2">
+          <div class="field"><label for="ts_route">جایگاه</label>
+            <select class="select" id="ts_route" name="route">
+              <% Object.keys(ROUTES).forEach(function (k) { %><option value="<%= k %>" <%= t.route === k ? 'selected' : '' %>><%= ROUTES[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="ts_theme">تم</label>
+            <select class="select" id="ts_theme" name="theme">
+              <% Object.keys(THEMES).forEach(function (k) { %><option value="<%= k %>" <%= t.theme === k ? 'selected' : '' %>><%= THEMES[k] %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="field"><label for="ts_status">وضعیت</label>
+          <select class="select" id="ts_status" name="status">
+            <option value="draft" <%= t.status === 'draft' ? 'selected' : '' %>>پیش‌نویس</option>
+            <option value="published" <%= t.status === 'published' ? 'selected' : '' %>>منتشر شده</option>
+          </select></div>
+        <label class="switch-row"><input type="checkbox" name="activate" value="1" <%= t.is_active ? 'checked' : '' %>><span>این قالب فعال باشد</span></label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="secModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="secTitle">بخش جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/templates/<%= t.id %>/sections" id="secForm">
+      <input type="hidden" name="action" id="secAction" value="add">
+      <input type="hidden" name="section_id" id="secId" value="">
+      <input type="hidden" name="data" id="secData" value="">
+      <input type="hidden" name="type" id="secType" value="">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="sec_title">عنوان بخش</label>
+            <input class="input" id="sec_title" data-f="title" placeholder="پرفروش‌ترین‌ها"></div>
+          <div class="field" data-only="product_list"><label for="sec_source">منبع محصولات</label>
+            <select class="select" id="sec_source" data-f="source">
+              <% Object.keys(SOURCES).forEach(function (k) { %><option value="<%= k %>"><%= SOURCES[k] %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="grid g-3">
+          <div class="field" data-only="product_list,categories,brands,blog,stores,services"><label for="sec_limit">تعداد موارد</label>
+            <input class="input mono" id="sec_limit" data-f="limit" dir="ltr" inputmode="numeric" value="8"></div>
+          <div class="field" data-only="product_list"><label for="sec_cat">دسته‌بندی (اختیاری)</label>
+            <select class="select" id="sec_cat" data-f="categoryId">
+              <option value="">همه دسته‌ها</option>
+              <% categories.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+            </select></div>
+          <div class="field" data-only="banner"><label for="sec_pos">جایگاه بنر</label>
+            <select class="select" id="sec_pos" data-f="position">
+              <% Object.keys(POSITIONS).forEach(function (k) { %><option value="<%= k %>"><%= POSITIONS[k] %></option><% }) %>
+            </select></div>
+          <div class="field" data-only="slider"><label for="sec_interval">فاصله اسلایدها (میلی‌ثانیه)</label>
+            <input class="input mono" id="sec_interval" data-f="interval" dir="ltr" inputmode="numeric" value="6000"></div>
+        </div>
+        <div class="field" data-only="product_list"><label for="sec_manual">انتخاب دستی محصولات (وقتی منبع «انتخاب دستی» است)</label>
+          <select class="select" id="sec_manual" data-f="productIds" multiple size="6">
+            <% products.forEach(function (p) { %><option value="<%= p.id %>"><%= h.truncate(p.title, 58) %></option><% }) %>
+          </select></div>
+        <div class="field" data-only="html"><label for="sec_content">کد HTML بخش</label>
+          <textarea class="textarea mono" id="sec_content" data-f="content" rows="6" dir="ltr" placeholder="<div class=&quot;card&quot;>…</div>"></textarea>
+          <div class="help">کلاس‌های آماده سایت مثل <span class="mono" dir="ltr">card</span>، <span class="mono" dir="ltr">section</span>، <span class="mono" dir="ltr">grid g-4</span> قابل استفاده‌اند.</div></div>
+        <div class="field" data-only="text"><label for="sec_body">متن ساده</label>
+          <textarea class="textarea" id="sec_body" data-f="body" rows="5"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره بخش</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const TYPE_FIELDS = {
+      slider: ['title', 'interval'],
+      stories: ['title'],
+      services: ['title', 'limit'],
+      categories: ['title', 'limit'],
+      product_list: ['title', 'source', 'limit', 'categoryId', 'productIds'],
+      brands: ['title', 'limit'],
+      blog: ['title', 'limit'],
+      banner: ['title', 'position'],
+      stores: ['title', 'limit'],
+      html: ['title', 'content'],
+      text: ['title', 'body'],
+    };
+    let currentType = '';
+    function applyType(type) {
+      currentType = type || '';
+      const allowed = TYPE_FIELDS[currentType] || [];
+      document.querySelectorAll('#secModal [data-only]').forEach(function (box) {
+        box.style.display = box.dataset.only.split(',').indexOf(currentType) > -1 ? '' : 'none';
+      });
+      document.querySelectorAll('#secModal [data-f]').forEach(function (inp) {
+        if (allowed.indexOf(inp.dataset.f) === -1) { inp.disabled = true; } else { inp.disabled = false; }
+      });
+    }
+    function collect() {
+      const allowed = TYPE_FIELDS[currentType] || [];
+      const data = {};
+      document.querySelectorAll('#secModal [data-f]').forEach(function (inp) {
+        const key = inp.dataset.f;
+        if (allowed.indexOf(key) === -1) return;
+        if (inp.multiple) data[key] = Array.from(inp.selectedOptions).map(function (o) { return o.value; });
+        else if (inp.dataset.f === 'limit' || inp.dataset.f === 'interval') data[key] = Number(inp.value || 0);
+        else data[key] = inp.value;
+      });
+      return data;
+    }
+    function fill(sec) {
+      document.getElementById('sec_title').value = sec.title || '';
+      document.getElementById('sec_source').value = sec.source || 'special';
+      document.getElementById('sec_limit').value = sec.limit || 8;
+      document.getElementById('sec_cat').value = sec.categoryId || '';
+      document.getElementById('sec_pos').value = sec.position || 'home';
+      document.getElementById('sec_interval').value = sec.interval || 6000;
+      document.getElementById('sec_content').value = sec.content || sec.html || '';
+      document.getElementById('sec_body').value = sec.body || '';
+      const ids = (sec.productIds || []).map(String);
+      Array.from(document.getElementById('sec_manual').options).forEach(function (o) { o.selected = ids.indexOf(o.value) > -1; });
+    }
+    window.openAdd = function (ty) {
+      document.getElementById('secTitle').textContent = 'افزودن بخش: ' + ty.title;
+      document.getElementById('secAction').value = 'add';
+      document.getElementById('secId').value = '';
+      document.getElementById('secType').value = ty.type;
+      fill({ title: ty.title });
+      applyType(ty.type);
+      if (window.openModal) window.openModal('secModal');
+    };
+    window.openSec = function (sec) {
+      document.getElementById('secTitle').textContent = 'ویرایش بخش: ' + (sec.title || sec.type);
+      document.getElementById('secAction').value = 'update';
+      document.getElementById('secId').value = sec.id;
+      document.getElementById('secType').value = sec.type;
+      fill(sec);
+      applyType(sec.type);
+      if (window.openModal) window.openModal('secModal');
+    };
+    const form = document.getElementById('secForm');
+    form.addEventListener('submit', function () {
+      if (document.getElementById('secAction').value === 'update') {
+        document.getElementById('secData').value = JSON.stringify(collect());
+      } else {
+        // در حالت افزودن، فیلدها تک‌تک ارسال می‌شوند
+        const d = collect();
+        ['title', 'source', 'limit', 'categoryId', 'position', 'interval', 'content', 'body'].forEach(function (k) {
+          const inp = form.querySelector('[data-f="' + k + '"]');
+          if (inp && !inp.disabled) inp.value = d[k] != null ? d[k] : inp.value;
+        });
+        form.querySelectorAll('[name="productIds[]"]').forEach(function (el) { el.remove(); });
+        (d.productIds || []).forEach(function (id) {
+          const inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = 'productIds[]'; inp.value = id;
+          form.appendChild(inp);
+        });
+      }
+    });
+    applyType('product_list');
+  })();
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

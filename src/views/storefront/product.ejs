@@ -1,0 +1,581 @@
+<%
+  const stock = defaultVariant ? defaultVariant.stock : p.stock;
+  const unit = defaultVariant ? defaultVariant.price : p.final_price;
+  const unitOld = defaultVariant ? (defaultVariant.old_price || 0) : p.old_price;
+  const hasDiscount = unitOld > unit;
+  const percent = p.discount_percent || (hasDiscount ? Math.round(((unitOld - unit) / unitOld) * 100) : 0);
+  const points = p.points_reward || Math.floor((p.final_price || 0) / (parseInt(setting('club_point_per_toman', '1000'), 10) || 1000));
+  const ratingDist = [5, 4, 3, 2, 1].map(function (n) {
+    const c = (p.reviews || []).filter(function (r) { return r.rating === n; }).length;
+    return { star: n, count: c, pct: p.reviews && p.reviews.length ? Math.round((c / p.reviews.length) * 100) : 0 };
+  });
+  const history = p.price_history || [];
+%>
+<%- include('../layouts/head', { bodyClass: 'page-product' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+
+  <%- include('../partials/breadcrumb', { items: (p.breadcrumb || []).map(function (c) { return { name: c.name, url: '/products?cat=' + c.slug }; }).concat([{ name: h.truncate(p.title, 60) }]) }) %>
+
+  <div class="product-hero">
+    <!-- گالری -->
+    <div class="gallery">
+      <div class="gallery-main">
+        <img id="galleryMain" src="<%= (gallery[0] && gallery[0].media_path) || p.cover %>" alt="<%= p.title %>">
+        <span class="zoom-hint">برای بزرگ‌نمایی نشانگر را روی تصویر ببرید</span>
+      </div>
+      <div class="gallery-thumbs" id="galleryThumbs">
+        <% gallery.forEach(function (g, i) { %>
+          <img src="<%= g.media_path %>" data-full="<%= g.media_path %>" alt="<%= g.alt || p.title %>" class="<%= i === 0 ? 'active' : '' %>" loading="lazy">
+        <% }) %>
+        <% if (!gallery.length) { %><img src="<%= p.cover %>" class="active" alt="<%= p.title %>"><% } %>
+      </div>
+      <% if (buyerImages && buyerImages.length) { %>
+        <div class="mt-14">
+          <div class="text-sm semibold mb-6 flex items-center gap-6"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-image"/></svg> تصاویر ارسالی خریداران (<%= h.toPersianDigits(buyerImages.length) %>)</div>
+          <div class="gallery-thumbs">
+            <% buyerImages.forEach(function (b) { %>
+              <img src="<%= b.media_path %>" data-full="<%= b.media_path %>" alt="تصویر خریدار" loading="lazy" title="<%= b.name || 'خریدار' %>">
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+      <div class="gallery-actions">
+        <button class="btn btn-sm" type="button" data-favorite data-product-id="<%= p.id %>" aria-pressed="<%= isFavorite %>">
+          <svg><use href="#i-heart"/></svg> <%= isFavorite ? 'در علاقمندی‌ها' : 'افزودن به علاقمندی' %>
+        </button>
+        <button class="btn btn-sm" type="button" data-compare data-product-id="<%= p.id %>">
+          <svg><use href="#i-compare"/></svg> <%= inCompare ? 'در مقایسه' : 'مقایسه' %>
+        </button>
+        <button class="btn btn-sm" type="button" onclick="navigator.share?navigator.share({title:'<%= h.escapeHtml(p.title) %>',url:location.href}):navigator.clipboard.writeText(location.href).then(function(){toast('لینک محصول کپی شد','success')})">
+          <svg><use href="#i-share"/></svg> اشتراک
+        </button>
+      </div>
+
+      <div class="stat-ticker mt-14">
+        <span class="dot live"></span>
+        <div class="track">
+          <span><%= h.toPersianDigits('+' + (p.views || 0)) %> بازدید</span>
+          <span><%= h.toPersianDigits('+' + (p.likes || 0)) %> علاقمندی</span>
+          <span><%= h.toPersianDigits('+' + (p.sold || 0)) %> فروش موفق</span>
+          <span><%= h.toPersianDigits(p.reviews.length) %> دیدگاه ثبت‌شده</span>
+          <span><%= h.toPersianDigits('+' + (p.views || 0)) %> بازدید</span>
+          <span><%= h.toPersianDigits('+' + (p.likes || 0)) %> علاقمندی</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- اطلاعات محصول -->
+    <div>
+      <h1 style="font-size:1.12rem;line-height:2;margin-bottom:6px">
+        <%= p.title %>
+        <% if (p.title_en) { %><span class="text-sm text-muted" dir="ltr"> | <%= p.title_en %></span><% } %>
+      </h1>
+      <div class="flex items-center gap-10 flex-wrap text-xs text-muted mb-14">
+        <span class="badge badge-outline">کد محصول: <%= h.toPersianDigits(p.product_code || p.sku || ('p-' + p.id)) %></span>
+        <% if (p.brand_name) { %><a class="badge badge-primary" href="/brand/<%= p.brand_slug %>">برند: <%= p.brand_name %></a><% } %>
+        <% if (p.is_special == 1) { %><span class="badge badge-danger">فروش ویژه</span><% } %>
+        <% if (p.is_featured == 1) { %><span class="badge badge-info">محصول ویژه</span><% } %>
+        <% if (p.is_original == 1 || p.warranty) { %><span class="badge badge-success">کالای اصل</span><% } %>
+        <% if (p.rating_count) { %>
+          <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px;color:#f59e0b;fill:#f59e0b"><use href="#i-star"/></svg>
+            <b class="mono"><%= h.toPersianDigits(p.rating) %></b> (<%= h.toPersianDigits(p.rating_count) %> دیدگاه)</span>
+        <% } %>
+        <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-question"/></svg> <%= h.toPersianDigits(p.questions.length) %> پرسش</span>
+      </div>
+
+      <% if (p.highlights && p.highlights.length) { %>
+        <ul class="text-sm mb-20" style="list-style:none;padding:0">
+          <% p.highlights.slice(0, 6).forEach(function (hl) {
+               const hlTitle = hl && typeof hl === 'object' ? (hl.title || '') : String(hl || '');
+               const hlValue = hl && typeof hl === 'object' ? (hl.value || '') : ''; %>
+            <li class="flex items-start gap-8 mb-6"><svg width="15" height="15" style="width:15px;height:15px;color:var(--success);flex:none;margin-top:4px"><use href="#i-check"/></svg>
+              <span><% if (hlValue) { %><strong class="semibold"><%= hlTitle %>:</strong> <%= hlValue %><% } else { %><%= hlTitle %><% } %></span></li>
+          <% }) %>
+        </ul>
+      <% } %>
+
+      <% if (p.short_desc) { %><p class="text-sm text-2 mb-20" style="line-height:2.1"><%- p.short_desc %></p><% } %>
+
+      <!-- مشخصات کلیدی -->
+      <% if (p.specs && p.specs.length) { %>
+        <div class="card mb-20">
+          <div class="card-head"><h3 class="flex items-center gap-6"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-list"/></svg> مشخصات کلیدی</h3>
+            <a href="#specs" class="text-xs text-brand" data-tab="specs" data-tab-scroll="1">مشاهده همه</a></div>
+          <div class="card-body p-0">
+            <table class="spec-table">
+              <% p.specs.slice(0, 6).forEach(function (sp) { %>
+                <tr><th><%= sp.title %></th><td><%= sp.value %></td></tr>
+              <% }) %>
+            </table>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- فروشنده -->
+      <div class="seller-box mb-14">
+        <% if (p.seller && p.seller.logo) { %><img src="<%= p.seller.logo %>" alt="<%= p.seller.shop_name %>"><% } else { %><span class="avatar lg"><svg width="24" height="24"><use href="#i-store"/></svg></span><% } %>
+        <div class="grow">
+          <div class="bold text-sm"><%= p.seller_name || (p.seller && p.seller.shop_name) || site.name %></div>
+          <div class="perf">
+            <svg width="13" height="13" style="width:13px;height:13px"><use href="#i-check"/></svg>
+            عملکرد <%= Number((p.seller && p.seller.success_rate) || 98).toFixed(0) >= 95 ? 'عالی' : 'خوب' %>
+            · امتیاز <%= h.toPersianDigits(Number(p.seller_score || (p.seller && p.seller.score) || 4.8).toFixed(1)) %>
+          </div>
+          <div class="text-xs text-muted mt-6 flex items-center gap-6 flex-wrap">
+            <span class="flex items-center gap-4"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-truck"/></svg> آماده ارسال از انبار</span>
+            <% if (p.warranty) { %><span class="flex items-center gap-4"><svg width="12" height="12" style="width:12px;height:12px"><use href="#i-shield"/></svg> گارانتی <%= p.warranty %></span><% } %>
+          </div>
+        </div>
+        <% if (p.seller_slug) { %><a class="btn btn-sm btn-outline" href="/store/<%= p.seller_slug %>">فروشگاه</a><% } %>
+      </div>
+
+      <% if (p.seller_products && p.seller_products.length) { %>
+        <details class="filter-group card mb-14" style="padding:0 14px">
+          <summary style="padding:12px 0">سایر محصولات این فروشنده (<%= h.toPersianDigits(p.seller_products.length) %>)</summary>
+          <div class="products-grid" style="padding-bottom:14px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+            <% p.seller_products.forEach(function (sp) { %><%- include('../partials/product-card', { product: sp, showSellerCol: false }) %><% }) %>
+          </div>
+        </details>
+      <% } %>
+    </div>
+
+    <!-- جعبه خرید -->
+    <div class="buy-box" data-variants data-product-id="<%= p.id %>">
+      <% if (variants && variants.length > 1) { %>
+        <% const groups = {}; variants.forEach(function (v) { Object.entries(v.options || {}).forEach(function (e) { (groups[e[0]] = groups[e[0]] || []).push({ id: v.id, value: e[1], stock: v.stock, price: v.price }); }); }); %>
+        <% Object.entries(groups).forEach(function (g) { %>
+          <% if (g[1].length > 1) { %>
+          <div class="variant-row">
+            <div class="label text-sm semibold"><%= g[0] %></div>
+            <div class="variant-options">
+              <% g[1].forEach(function (o) { %>
+                <label class="variant-opt <%= defaultVariant && o.id === defaultVariant.id ? 'active' : '' %> <%= o.stock <= 0 ? 'disabled' : '' %>">
+                  <input type="radio" class="hidden" name="variant_id" value="<%= o.id %>" data-variant-input <%= defaultVariant && o.id === defaultVariant.id ? 'checked' : '' %> <%= o.stock <= 0 ? 'disabled' : '' %>>
+                  <%= o.value %>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+          <% } %>
+        <% }) %>
+      <% } else if (variants.length === 1 && variants[0].title) { %>
+        <div class="variant-row"><div class="label text-sm semibold">مدل</div><div class="variant-opt active"><%= variants[0].title %></div>
+          <input type="hidden" name="variant_id" value="<%= variants[0].id %>" data-variant-input></div>
+      <% } %>
+
+      <% if (p.extra_options && p.extra_options.length) { %>
+        <div class="variant-row">
+          <div class="label text-sm semibold">خدمات و اقلام اختیاری</div>
+          <div class="stack">
+            <% p.extra_options.forEach(function (o) { %>
+              <label class="check text-sm">
+                <input type="<%= o.max_count > 1 ? 'checkbox' : 'checkbox' %>" name="option_ids" value="<%= o.id %>" data-option-check <%= o.is_required ? 'checked' : '' %>>
+                <span class="grow"><%= o.title %></span>
+                <% if (o.price > 0) { %><b class="mono text-brand"><%= h.fa(o.price) %> <%= site.currency %></b><% } else { %><span class="badge badge-success">رایگان</span><% } %>
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (percent > 0) { %>
+        <div class="flex items-center gap-8 mb-10">
+          <span class="badge badge-danger" style="font-size:.85rem;padding:4px 10px"><%= h.toPersianDigits(percent) %>٪ تخفیف</span>
+          <% if (p.discount_end) { %><div class="countdown" data-countdown="<%= p.discount_end %>"></div><% } %>
+        </div>
+      <% } %>
+
+      <div class="price-line mb-10">
+        <% if (unitOld > unit) { %><span class="del mono text-lg" data-price-old><%= h.fa(unitOld) %></span><% } else { %><span data-price-old></span><% } %>
+        <span class="price-big mono" data-price-now><%= h.fa(unit) %></span>
+        <small class="text-muted"><%= site.currency %></small>
+      </div>
+
+      <% if (tiers && tiers.length) { %>
+        <details class="filter-group mb-14" style="padding:0;border:none">
+          <summary class="text-sm"><span class="text-success semibold">تخفیف پلکانی</span> — خرید عمده ارزان‌تر</summary>
+          <table class="tier-table mt-10">
+            <thead><tr><th>تعداد</th><th>قیمت هر واحد</th><th>سود شما</th></tr></thead>
+            <tbody>
+              <% tiers.forEach(function (t) { %>
+                <% const tp = t.price || Math.round(unit * (1 - (t.percent || 0) / 100)); %>
+                <tr data-tier-row data-tier-qty="<%= t.min_qty %>">
+                  <td><%= h.toPersianDigits(t.min_qty) %> عدد به بالا</td>
+                  <td class="mono"><%= h.fa(tp) %></td>
+                  <td class="text-success mono"><%= h.fa(Math.max(0, unit - tp)) %> (<%= h.toPersianDigits(Math.round(((unit - tp) / unit) * 100)) %>٪)</td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </details>
+      <% } %>
+
+      <% if (p.is_inquiry == 1) { %>
+        <div class="alert alert-info mb-14"><svg><use href="#i-info"/></svg><div class="body">قیمت این کالا به روز نیست. برای استعلام موجودی و قیمت، درخواست خود را ثبت کنید تا کارشناسان ما تماس بگیرند.</div></div>
+        <button class="btn btn-primary btn-lg btn-block" type="button" data-modal-open="inquiryModal">استعلام قیمت و موجودی</button>
+      <% } else if (stock > 0) { %>
+        <div class="flex items-center justify-between mb-14 gap-10">
+          <div class="qty-box">
+            <button type="button" data-qty-step="-1" aria-label="کاهش">−</button>
+            <input type="number" value="<%= p.min_order || 1 %>" min="<%= p.min_order || 1 %>" max="<%= p.max_order || Math.min(stock, 99) %>" data-qty-input aria-label="تعداد">
+            <button type="button" data-qty-step="1" aria-label="افزایش">+</button>
+          </div>
+          <div class="text-xs text-muted">
+            <% if (stock <= parseInt(setting('low_stock_threshold', '5'), 10)) { %>
+              <span class="text-warning semibold">تنها <%= h.toPersianDigits(stock) %> عدد در انبار باقی مانده</span>
+            <% } else { %>
+              موجود در انبار — ارسال از <%= h.toPersianDigits((p.seller && p.seller.city) || 'تهران') %>
+            <% } %>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block mb-10" type="button" data-cart-add data-product-id="<%= p.id %>">
+          <svg><use href="#i-cart"/></svg> افزودن به سبد خرید
+        </button>
+
+        <div class="summary-row text-sm" style="border-top:1px dashed var(--border);padding-top:10px">
+          <span class="text-muted">مبلغ قابل پرداخت</span>
+          <b class="mono" data-price-total><%= h.fa(unit) %> <%= site.currency %></b>
+        </div>
+
+        <% if (installmentGateways && installmentGateways.length) { %>
+          <% installmentGateways.slice(0, 2).forEach(function (g) { %>
+            <div class="installment-row mt-10">
+              <svg width="18" height="18" style="width:18px;height:18px;color:var(--brand)"><use href="#i-credit-card"/></svg>
+              <div class="grow"><b><%= g.name %></b> — <span data-installment><%= h.fa(Math.round(unit / (g.months ? g.months[0] : 4))) %></span> <%= site.currency %> در <%= h.toPersianDigits(g.months ? g.months[0] : 4) %> قسط</div>
+            </div>
+          <% }) %>
+        <% } else if (installment) { %>
+          <div class="installment-row mt-10"><svg width="18" height="18" style="width:18px;height:18px;color:var(--brand)"><use href="#i-credit-card"/></svg> <div><%= installment.label %></div></div>
+        <% } %>
+
+        <% if (points > 0 && String(setting('club_enabled', '1')) !== '0') { %>
+          <div class="installment-row mt-10" style="background:var(--warning-bg);border-color:color-mix(in srgb,var(--warning) 30%,transparent)">
+            <svg width="18" height="18" style="width:18px;height:18px;color:var(--warning)"><use href="#i-medal"/></svg>
+            <div>با خرید این کالا <b><%= h.toPersianDigits(points) %></b> امتیاز باشگاه مشتریان دریافت می‌کنید.</div>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="alert alert-warning mb-14"><svg><use href="#i-alert"/></svg><div class="body">این کالا فعلاً ناموجود است. می‌توانید برای اطلاع از موجودی، اعلان ثبت کنید.</div></div>
+        <button class="btn btn-warning btn-lg btn-block" type="button" data-modal-open="stockAlertModal">
+          <svg><use href="#i-bell"/></svg> به من خبر بده
+        </button>
+      <% } %>
+
+      <div class="divider"></div>
+      <ul class="text-xs text-2" style="list-style:none;padding:0;margin:0">
+        <li class="flex items-center gap-8 mb-6"><svg width="14" height="14" style="width:14px;height:14px;color:var(--brand)"><use href="#i-rotate"/></svg> <%= setting('return_days', '7') %> روز ضمانت بازگشت کالا</li>
+        <li class="flex items-center gap-8 mb-6"><svg width="14" height="14" style="width:14px;height:14px;color:var(--brand)"><use href="#i-shield"/></svg> ضمانت اصالت و سلامت فیزیکی کالا</li>
+        <li class="flex items-center gap-8"><svg width="14" height="14" style="width:14px;height:14px;color:var(--brand)"><use href="#i-truck"/></svg> ارسال سریع <%= setting('free_shipping_text', 'و امکان پرداخت در محل') %></li>
+      </ul>
+
+      <% if (affiliateUser && p.affiliate == 1) { %>
+        <div class="alert alert-success mt-14"><svg><use href="#i-gift"/></svg>
+          <div class="body">
+            <b>کسب درآمد از این محصول</b>
+            <div class="text-xs mt-6">لینک اختصاصی شما:
+              <input class="input mt-6" readonly value="<%= seo.siteUrl('/product/' + p.slug) %>?ref=<%= affiliateUser.affiliate_code %>" onclick="this.select()">
+            </div>
+            <div class="text-xs mt-6">کمیسیون: طلایی <%= h.toPersianDigits(p.aff_gold) %>٪ · نقره‌ای <%= h.toPersianDigits(p.aff_silver) %>٪ · برنزی <%= h.toPersianDigits(p.aff_bronze) %>٪</div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- تب‌ها -->
+  <section class="section" data-tabs>
+    <div class="card">
+      <div class="card-head p-0" style="border:none">
+        <div class="tabs w-100">
+          <button class="tab-btn active" type="button" data-tab="intro">معرفی</button>
+          <button class="tab-btn" type="button" data-tab="specs">مشخصات <span class="badge"><%= h.toPersianDigits((p.specs || []).length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="reviews">دیدگاه‌ها <span class="badge"><%= h.toPersianDigits(p.rating_count || 0) %></span></button>
+          <button class="tab-btn" type="button" data-tab="qa">پرسش و پاسخ <span class="badge"><%= h.toPersianDigits(p.questions.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="price-chart">روند قیمت</button>
+          <button class="tab-btn" type="button" data-tab="shipping">ارسال و بازگشت</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- معرفی -->
+        <div class="tab-pane active" data-pane="intro">
+          <div class="article-body">
+            <%- p.description || p.short_desc || '<p class="text-muted">توضیحاتی برای این محصول ثبت نشده است.</p>' %>
+          </div>
+          <% if (p.attribute_groups && p.attribute_groups.length) { %>
+            <h3 class="mt-30 mb-14" style="font-size:1rem">ویژگی‌های محصول</h3>
+            <div class="grid g-3">
+              <% p.attribute_groups.forEach(function (g) { %>
+                <div class="card"><div class="card-body p-14">
+                  <div class="text-xs text-muted mb-6"><%= g.name %></div>
+                  <div class="flex gap-6 flex-wrap"><% g.selected_titles.forEach(function (t) { %><span class="tag"><%= t %></span><% }) %><% if (!g.selected_titles.length) { %><span class="text-xs text-muted">—</span><% } %></div>
+                </div></div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- مشخصات -->
+        <div class="tab-pane" data-pane="specs" id="specs">
+          <% if (p.specs && p.specs.length) { %>
+            <table class="spec-table">
+              <% p.specs.forEach(function (sp) { %><tr><th><%= sp.title %></th><td><%= sp.value %></td></tr><% }) %>
+            </table>
+          <% } else { %><p class="text-muted">مشخصاتی ثبت نشده است.</p><% } %>
+          <% if (p.sku || p.weight) { %>
+            <table class="spec-table mt-20">
+              <tr><th>شناسه کالا (SKU)</th><td class="mono" dir="ltr"><%= p.sku || '—' %></td></tr>
+              <tr><th>وزن</th><td><%= h.toPersianDigits(p.weight || 0) %> گرم</td></tr>
+              <tr><th>حداقل سفارش</th><td><%= h.toPersianDigits(p.min_order || 1) %> عدد</td></tr>
+            </table>
+          <% } %>
+        </div>
+
+        <!-- دیدگاه‌ها -->
+        <div class="tab-pane" data-pane="reviews" id="reviews">
+          <div class="review-summary mb-20">
+            <div class="rating-big">
+              <div class="n mono"><%= h.toPersianDigits(p.rating ? Number(p.rating).toFixed(1) : '۰') %></div>
+              <span class="stars">
+                <% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= Math.round(p.rating) ? 'on' : '' %>"><use href="#i-star"/></svg><% } %>
+              </span>
+              <div class="text-xs text-muted mt-6">از <%= h.toPersianDigits(p.rating_count || 0) %> دیدگاه</div>
+              <% if (p.recommend_percent) { %><div class="badge badge-success mt-10"><%= h.toPersianDigits(p.recommend_percent) %>٪ پیشنهاد می‌کنند</div><% } %>
+            </div>
+            <div class="rating-bars">
+              <% ratingDist.forEach(function (r) { %>
+                <div class="rb"><span class="mono" style="width:34px"><%= h.toPersianDigits(r.star) %> ★</span>
+                  <span class="bar"><i style="width:<%= r.pct %>%"></i></span>
+                  <span class="text-muted mono" style="width:34px;text-align:left"><%= h.toPersianDigits(r.count) %></span></div>
+              <% }) %>
+            </div>
+          </div>
+
+          <% if (user) { %>
+            <button class="btn btn-outline mb-20" type="button" data-modal-open="reviewModal"><svg><use href="#i-edit"/></svg> ثبت دیدگاه و امتیاز</button>
+          <% } else { %>
+            <a class="btn btn-outline mb-20" href="/login?prev=<%= encodeURIComponent(path) %>#reviews"><svg><use href="#i-user"/></svg> برای ثبت دیدگاه وارد شوید</a>
+          <% } %>
+
+          <% if (p.reviews.length) { %>
+            <% p.reviews.forEach(function (r) { %>
+              <article class="review-item">
+                <div class="review-head">
+                  <span class="avatar"><% if (r.avatar) { %><img src="<%= r.avatar %>" alt=""><% } else { %><%= (r.author || 'ک').slice(0, 1) %><% } %></span>
+                  <div class="grow">
+                    <div class="semibold text-sm"><%= r.author || 'کاربر بالی‌وو' %> <% if (r.is_buyer) { %><span class="badge badge-success">خریدار</span><% } %></div>
+                    <div class="text-xs text-muted"><%= h.formatJalali(r.created_at) %> · <%= h.timeAgo(r.created_at) %></div>
+                  </div>
+                  <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+                </div>
+                <% if (r.title) { %><div class="bold mb-6"><%= r.title %></div><% } %>
+                <p class="text-sm m-0" style="line-height:2"><%= r.body %></p>
+                <% if ((r.pros && r.pros.length) || (r.cons && r.cons.length)) { %>
+                  <div class="pros-cons">
+                    <div class="pros"><div class="text-xs text-success semibold">نقاط قوت</div><ul><% (r.pros || []).forEach(function (x) { %><li><%= x %></li><% }) %></ul></div>
+                    <div class="cons"><div class="text-xs text-danger semibold">نقاط ضعف</div><ul><% (r.cons || []).forEach(function (x) { %><li><%= x %></li><% }) %></ul></div>
+                  </div>
+                <% } %>
+              </article>
+            <% }) %>
+            <% if (p.rating_count > p.reviews.length) { %><a class="btn btn-sm w-100" href="/products?search=<%= encodeURIComponent(p.title) %>">مشاهده <%= h.toPersianDigits(p.rating_count - p.reviews.length) %> دیدگاه دیگر</a><% } %>
+          <% } else { %>
+            <div class="empty"><svg><use href="#i-comment"/></svg><h4>هنوز دیدگاهی ثبت نشده</h4><p class="text-sm">اولین نفری باشید که تجربه خرید خود را با دیگران به اشتراک می‌گذارد.</p></div>
+          <% } %>
+        </div>
+
+        <!-- پرسش و پاسخ -->
+        <div class="tab-pane" data-pane="qa" id="qa">
+          <% if (user) { %>
+            <form class="card mb-20" data-ajax action="/api/products/<%= p.id %>/question" method="post">
+              <div class="card-body">
+                <div class="field mb-10">
+                  <label for="qBody">پرسش خود را درباره این محصول بپرسید</label>
+                  <textarea id="qBody" name="body" class="textarea" required maxlength="1000" placeholder="مثلاً: آیا این کالا گارانتی تعویض دارد؟"></textarea>
+                </div>
+                <button class="btn btn-primary btn-sm" type="submit"><svg><use href="#i-send"/></svg> ثبت پرسش</button>
+              </div>
+            </form>
+          <% } else { %>
+            <a class="btn btn-outline mb-20" href="/login?prev=<%= encodeURIComponent(path) %>">برای پرسیدن سوال وارد شوید</a>
+          <% } %>
+
+          <% if (p.questions.length) { %>
+            <% p.questions.forEach(function (qq) { %>
+              <div class="card mb-14"><div class="card-body">
+                <div class="flex items-start gap-10">
+                  <span class="badge badge-primary" style="flex:none">پرسش</span>
+                  <div class="grow">
+                    <p class="m-0 text-sm" style="line-height:2"><%= qq.body %></p>
+                    <div class="text-xs text-muted mt-6"><%= qq.author || 'کاربر' %> · <%= h.timeAgo(qq.created_at) %></div>
+                  </div>
+                </div>
+                <% (qq.answers || []).forEach(function (a) { %>
+                  <div class="flex items-start gap-10 mt-14" style="border-top:1px dashed var(--border);padding-top:12px">
+                    <span class="badge badge-success" style="flex:none">پاسخ</span>
+                    <div class="grow">
+                      <p class="m-0 text-sm" style="line-height:2"><%= a.body %></p>
+                      <div class="text-xs text-muted mt-6"><%= a.author || (a.is_seller ? 'فروشنده' : 'کاربر') %> · <%= h.timeAgo(a.created_at) %></div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div></div>
+            <% }) %>
+          <% } else { %>
+            <div class="empty"><svg><use href="#i-question"/></svg><h4>پرسشی ثبت نشده است</h4></div>
+          <% } %>
+        </div>
+
+        <!-- روند قیمت -->
+        <div class="tab-pane" data-pane="price-chart">
+          <% if (history.length > 1) { %>
+            <div class="chart-box">
+              <h4>تغییرات قیمت در <%= h.toPersianDigits(history.length) %> بروزرسانی اخیر</h4>
+              <canvas class="chart" data-chart='<%- JSON.stringify({
+                type: 'line',
+                labels: history.map(function (x) { return h.formatJalali(x.created_at).slice(5); }),
+                series: [{ data: history.map(function (x) { return x.price; }) }]
+              }) %>'></canvas>
+            </div>
+            <table class="spec-table mt-20">
+              <thead><tr><th>تاریخ</th><th>قیمت</th><th>قیمت قبل</th><th>تغییر</th></tr></thead>
+              <tbody>
+                <% history.slice(-12).reverse().forEach(function (x) { %>
+                  <% const diff = x.old_price ? x.price - x.old_price : 0; %>
+                  <tr><td><%= h.formatJalali(x.created_at) %></td><td class="mono"><%= h.fa(x.price) %></td>
+                    <td class="mono text-muted"><%= x.old_price ? h.fa(x.old_price) : '—' %></td>
+                    <td class="mono <%= diff < 0 ? 'text-success' : diff > 0 ? 'text-danger' : 'text-muted' %>"><%= diff ? (diff > 0 ? '+' : '') + h.fa(diff) : 'بدون تغییر' %></td></tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } else { %>
+            <div class="empty"><svg><use href="#i-chart"/></svg><h4>داده‌ای برای نمودار قیمت وجود ندارد</h4><p class="text-sm">به محض تغییر قیمت محصول، روند آن در این بخش نمایش داده می‌شود.</p></div>
+          <% } %>
+        </div>
+
+        <!-- ارسال -->
+        <div class="tab-pane" data-pane="shipping">
+          <div class="grid g-3">
+            <div class="card"><div class="card-body text-center">
+              <svg width="30" height="30" style="color:var(--brand)"><use href="#i-truck"/></svg>
+              <div class="bold mt-10">زمان ارسال</div>
+              <p class="text-sm text-muted m-0 mt-6"><%= setting('shipping_note', 'ارسال از ۱ روز کاری در تهران و ۲ تا ۴ روز کاری در شهرستان‌ها') %></p>
+            </div></div>
+            <div class="card"><div class="card-body text-center">
+              <svg width="30" height="30" style="color:var(--brand)"><use href="#i-rotate"/></svg>
+              <div class="bold mt-10">بازگشت کالا</div>
+              <p class="text-sm text-muted m-0 mt-6"><%= setting('return_days', '7') %> روز مهلت بازگشت بدون قید و شرط برای کالاهای سالم و باز نشده.</p>
+            </div></div>
+            <div class="card"><div class="card-body text-center">
+              <svg width="30" height="30" style="color:var(--brand)"><use href="#i-shield"/></svg>
+              <div class="bold mt-10">گارانتی</div>
+              <p class="text-sm text-muted m-0 mt-6"><%= p.warranty || setting('warranty_note', 'ضمانت اصالت و سلامت فیزیکی کالا توسط فروشگاه') %></p>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <% if (p.related && p.related.length) { %>
+    <section class="section" data-reveal>
+      <div class="section-head"><h2>محصولات مرتبط</h2><a class="link-more" href="/products?cat=<%= p.category_slug %>">همه <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a></div>
+      <div class="products-grid">
+        <% p.related.forEach(function (rp) { %><%- include('../partials/product-card', { product: rp }) %><% }) %>
+      </div>
+    </section>
+  <% } %>
+</div>
+</main>
+
+<!-- مودال ثبت دیدگاه -->
+<div class="modal-backdrop" id="reviewModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>ثبت دیدگاه برای «<%= h.truncate(p.title, 40) %>»</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form data-ajax action="/api/products/<%= p.id %>/review" method="post" id="reviewForm">
+      <div class="modal-body">
+        <div class="field">
+          <label>امتیاز شما <span class="req">*</span></label>
+          <div class="flex items-center gap-10">
+            <div class="stars" data-rating style="cursor:pointer">
+              <% for (let i = 1; i <= 5; i++) { %><svg data-value="<%= i %>" style="cursor:pointer"><use href="#i-star"/></svg><% } %>
+              <input type="hidden" name="rating" value="5">
+            </div>
+            <span class="text-xs text-muted">روی ستاره‌ها کلیک کنید</span>
+          </div>
+        </div>
+        <div class="field"><label for="rTitle">عنوان دیدگاه</label><input id="rTitle" class="input" name="title" maxlength="120" placeholder="خلاصه تجربه شما"></div>
+        <div class="field"><label for="rBody">متن دیدگاه <span class="req">*</span></label><textarea id="rBody" class="textarea" name="body" required minlength="10" placeholder="تجربه خرید، کیفیت کالا، نقاط قوت و ضعف…"></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label>نقاط قوت (هر خط یکی)</label><textarea class="textarea" name="pros_text" style="min-height:80px" placeholder="کیفیت ساخت&#10;باتری قوی"></textarea></div>
+          <div class="field"><label>نقاط ضعف (هر خط یکی)</label><textarea class="textarea" name="cons_text" style="min-height:80px" placeholder="وزن زیاد"></textarea></div>
+        </div>
+        <label class="check"><input type="checkbox" name="recommend" value="1" checked> خرید این محصول را به دیگران پیشنهاد می‌کنم</label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button><button class="btn btn-primary" type="submit">ارسال دیدگاه</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- مودال استعلام -->
+<div class="modal-backdrop" id="inquiryModal">
+  <div class="modal">
+    <div class="modal-head"><h3>استعلام قیمت و موجودی</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/form/price-inquiry">
+      <div class="modal-body">
+        <input type="hidden" name="product" value="<%= p.title %>">
+        <div class="field"><label for="iqName">نام و نام خانوادگی</label><input class="input" id="iqName" name="name" required></div>
+        <div class="field"><label for="iqPhone">شماره تماس</label><input class="input" id="iqPhone" name="phone" type="tel" dir="ltr" required placeholder="09xxxxxxxxx"></div>
+        <div class="field"><label for="iqQty">تعداد مورد نیاز</label><input class="input" id="iqQty" name="qty" type="number" min="1" value="1"></div>
+        <div class="field"><label for="iqNote">توضیحات</label><textarea class="textarea" id="iqNote" name="note"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button><button class="btn btn-primary" type="submit">ثبت درخواست</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- مودال اعلان موجودی -->
+<div class="modal-backdrop" id="stockAlertModal">
+  <div class="modal">
+    <div class="modal-head"><h3>اطلاع‌رسانی موجودی</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <% if (user) { %>
+      <form method="post" action="/alerts">
+        <div class="modal-body">
+          <input type="hidden" name="product_id" value="<%= p.id %>">
+          <p class="text-sm">به محض موجود شدن این کالا یا شروع تخفیف آن، با پیامک و اعلان داخلی به شما خبر می‌دهیم.</p>
+          <label class="check mb-6"><input type="radio" name="kind" value="in_stock" checked> اعلام موجودی</label>
+          <label class="check"><input type="radio" name="kind" value="on_sale"> اعلام تخفیف</label>
+        </div>
+        <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button><button class="btn btn-primary" type="submit">ثبت اعلان</button></div>
+      </form>
+    <% } else { %>
+      <div class="modal-body"><p class="text-sm">برای ثبت اعلان موجودی وارد حساب کاربری خود شوید.</p></div>
+      <div class="modal-foot"><a class="btn btn-primary" href="/login?prev=<%= encodeURIComponent(path) %>">ورود / ثبت‌نام</a></div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  // تبدیل نقاط قوت/ضعف چندخطی به آرایه
+  (function () {
+    var f = document.getElementById('reviewForm');
+    if (!f) return;
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(f);
+      ['pros', 'cons'].forEach(function (k) {
+        (fd.get(k + '_text') || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (v) { fd.append(k, v); });
+        fd.delete(k + '_text');
+      });
+      fetch(f.action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { toast(d.message || (d.ok ? 'ثبت شد' : d.error || 'خطا'), d.ok ? 'success' : 'danger'); if (d.ok) closeModal(); })
+        .catch(function () { toast('خطای اتصال', 'danger'); });
+    });
+  })();
+</script>
+
+<%- include('../partials/store-footer') %>

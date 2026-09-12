@@ -1,0 +1,172 @@
+<%
+  const TYPES = { info: 'اطلاع‌رسانی', success: 'موفقیت', warning: 'هشدار', danger: 'خطا', order: 'سفارش', wallet: 'کیف پول', promo: 'پیشنهاد ویژه' };
+  const canSend = can('notifications.send');
+  const smsEnabled = String(setting('sms_enabled', '0')) !== '0';
+  const readCount = recent.filter(function (n) { return n.read_at; }).length;
+  const smsSent = recent.filter(function (n) { return n.sms_sent; }).length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">ارسال اعلان گروهی <span class="badge badge-outline"><%= h.toPersianDigits(recent.length) %> اعلان اخیر</span></h2>
+  <div class="text-xs text-muted">اعلان‌ها در زنگوله پنل کاربری و (در صورت فعال بودن) با پیامک ارسال می‌شوند.</div>
+</div>
+
+<div class="stat-cards mb-20">
+  <% segments.forEach(function (s) { %>
+    <div class="stat-card"><span class="ic"><svg><use href="#i-users"/></svg></span>
+      <div><div class="v mono"><%= h.toPersianDigits(s.count) %></div><div class="l"><%= s.title %></div></div></div>
+  <% }) %>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اعلان جدید</h3></div>
+      <div class="card-body">
+        <% if (canSend) { %>
+          <form method="post" action="/admin/system/notifications/send">
+            <div class="field"><label>گروه گیرندگان <i class="req">*</i></label>
+              <div class="grid g-3">
+                <% segments.forEach(function (s, i) { %>
+                  <label class="check" style="padding:9px 12px;border:1px solid var(--border);border-radius:12px">
+                    <input type="radio" name="segment" value="<%= s.key %>" <%= i === 0 ? 'checked' : '' %> data-seg>
+                    <span class="text-xs"><%= s.title %> <span class="badge badge-outline text-2xs"><%= h.toPersianDigits(s.count) %></span></span>
+                  </label>
+                <% }) %>
+                <label class="check" style="padding:9px 12px;border:1px solid var(--border);border-radius:12px">
+                  <input type="radio" name="segment" value="phones" data-seg>
+                  <span class="text-xs">شماره‌های دلخواه</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field hidden" id="phonesBox">
+              <label for="n_phones">شماره‌ها (هر خط یکی یا با کاما جدا کنید)</label>
+              <textarea class="textarea mono" id="n_phones" name="phones" rows="4" dir="ltr" placeholder="09121234567&#10;09351234567"></textarea>
+              <div class="help">فقط شماره‌هایی که در سیستم کاربر دارند اعلان دریافت می‌کنند.</div>
+            </div>
+
+            <div class="grid g-2">
+              <div class="field"><label for="n_title">عنوان <i class="req">*</i></label>
+                <input class="input" id="n_title" name="title" required maxlength="90" placeholder="جشنواره آخر هفته"></div>
+              <div class="field"><label for="n_type">نوع اعلان</label>
+                <select class="select" id="n_type" name="type">
+                  <% Object.keys(TYPES).forEach(function (k) { %><option value="<%= k %>"><%= TYPES[k] %></option><% }) %>
+                </select></div>
+            </div>
+            <div class="field"><label for="n_body">متن اعلان</label>
+              <textarea class="textarea" id="n_body" name="body" rows="3" maxlength="300" placeholder="تا ۴۰٪ تخفیف روی محصولات منتخب — فقط تا پایان هفته"></textarea></div>
+            <div class="grid g-2">
+              <div class="field"><label for="n_link">لینک مقصد</label>
+                <input class="input mono" id="n_link" name="link" dir="ltr" placeholder="/products?special=1"></div>
+              <div class="field"><label>ارسال پیامک</label>
+                <label class="switch-row"><input type="checkbox" name="sendSms" value="1" <%= smsEnabled ? '' : 'disabled' %>><span>همزمان پیامک هم ارسال شود <%= smsEnabled ? '' : '(درگاه پیامکی غیرفعال است)' %></span></label></div>
+            </div>
+            <div class="flex items-center gap-10 flex-wrap">
+              <button class="btn btn-primary" type="submit" data-confirm-click="اعلان برای گروه انتخاب‌شده ارسال شود؟"><svg><use href="#i-send"/></svg> ارسال اعلان</button>
+              <span class="text-2xs text-muted">پس از ارسال، تعداد گیرندگان در پیام موفقیت نمایش داده می‌شود.</span>
+            </div>
+          </form>
+        <% } else { %>
+          <div class="empty" style="padding:24px"><p class="text-sm">برای ارسال اعلان به دسترسی «ارسال اعلان» نیاز دارید.</p></div>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اعلان‌های اخیر</h3>
+        <div class="flex gap-6">
+          <span class="badge badge-outline text-2xs">خوانده‌شده: <%= h.toPersianDigits(readCount) %></span>
+          <span class="badge badge-outline text-2xs">پیامک‌شده: <%= h.toPersianDigits(smsSent) %></span>
+        </div>
+      </div>
+      <% if (recent.length) { %>
+        <div class="table-wrap"><table class="data compact">
+          <thead><tr><th>گیرنده</th><th>اعلان</th><th>نوع</th><th>پیامک</th><th>تاریخ</th><th>وضعیت</th></tr></thead>
+          <tbody><% recent.forEach(function (n) { %>
+            <tr>
+              <td class="text-xs">
+                <% if (n.user_id && can('users.view')) { %><a href="/admin/people/users/<%= n.user_id %>"><%= n.name || 'کاربر' %></a>
+                <% } else { %><%= n.name || 'کاربر' %><% } %>
+                <div class="mono text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(n.phone || '') %></div>
+              </td>
+              <td style="max-width:320px">
+                <b class="text-xs block"><%= n.title %></b>
+                <% if (n.body) { %><span class="text-2xs text-muted"><%= h.truncate(n.body, 70) %></span><% } %>
+                <% if (n.link) { %><div class="mono text-2xs text-muted" dir="ltr"><%= n.link %></div><% } %>
+              </td>
+              <td><span class="badge <%= n.type === 'danger' ? 'badge-danger' : n.type === 'warning' ? 'badge-warning' : n.type === 'success' ? 'badge-success' : 'badge-outline' %> text-2xs"><%= TYPES[n.type] || n.type %></span></td>
+              <td class="text-2xs"><%= n.sms_sent ? 'ارسال شد' : '—' %></td>
+              <td class="text-2xs"><%= h.formatJalali(n.created_at) %><div class="text-muted"><%= h.timeAgo(n.created_at) %></div></td>
+              <td><span class="badge <%= n.read_at ? 'badge-success' : 'badge-outline' %> text-2xs"><%= n.read_at ? 'خوانده شد' : 'خوانده نشده' %></span></td>
+            </tr>
+          <% }) %></tbody></table></div>
+      <% } else { %>
+        <div class="empty" style="padding:24px"><p class="text-sm">اعلانی ارسال نشده است.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">قالب‌های آماده</h3></div>
+      <div class="card-body stack" style="gap:8px">
+        <% [
+             ['پیشنهاد ویژه', 'تخفیف محدود زمانی روی محصولات منتخب — همین حالا بررسی کنید.', '/products?special=1', 'promo'],
+             ['سبد خرید فراموش‌شده', 'سفارش شما هنوز تکمیل نشده؛ موجودی محصولات در حال اتمام است.', '/user/cart-reminder', 'info'],
+             ['کد تخفیف خوش‌آمد', 'به مناسبت عضویت شما، یک کد تخفیف اختصاصی در پنل کاربری ثبت شد.', '/user/coupons', 'success'],
+             ['به‌روزرسانی سفارش', 'وضعیت سفارش شما تغییر کرد؛ برای مشاهده جزئیات وارد پنل شوید.', '/user/orders', 'order'],
+             ['شارژ کیف پول', 'موجودی کیف پول شما افزایش یافت و قابل استفاده در خرید بعدی است.', '/user/wallet', 'wallet'],
+           ].forEach(function (tpl) { %>
+          <button class="btn btn-sm btn-ghost w-100" type="button" style="justify-content:flex-start"
+                  data-tpl="<%= tpl[0] %>" data-body="<%= tpl[1] %>" data-link="<%= tpl[2] %>" data-type="<%= tpl[3] %>">
+            <svg style="width:14px;height:14px"><use href="#i-message"/></svg> <%= tpl[0] %></button>
+        <% }) %>
+        <div class="text-2xs text-muted">با کلیک، عنوان و متن و لینک پر می‌شود؛ سپس گروه گیرندگان را انتخاب کنید.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">کانال‌های اطلاع‌رسانی</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th>اعلان درون‌سایتی</th><td><span class="badge badge-success text-2xs">فعال</span></td></tr>
+          <tr><th>پیامک</th><td><span class="badge <%= smsEnabled ? 'badge-success' : 'badge-warning' %> text-2xs"><%= smsEnabled ? 'فعال' : 'غیرفعال' %></span></td></tr>
+          <tr><th>ایمیل</th><td><span class="badge badge-outline text-2xs">در صورت پیکربندی SMTP</span></td></tr>
+        </tbody></table>
+        <div class="stack mt-14" style="gap:8px">
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/sms"><svg><use href="#i-message"/></svg> تنظیمات پیامک</a>
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/people/users"><svg><use href="#i-users"/></svg> کاربران</a>
+          <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/abandoned-carts"><svg><use href="#i-cart"/></svg> سبدهای رها شده</a>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script>
+  (function () {
+    const radios = document.querySelectorAll('[data-seg]');
+    const box = document.getElementById('phonesBox');
+    function sync() {
+      const sel = document.querySelector('[data-seg]:checked');
+      if (box) box.classList.toggle('hidden', !sel || sel.value !== 'phones');
+    }
+    radios.forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+    document.querySelectorAll('[data-tpl]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const t = document.getElementById('n_title'), body = document.getElementById('n_body'),
+              link = document.getElementById('n_link'), type = document.getElementById('n_type');
+        if (t) t.value = b.dataset.tpl;
+        if (body) body.value = b.dataset.body;
+        if (link) link.value = b.dataset.link;
+        if (type) type.value = b.dataset.type;
+        t && t.focus();
+      });
+    });
+  })();
+</script>
+
+<%- include('../partials/panel-foot') %>

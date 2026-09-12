@@ -1,0 +1,117 @@
+<%
+  const STATUS = { pending: ['در انتظار تایید', 'badge-warning'], active: ['فعال', 'badge-success'], blocked: ['مسدود', 'badge-danger'], rejected: ['رد شده', 'badge-danger'] };
+  const canManage = can('sellers.manage'), canApprove = can('sellers.approve');
+  const pendingCount = rows.filter(function (r) { return r.status === 'pending'; }).length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">فروشندگان <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> فروشگاه</span>
+    <% if (pendingCount) { %><span class="badge badge-warning"><%= h.toPersianDigits(pendingCount) %> در انتظار تایید</span><% } %></h2>
+  <div class="text-xs text-muted">فروشندگان می‌توانند محصولات خود را مدیریت و درآمدشان را برداشت کنند.</div>
+</div>
+
+<section class="card mb-20">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/people/sellers">
+      <div class="field grow"><label for="f_search">جستجو</label>
+        <input class="input input-sm" id="f_search" type="search" name="search" value="<%= query.search || '' %>" placeholder="نام فروشگاه / موبایل / کد ملی"></div>
+      <div class="field"><label for="f_status">وضعیت</label>
+        <select class="select" id="f_status" name="status">
+          <option value="">همه</option>
+          <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option><% }) %>
+        </select></div>
+      <div class="flex gap-8 align-end">
+        <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg> فیلتر</button>
+        <a class="btn btn-sm btn-ghost" href="/admin/people/sellers">حذف فیلترها</a>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th style="width:44px">#</th><th>فروشگاه</th><th>مالک</th><th>تماس</th><th>محصولات</th>
+          <th>درآمد موفق</th><th>کمیسیون</th><th>موجودی</th><th>عملکرد</th><th>وضعیت</th>
+          <% if (canApprove || canManage) { %><th>عملیات</th><% } %>
+        </tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { const st = STATUS[r.status] || [r.status, 'badge-outline']; %>
+            <tr>
+              <td class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(r.id) %></td>
+              <td>
+                <div class="flex items-center gap-10">
+                  <span class="avatar"><% if (r.logo) { %><img src="<%= r.logo %>" alt=""><% } else { %><%= String(r.shop_name).trim().charAt(0) %><% } %></span>
+                  <div class="min-0">
+                    <div class="flex items-center gap-6">
+                      <a class="text-sm bold" href="/admin/people/sellers/<%= r.id %>"><%= r.shop_name %></a>
+                      <% if (r.is_main) { %><span class="badge badge-info text-2xs">فروشگاه اصلی</span><% } %>
+                      <% if (r.direct_shipping) { %><span class="badge badge-outline text-2xs">ارسال مستقیم</span><% } %>
+                    </div>
+                    <div class="text-2xs text-muted mono" dir="ltr">/seller/<%= r.shop_slug %><% if (r.shop_en) { %> · <%= r.shop_en %><% } %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-xs">
+                <%= r.owner_name || '—' %>
+                <% if (r.owner_status && r.owner_status !== 'active') { %><span class="badge badge-danger text-2xs"><%= r.owner_status %></span><% } %>
+                <div class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(r.owner_phone || '—') %></div>
+              </td>
+              <td class="text-2xs">
+                <span class="mono" dir="ltr"><%= h.toPersianDigits(r.phone || '—') %></span>
+                <div class="text-muted"><%= [r.province, r.city].filter(Boolean).join(' / ') || '—' %></div>
+              </td>
+              <td class="mono"><%= h.toPersianDigits(r.products_count) %></td>
+              <td class="mono text-xs bold"><%= h.fa(r.revenue) %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.commission) %>٪</td>
+              <td class="mono text-xs <%= r.wallet > 0 ? 'text-success' : 'text-muted' %>"><%= h.fa(r.wallet) %></td>
+              <td class="text-2xs">
+                <div class="flex items-center gap-6">
+                  <svg style="width:12px;height:12px;fill:var(--warning)"><use href="#i-star"/></svg>
+                  <span class="mono"><%= h.toPersianDigits(r.score) %></span>
+                </div>
+                <div class="text-muted">موفق <span class="mono"><%= h.toPersianDigits(r.success_rate) %>٪</span> · لغو <span class="mono"><%= h.toPersianDigits(r.cancel_rate) %>٪</span></div>
+              </td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span>
+                <div class="text-2xs text-muted mt-4"><%= h.formatJalali(r.created_at) %></div></td>
+              <% if (canApprove || canManage) { %>
+                <td class="actions">
+                  <a class="btn btn-sm btn-ghost" href="/admin/people/sellers/<%= r.id %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a>
+                  <% if (canApprove) { %>
+                    <% if (r.status !== 'active') { %>
+                      <form method="post" action="/admin/people/sellers/<%= r.id %>/status" class="m-0">
+                        <input type="hidden" name="status" value="active">
+                        <button class="btn btn-sm btn-ghost text-success" type="submit" title="تایید فروشگاه" data-confirm-click="فروشگاه تایید و فعال شود؟"><svg><use href="#i-check"/></svg></button>
+                      </form>
+                    <% } else { %>
+                      <form method="post" action="/admin/people/sellers/<%= r.id %>/status" class="m-0">
+                        <input type="hidden" name="status" value="blocked">
+                        <button class="btn btn-sm btn-ghost text-danger" type="submit" title="مسدودسازی" data-confirm-click="فروشگاه مسدود شود؟"><svg><use href="#i-ban"/></svg></button>
+                      </form>
+                    <% } %>
+                  <% } %>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/people/sellers', extraQuery: query }) %>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-store"/></svg></span>
+      <h3>فروشگاهی یافت نشد</h3>
+      <p>برای فعال‌سازی پنل فروشندگان، از بخش تنظیمات «حالت چند فروشندگی» را روشن کنید.</p>
+      <div class="flex gap-8" style="justify-content:center">
+        <a class="btn btn-sm" href="/admin/people/sellers">همه فروشندگان</a>
+        <% if (can('settings.edit')) { %><a class="btn btn-sm btn-primary" href="/admin/settings/general?group=marketplace">تنظیمات چند فروشندگی</a><% } %>
+      </div>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

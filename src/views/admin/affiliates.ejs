@@ -1,0 +1,147 @@
+<%
+  const CS = { pending: ['در انتظار', 'badge-warning'], approved: ['تایید شده', 'badge-info'], paid: ['پرداخت شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+  const LEVELS = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' };
+  const canManage = can('affiliates.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">همکاری در فروش <span class="badge badge-outline"><%= h.toPersianDigits(affiliates.length) %> همکار فعال</span></h2>
+  <div class="text-xs text-muted">لینک اختصاصی هر همکار با <span class="mono" dir="ltr">?ref=CODE</span> ساخته می‌شود و پورسانت‌ها در سه سطح ثبت می‌گردند.</div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.total) %></div><div class="l">کل پورسانت‌ها (<%= h.toPersianDigits(stats.count) %> رکورد)</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.pending) %></div><div class="l">در انتظار پرداخت</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.paid) %></div><div class="l">پرداخت شده</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-eye"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.clicks) %></div><div class="l">کلیک روی لینک‌های همکاری</div></div></div>
+</div>
+
+<section class="card mb-20">
+  <div class="card-head"><h3 class="text-sm">همکاران</h3></div>
+  <% if (affiliates.length) { %>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>همکار</th><th>کد همکاری</th><th>لینک اختصاصی</th><th>زیرمجموعه‌ها</th><th>پورسانت کل</th><th>کیف پول</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %></tr></thead>
+      <tbody><% affiliates.forEach(function (a) { %>
+        <tr>
+          <td class="text-xs">
+            <div class="flex items-center gap-10">
+              <span class="avatar sm"><%= String(a.name || a.phone || 'ه').trim().charAt(0) %></span>
+              <div>
+                <% if (can('users.view')) { %><a class="bold" href="/admin/people/users/<%= a.id %>"><%= a.name || 'بدون نام' %></a><% } else { %><b><%= a.name || 'بدون نام' %></b><% } %>
+                <div class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(a.phone) %></div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-outline mono" dir="ltr"><%= a.affiliate_code || '—' %></span></td>
+          <td>
+            <% if (a.affiliate_code) { %>
+              <div class="flex items-center gap-6">
+                <span class="mono text-2xs text-muted" dir="ltr">/?ref=<%= a.affiliate_code %></span>
+                <button class="btn btn-sm btn-ghost" type="button" title="کپی لینک"
+                        data-copy="<%= a.affiliate_code %>"><svg><use href="#i-copy"/></svg></button>
+              </div>
+            <% } else { %><span class="text-muted text-2xs">کد تولید نشده</span><% } %>
+          </td>
+          <td class="mono text-xs"><%= h.toPersianDigits(a.referrals || 0) %></td>
+          <td class="mono text-xs bold <%= a.earned > 0 ? 'text-success' : '' %>"><%= h.fa(a.earned || 0) %></td>
+          <td class="mono text-xs"><%= h.fa(a.wallet || 0) %></td>
+          <td><span class="badge <%= a.is_affiliate ? 'badge-success' : 'badge-danger' %>"><%= a.is_affiliate ? 'فعال' : 'غیرفعال' %></span></td>
+          <% if (canManage) { %>
+            <td class="actions">
+              <form method="post" action="/admin/people/affiliates/<%= a.id %>/status" class="m-0">
+                <input type="hidden" name="user_id" value="<%= a.id %>">
+                <input type="hidden" name="enabled" value="<%= a.is_affiliate ? '0' : '1' %>">
+                <button class="btn btn-sm btn-ghost <%= a.is_affiliate ? 'text-danger' : 'text-success' %>" type="submit"
+                        data-confirm-click="<%= a.is_affiliate ? 'همکاری این کاربر غیرفعال شود؟' : 'همکاری این کاربر فعال شود؟' %>">
+                  <svg><use href="#i-<%= a.is_affiliate ? 'ban' : 'check' %>"/></svg> <%= a.is_affiliate ? 'غیرفعال' : 'فعال' %></button>
+              </form>
+            </td>
+          <% } %>
+        </tr>
+      <% }) %></tbody></table></div>
+  <% } else { %>
+    <div class="empty" style="padding:24px">
+      <span class="ic"><svg><use href="#i-share"/></svg></span>
+      <h3>همکار فروشی ثبت‌نام نکرده است</h3>
+      <p>کاربران از پنل کاربری می‌توانند درخواست همکاری در فروش دهند و لینک اختصاصی دریافت کنند.</p>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">پورسانت‌ها</h3>
+    <span class="text-2xs text-muted">۲۰۰ رکورد اخیر</span></div>
+  <% if (commissions.length) { %>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th>شناسه</th><th>همکار</th><th>سطح</th><th>سفارش</th><th>محصول</th><th>درصد</th><th>مبلغ</th><th>تاریخ</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %></tr></thead>
+      <tbody><% commissions.forEach(function (c) { const st = CS[c.status] || [c.status, 'badge-outline']; %>
+        <tr>
+          <td class="mono text-2xs text-muted" dir="ltr">#<%= h.toPersianDigits(c.id) %></td>
+          <td class="text-xs">
+            <% if (c.user_id && can('users.view')) { %><a href="/admin/people/users/<%= c.user_id %>"><%= c.affiliate_name || 'همکار #' + c.user_id %></a>
+            <% } else { %><%= c.affiliate_name || '—' %><% } %>
+          </td>
+          <td><span class="badge badge-outline text-2xs"><%= LEVELS[c.level] || c.level %></span></td>
+          <td class="text-2xs">
+            <% if (c.order_code && can('orders.view')) { %><a class="mono" dir="ltr" href="/admin/orders/<%= c.order_code %>"><%= c.order_code %></a>
+            <% } else { %><span class="mono"><%= c.order_code || '—' %></span><% } %>
+          </td>
+          <td class="text-2xs"><%= h.truncate(c.product_title || '—', 34) %></td>
+          <td class="mono text-xs"><%= h.toPersianDigits(c.percent) %>٪</td>
+          <td class="mono text-xs bold"><%= h.fa(c.amount) %></td>
+          <td class="text-2xs"><%= h.formatJalali(c.created_at) %></td>
+          <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+          <% if (canManage) { %>
+            <td class="actions">
+              <% if (c.status === 'pending') { %>
+                <form method="post" action="/admin/people/affiliates/<%= c.id %>/status" class="m-0">
+                  <input type="hidden" name="commission" value="approved">
+                  <button class="btn btn-sm btn-ghost" type="submit" title="تایید پورسانت"><svg><use href="#i-check"/></svg></button>
+                </form>
+                <form method="post" action="/admin/people/affiliates/<%= c.id %>/status" class="m-0">
+                  <input type="hidden" name="commission" value="rejected">
+                  <button class="btn btn-sm btn-ghost text-danger" type="submit" title="رد پورسانت" data-confirm-click="پورسانت رد شود؟"><svg><use href="#i-x"/></svg></button>
+                </form>
+              <% } %>
+              <% if (c.status !== 'paid') { %>
+                <form method="post" action="/admin/people/affiliates/<%= c.id %>/status" class="m-0">
+                  <input type="hidden" name="commission" value="paid">
+                  <button class="btn btn-sm btn-ghost text-success" type="submit" title="پرداخت و شارژ کیف پول"
+                          data-confirm-click="مبلغ <%= h.fa(c.amount) %> به کیف پول همکار افزوده و پورسانت «پرداخت شده» علامت بخورد؟"><svg><use href="#i-wallet"/></svg></button>
+                </form>
+              <% } %>
+            </td>
+          <% } %>
+        </tr>
+      <% }) %></tbody></table></div>
+  <% } else { %>
+    <div class="empty" style="padding:24px">
+      <span class="ic"><svg><use href="#i-percent"/></svg></span>
+      <h3>پورسانتی ثبت نشده است</h3>
+      <p>با هر خرید از طریق لینک همکار، پورسانت بر اساس درصد تعیین‌شده در تنظیمات ثبت می‌شود.</p>
+      <% if (can('settings.edit')) { %><a class="btn btn-sm btn-primary" href="/admin/settings/general?group=affiliate">تنظیمات درصد پورسانت</a><% } %>
+    </div>
+  <% } %>
+</section>
+
+<script>
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const url = location.origin + '/?ref=' + btn.dataset.copy;
+      const done = function () {
+        const old = btn.innerHTML;
+        btn.innerHTML = '<svg><use href="#i-check"/></svg>';
+        setTimeout(function () { btn.innerHTML = old; }, 1200);
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt('لینک همکاری:', url); });
+      else window.prompt('لینک همکاری:', url);
+    });
+  });
+</script>
+
+<%- include('../partials/panel-foot') %>

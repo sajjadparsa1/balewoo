@@ -1,0 +1,116 @@
+<%
+  const STATUS = { open: ['باز', 'badge-danger'], answered: ['پاسخ داده شده', 'badge-success'], closed: ['بسته شده', 'badge-outline'], pending: ['در انتظار پاسخ شما', 'badge-warning'] };
+  const DEPT = { support: 'پشتیبانی', sales: 'فروش', finance: 'مالی', technical: 'فنی', settlement: 'تسویه', other: 'سایر' };
+  const PRIO = { low: ['کم', 'badge-outline'], normal: ['متوسط', 'badge-warning'], high: ['زیاد', 'badge-danger'], critical: ['بحرانی', 'badge-danger'] };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">ارتباط با مدیریت فروشگاه</h2>
+    <div class="text-xs text-muted mt-4">برای پیگیری تسویه، تایید محصولات، مسائل فنی و کمیسیون تیکت بزنید.</div>
+  </div>
+  <button class="btn btn-primary btn-sm" type="button" data-modal-open="newTicketModal"><svg><use href="#i-plus"/></svg> تیکت جدید</button>
+</div>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">تیکت‌های من</h3>
+      <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> تیکت</span></div>
+    <% if (rows.length) { %>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>کد</th><th>موضوع</th><th>دپارتمان</th><th>اولویت</th><th>پیام‌ها</th><th>آخرین پیام</th><th>وضعیت</th><th></th></tr></thead>
+          <tbody>
+            <% rows.forEach(function (t) { %>
+              <% const st = STATUS[t.status] || [t.status, 'badge-outline']; %>
+              <% const pr = PRIO[t.priority] || ['متوسط', 'badge-outline']; %>
+              <tr>
+                <td class="mono text-xs" dir="ltr"><%= t.code %></td>
+                <td><a class="text-sm bold" href="/seller/tickets/<%= t.code %>"><%= h.truncate(t.subject, 44) %></a>
+                  <div class="text-2xs text-muted"><%= h.formatJalali(t.created_at) %></div></td>
+                <td class="text-xs"><%= DEPT[t.department] || t.department || '—' %></td>
+                <td><span class="badge <%= pr[1] %>"><%= pr[0] %></span></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(t.messages_count || 0) %></td>
+                <td class="text-2xs text-muted"><%= t.last_message_at ? h.timeAgo(t.last_message_at) : '—' %></td>
+                <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+                <td class="actions"><a class="btn btn-sm btn-ghost" href="/seller/tickets/<%= t.code %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="empty"><svg><use href="#i-life-buoy"/></svg>
+        <h4>تیکتی ندارید</h4>
+        <p class="text-sm">اگر درباره تسویه، تایید محصول یا مسائل فنی سوالی دارید، با تیم ما در میان بگذارید.</p>
+        <button class="btn btn-primary btn-sm" type="button" data-modal-open="newTicketModal">ایجاد تیکت</button></div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">موضوعات پرتکرار</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.2">
+        · تایید محصول جدید (بخش محصولات من)<br>
+        · پیگیری تسویه و واریز وجه (بخش تسویه حساب)<br>
+        · تغییر نرخ کمیسیون فروشگاه<br>
+        · مشکلات فنی در بارگذاری تصویر یا موجودی<br>
+        <a class="btn btn-sm btn-outline w-100 mt-10" href="/faq">مشاهده سوالات متداول</a>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات فروشگاه</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>شناسه فروشگاه</th><td class="mono" dir="ltr">#<%= h.toPersianDigits(seller.id) %></td></tr>
+            <tr><th>نام فروشگاه</th><td><%= seller.shop_name %></td></tr>
+            <tr><th>وضعیت</th><td><span class="badge <%= seller.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= seller.status === 'active' ? 'فعال' : seller.status === 'pending' ? 'در انتظار بررسی' : 'مسدود' %></span></td></tr>
+            <tr><th>کمیسیون</th><td class="mono"><%= h.toPersianDigits(seller.commission) %>٪</td></tr>
+          </tbody>
+        </table>
+        <a class="btn btn-sm btn-outline w-100 mt-14" href="/seller/store"><svg><use href="#i-store"/></svg> ویرایش فروشگاه</a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="modal-backdrop" id="newTicketModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>ایجاد تیکت جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/seller/tickets" enctype="multipart/form-data" data-upload-form>
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="st_dept">دپارتمان <span class="req">*</span></label>
+            <select class="select" id="st_dept" name="department" required>
+              <% Object.keys(DEPT).forEach(function (k) { %><option value="<%= k %>"><%= DEPT[k] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="st_prio">اولویت</label>
+            <select class="select" id="st_prio" name="priority">
+              <option value="low">کم</option>
+              <option value="normal" selected>متوسط</option>
+              <option value="high">زیاد</option>
+              <option value="critical">بحرانی</option>
+            </select></div>
+        </div>
+        <div class="field"><label for="st_subject">موضوع <span class="req">*</span></label>
+          <input class="input" id="st_subject" name="subject" maxlength="200" required placeholder="مثلاً: پیگیری واریز تسویه مردادماه"></div>
+        <div class="field"><label for="st_body">شرح <span class="req">*</span></label>
+          <textarea class="textarea" id="st_body" name="body" rows="6" required placeholder="جزئیات، شماره سفارش یا کد پیگیری را بنویسید…"></textarea></div>
+        <div class="field"><label for="st_file">پیوست</label>
+          <div class="dropzone" data-dropzone data-target="#st_file">
+            <svg><use href="#i-paperclip"/></svg>
+            <div class="text-sm">تصویر یا فایل مرتبط را اینجا رها کنید</div>
+            <div class="dz-hint text-xs">حداکثر <%= h.toPersianDigits(setting('max_upload_mb', '5')) %> مگابایت</div>
+          </div>
+          <input class="input mt-10" id="st_file" name="attachment" type="file" accept="image/*,.pdf,.zip">
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-send"/></svg> ارسال تیکت</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>

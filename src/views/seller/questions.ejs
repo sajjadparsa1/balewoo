@@ -1,0 +1,67 @@
+<%
+  const unanswered = rows.filter(function (q) { return !(q.answers || []).length; });
+  const QSTATUS = { pending: ['در انتظار تایید', 'badge-warning'], approved: ['منتشر شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">پرسش‌های مشتریان</h2>
+    <div class="text-xs text-muted mt-4">پاسخ سریع به پرسش‌ها، نرخ تبدیل محصول را بالا می‌برد.</div>
+  </div>
+  <div class="flex gap-8">
+    <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> پرسش</span>
+    <span class="badge <%= unanswered.length ? 'badge-danger' : 'badge-success' %>"><%= h.toPersianDigits(unanswered.length) %> بی‌پاسخ</span>
+    <a class="btn btn-sm btn-outline" href="/seller/reviews"><svg><use href="#i-star"/></svg> دیدگاه‌ها</a>
+  </div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="card-body stack" style="gap:0">
+      <% rows.forEach(function (q) { %>
+        <% const st = QSTATUS[q.status] || [q.status, 'badge-outline']; %>
+        <div class="review-item">
+          <div class="review-head">
+            <div class="grow">
+              <a class="text-sm bold" href="/product/<%= q.slug %>#questions" target="_blank"><%= h.truncate(q.title, 60) %></a>
+              <div class="text-2xs text-muted mt-4"><%= q.author || 'کاربر مهمان' %> · <%= h.formatJalali(q.created_at) %> · <%= h.timeAgo(q.created_at) %></div>
+            </div>
+            <span class="badge <%= st[1] %>"><%= st[0] %></span>
+            <% if (!(q.answers || []).length) { %><span class="badge badge-danger">بی‌پاسخ</span><% } %>
+          </div>
+          <p class="text-sm text-2 m-0 mt-10" style="line-height:2"><%= q.body %></p>
+
+          <% (q.answers || []).forEach(function (a) { %>
+            <div class="mt-14" style="border-top:1px dashed var(--border);padding-top:12px">
+              <div class="flex items-center gap-8">
+                <span class="badge <%= a.role_label === 'seller' ? 'badge-success' : a.role_label === 'admin' ? 'badge-primary' : 'badge-outline' %>">
+                  <%= a.role_label === 'seller' ? 'پاسخ شما' : a.role_label === 'admin' ? 'پشتیبانی' : 'کاربر' %></span>
+                <span class="text-2xs text-muted"><%= a.name || '—' %> · <%= h.timeAgo(a.created_at) %></span>
+              </div>
+              <p class="text-sm m-0 mt-6" style="line-height:2"><%= a.body %></p>
+            </div>
+          <% }) %>
+
+          <form method="post" action="/seller/questions/<%= q.id %>/answer" class="mt-14">
+            <div class="field m-0">
+              <label for="ans_<%= q.id %>"><%= (q.answers || []).length ? 'پاسخ جدید' : 'پاسخ شما' %></label>
+              <textarea class="textarea" id="ans_<%= q.id %>" name="body" rows="2" required placeholder="پاسخ روشن و کوتاه بنویسید…"></textarea>
+            </div>
+            <div class="flex items-center justify-between gap-10 mt-10">
+              <span class="text-2xs text-muted">با ارسال پاسخ، پرسش منتشر و به کاربر اطلاع داده می‌شود.</span>
+              <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-send"/></svg> ارسال پاسخ</button>
+            </div>
+          </form>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-question"/></svg>
+      <h4>پرسشی ثبت نشده است</h4>
+      <p class="text-sm">وقتی مشتریان درباره محصولات شما سوال بپرسند، اینجا نمایش داده می‌شود.</p>
+      <a class="btn btn-primary btn-sm" href="/seller/products">محصولات من</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,46 @@
+<% const statusTitle = { pending: 'در انتظار تایید', approved: 'منتشر شده', rejected: 'رد شده' }; %>
+<%- include('../partials/panel-head') %>
+
+<section class="card">
+  <div class="card-head"><h3>پرسش‌های من</h3><span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> پرسش</span></div>
+  <% if (rows.length) { %>
+    <div class="card-body stack">
+      <% rows.forEach(function (qq) { %>
+        <div class="card">
+          <div class="card-body">
+            <div class="flex items-start gap-10">
+              <span class="badge badge-primary" style="flex:none">پرسش</span>
+              <div class="grow">
+                <p class="m-0 text-sm" style="line-height:2"><%= qq.body %></p>
+                <div class="text-xs text-muted mt-6">
+                  روی <a class="text-brand" href="/product/<%= qq.slug %>"><%= h.truncate(qq.title, 60) %></a>
+                  · <%= h.formatJalali(qq.created_at) %>
+                  · <span class="badge <%= qq.status === 'approved' ? 'badge-success' : qq.status === 'pending' ? 'badge-warning' : 'badge-danger' %>"><%= statusTitle[qq.status] || qq.status %></span>
+                </div>
+              </div>
+            </div>
+            <% (qq.answers || []).forEach(function (a) { %>
+              <div class="flex items-start gap-10 mt-14" style="border-top:1px dashed var(--border);padding-top:12px">
+                <span class="badge badge-success" style="flex:none">پاسخ</span>
+                <div class="grow">
+                  <p class="m-0 text-sm" style="line-height:2"><%= a.body %></p>
+                  <div class="text-xs text-muted mt-6"><%= a.name || (a.is_seller ? 'فروشنده' : 'کاربر') %> · <%= h.timeAgo(a.created_at) %></div>
+                </div>
+              </div>
+            <% }) %>
+            <% if (!(qq.answers || []).length && qq.status === 'approved') { %>
+              <div class="text-xs text-muted mt-10">هنوز پاسخی ثبت نشده است.</div>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-question"/></svg>
+      <h4>پرسشی ثبت نکرده‌اید</h4>
+      <p class="text-sm">در صفحه هر محصول، بخش «پرسش و پاسخ» می‌توانید سوال خود را بپرسید.</p>
+      <a class="btn btn-primary btn-sm" href="/products">مشاهده محصولات</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

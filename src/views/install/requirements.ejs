@@ -1,0 +1,46 @@
+<%
+  const okCount = checks.filter(function (c) { return c.ok; }).length;
+%>
+<%- include('_head', { step: step, title: 'بررسی پیش‌نیازهای سیستم', subtitle: 'پیش از شروع نصب، سازگاری محیط اجرا بررسی می‌شود.' }) %>
+
+<section class="card mb-20">
+  <div class="card-head">
+    <h3 class="text-sm">نتیجه بررسی محیط</h3>
+    <span class="badge <%= allOk ? 'badge-success' : 'badge-warning' %> mono">
+      <%= h.toPersianDigits(okCount) %> از <%= h.toPersianDigits(checks.length) %> مورد تأیید شد</span>
+  </div>
+  <div class="table-wrap"><table class="data">
+    <thead><tr><th>مورد</th><th>نیازمندی</th><th>وضعیت فعلی</th><th>نتیجه</th></tr></thead>
+    <tbody><% checks.forEach(function (c) { %>
+      <tr>
+        <td class="text-xs"><%= c.name %></td>
+        <td class="text-2xs mono"><%= c.required %></td>
+        <td class="text-2xs mono" dir="ltr" style="text-align:right"><%= c.current %></td>
+        <td class="actions">
+          <% if (c.ok) { %><span class="badge badge-success"><svg><use href="#i-check"/></svg> سازگار</span>
+          <% } else { %><span class="badge badge-danger"><svg><use href="#i-x"/></svg> نیاز به رفع</span><% } %>
+        </td>
+      </tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+
+<% if (allOk) { %>
+  <div class="alert alert-success mb-20"><svg><use href="#i-check"/></svg><div class="body text-xs">
+    محیط اجرا برای نصب آماده است. در مرحله بعد اطلاعات فروشگاه را وارد می‌کنید.
+  </div></div>
+  <div class="flex justify-end gap-10">
+    <a class="btn btn-outline btn-sm" href="/install/requirements"><svg><use href="#i-refresh"/></svg> بررسی دوباره</a>
+    <a class="btn btn-primary" href="/install/store">مرحله بعد: اطلاعات فروشگاه <svg><use href="#i-arrow-left"/></svg></a>
+  </div>
+<% } else { %>
+  <div class="alert alert-danger mb-20"><svg><use href="#i-alert"/></svg><div class="body text-xs">
+    برخی پیش‌نیازها برآورده نشده است. موارد قرمز را برطرف کنید (مثلاً با <span class="mono" dir="ltr">npm install</span> یا اصلاح مجوز پوشه‌ها) و سپس دوباره بررسی را اجرا کنید.
+  </div></div>
+  <div class="flex justify-end gap-10">
+    <a class="btn btn-outline btn-sm" href="/install/requirements"><svg><use href="#i-refresh"/></svg> بررسی مجدد</a>
+    <a class="btn btn-primary" href="/install/store">ادامه با وجود هشدار <svg><use href="#i-arrow-left"/></svg></a>
+  </div>
+<% } %>
+
+<%- include('_foot') %>

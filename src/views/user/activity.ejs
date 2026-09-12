@@ -1,0 +1,75 @@
+<%
+  const ACTION = {
+    login: 'ورود به حساب', logout: 'خروج از حساب', otp_sent: 'ارسال کد تایید', register: 'ثبت‌نام',
+    profile_update: 'ویرایش پروفایل', password_change: 'تغییر گذرواژه', session_revoke: 'خاتمه نشست',
+    order_create: 'ثبت سفارش', order_pay: 'پرداخت سفارش', order_cancel: 'لغو سفارش', order_confirm_delivery: 'تایید دریافت سفارش',
+    order_receipt: 'ارسال رسید کارت‌به‌کارت',
+    cart_add: 'افزودن به سبد خرید', cart_update: 'تغییر سبد خرید', cart_remove: 'حذف از سبد خرید',
+    favorite_add: 'افزودن به علاقمندی‌ها', favorite_remove: 'حذف از علاقمندی‌ها',
+    compare_add: 'افزودن به مقایسه', alert_create: 'ثبت اعلان کالا', product_view: 'بازدید محصول',
+    review_create: 'ثبت دیدگاه', question_create: 'ثبت پرسش',
+    ticket_create: 'ایجاد تیکت', ticket_reply: 'پاسخ به تیکت',
+    address_create: 'ثبت نشانی', address_delete: 'حذف نشانی',
+    bank_account_create: 'ثبت حساب بانکی', withdraw_request: 'درخواست برداشت وجه',
+    wallet_charge: 'شارژ کیف پول', preinvoice_pay: 'پرداخت پیش‌فاکتور',
+    affiliate_activate: 'فعال‌سازی همکاری در فروش', referral_register: 'معرفی کاربر جدید',
+    newsletter_subscribe: 'عضویت در خبرنامه', search: 'جستجو',
+  };
+  const ICON = {
+    login: 'log-in', logout: 'log-out', register: 'user-plus', profile_update: 'user', password_change: 'lock',
+    order_create: 'cart', order_pay: 'wallet', order_cancel: 'ban', order_confirm_delivery: 'check',
+    cart_add: 'cart', cart_update: 'cart', cart_remove: 'trash', favorite_add: 'heart', favorite_remove: 'heart',
+    review_create: 'star', question_create: 'question', ticket_create: 'message', ticket_reply: 'message',
+    address_create: 'pin', address_delete: 'trash', bank_account_create: 'bank', withdraw_request: 'bank',
+    wallet_charge: 'wallet', preinvoice_pay: 'wallet', affiliate_activate: 'gift', product_view: 'eye',
+    search: 'search', session_revoke: 'monitor', otp_sent: 'smartphone', newsletter_subscribe: 'mail',
+  };
+  let lastDay = '';
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">گزارش همه فعالیت‌های حساب شما — برای شفافیت و امنیت نگهداری می‌شود.</div>
+  <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> رویداد اخیر</span>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="card-body">
+      <div class="timeline">
+        <% rows.forEach(function (a) { %>
+          <% const day = h.formatJalali(a.created_at); %>
+          <% if (day !== lastDay) { lastDay = day; %>
+            <div class="timeline-day text-xs text-muted bold mt-14 mb-6"><%= day %></div>
+          <% } %>
+          <div class="timeline-item done">
+            <span class="tl-ic"><svg><use href="#i-<%= ICON[a.action] || 'activity' %>"/></svg></span>
+            <div class="grow">
+              <div class="flex items-center gap-8 flex-wrap">
+                <b class="text-sm"><%= ACTION[a.action] || a.action %></b>
+                <% if (a.subject_type) { %><span class="badge badge-outline text-2xs"><%= a.subject_type %><% if (a.subject_id) { %> #<%= h.toPersianDigits(a.subject_id) %><% } %></span><% } %>
+              </div>
+              <% if (a.description) { %><div class="text-xs text-muted mt-4"><%= a.description %></div><% } %>
+              <div class="text-2xs text-muted mt-4">
+                <%= h.formatJalaliLong(a.created_at) %>
+                <% if (a.ip) { %> · <span dir="ltr" class="mono"><%= a.ip %></span><% } %>
+                <% if (a.actor_type && a.actor_type !== 'user') { %> · توسط <%= a.actor_type %><% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-activity"/></svg>
+      <h4>فعالیتی ثبت نشده است</h4>
+      <p class="text-sm">با ورود، خرید یا ثبت دیدگاه، رویدادها در این گزارش ظاهر می‌شوند.</p>
+      <a class="btn btn-primary btn-sm" href="/products">شروع خرید</a></div>
+  <% } %>
+</section>
+
+<div class="alert alert-info mt-20"><svg><use href="#i-shield"/></svg>
+  <div class="body">اگر فعالیتی را نمی‌شناسید، فوراً از بخش <a class="text-brand bold" href="/user/sessions">نشست‌های فعال</a> همه دستگاه‌ها را خارج و گذرواژه را تغییر دهید.</div>
+</div>
+
+<%- include('../partials/panel-foot') %>

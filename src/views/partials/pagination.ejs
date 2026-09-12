@@ -1,0 +1,23 @@
+<%
+  const pg = pagination;
+  const base = typeof baseUrl !== 'undefined' ? baseUrl : path;
+  const qs = typeof extraQuery !== 'undefined' ? extraQuery : {};
+  const build = (n) => {
+    const p = new URLSearchParams();
+    Object.entries(qs).forEach(([k, v]) => { if (v !== '' && v !== undefined && v !== null) p.set(k, v); });
+    if (n > 1) p.set('page', n); else p.delete('page');
+    const s = p.toString();
+    return base + (s ? '?' + s : '');
+  };
+%>
+<% if (pg && pg.pages > 1) { %>
+<nav class="pagination" aria-label="صفحه‌بندی">
+  <% if (pg.hasPrev) { %><a href="<%= build(pg.page - 1) %>" rel="prev" aria-label="صفحه قبل"><svg width="16" height="16"><use href="#i-chevron-right"/></svg></a><% } %>
+  <% for (let i = pg.from; i <= pg.to; i++) { %>
+    <% if (i === pg.page) { %><span class="current" aria-current="page"><%= h.toPersianDigits(i) %></span>
+    <% } else { %><a href="<%= build(i) %>"><%= h.toPersianDigits(i) %></a><% } %>
+  <% } %>
+  <% if (pg.hasNext) { %><a href="<%= build(pg.page + 1) %>" rel="next" aria-label="صفحه بعد"><svg width="16" height="16"><use href="#i-chevron-left"/></svg></a><% } %>
+  <span class="dots text-xs text-muted" style="border:none">از <%= h.toPersianDigits(pg.pages) %> صفحه · <%= h.toPersianDigits(pg.total) %> نتیجه</span>
+</nav>
+<% } %>

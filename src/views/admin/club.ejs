@@ -1,0 +1,152 @@
+<%
+  const LEVEL_TITLE = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی', diamond: 'الماسی', platinum: 'پلاتینی' };
+  const totalUsers = levels.reduce(function (s, l) { return s + (l.users || 0); }, 0);
+  const canManage = can('club.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">باشگاه مشتریان <span class="badge badge-outline"><%= h.toPersianDigits(levels.length) %> سطح</span></h2>
+  <div class="text-xs text-muted">امتیاز کاربران از خرید، دیدگاه و فعالیت‌ها جمع می‌شود و سطح آن‌ها خودکار محاسبه می‌گردد.</div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-users"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(totalUsers) %></div><div class="l">کاربران سطح‌بندی شده</div></div></div>
+  <% levels.forEach(function (l) { %>
+    <div class="stat-card"><span class="ic" style="background:<%= l.color %>22;color:<%= l.color %>"><svg><use href="#i-medal"/></svg></span>
+      <div><div class="v mono"><%= h.toPersianDigits(l.users || 0) %></div><div class="l"><%= l.title %> — از <%= h.toPersianDigits(l.min_points) %> امتیاز</div></div></div>
+  <% }) %>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">سطح‌های باشگاه</h3>
+        <% if (canManage) { %>
+          <div class="flex gap-8">
+            <button class="btn btn-sm btn-ghost" type="button" data-repeater-add="#levelTpl" data-repeater-target="#levelRows">
+              <svg><use href="#i-plus"/></svg> سطح جدید</button>
+            <button class="btn btn-sm btn-primary" type="submit" form="clubForm"><svg><use href="#i-save"/></svg> ذخیره سطح‌ها</button>
+          </div>
+        <% } %>
+      </div>
+      <form method="post" action="/admin/people/club/levels" id="clubForm" class="m-0">
+        <div class="card-body" data-repeater id="levelRows">
+          <% levels.forEach(function (l) { %>
+            <div class="repeater-row" data-repeater-row>
+              <div class="grid g-4">
+                <div class="field"><label>کلید سطح <i class="req">*</i></label>
+                  <input class="input input-sm mono" name="level[]" dir="ltr" value="<%= l.level %>" required <%= canManage ? '' : 'disabled' %>></div>
+                <div class="field"><label>عنوان نمایشی</label>
+                  <input class="input input-sm" name="title[]" value="<%= l.title %>" <%= canManage ? '' : 'disabled' %>></div>
+                <div class="field"><label>حداقل امتیاز</label>
+                  <input class="input input-sm mono" name="min_points[]" dir="ltr" inputmode="numeric" value="<%= l.min_points %>" <%= canManage ? '' : 'disabled' %>></div>
+                <div class="field"><label>رنگ</label>
+                  <input class="input input-sm" name="color[]" type="color" value="<%= l.color || '#6366f1' %>" <%= canManage ? '' : 'disabled' %>></div>
+              </div>
+              <div class="grid g-2 mt-10">
+                <div class="field"><label>تخفیف دائمی (٪)</label>
+                  <input class="input input-sm mono" name="discount[]" dir="ltr" inputmode="decimal" value="<%= l.discount || 0 %>" <%= canManage ? '' : 'disabled' %>>
+                  <small class="help">روی همه محصولات، پس از تخفیف‌های دیگر اعمال می‌شود.</small></div>
+                <div class="field"><label>امتیاز این سطح</label>
+                  <div class="flex items-center gap-8">
+                    <span class="badge badge-outline mono"><%= h.toPersianDigits(l.users || 0) %> کاربر</span>
+                    <span class="text-2xs text-muted">پیش‌نمایش: <%= LEVEL_TITLE[l.level] || l.title %></span>
+                  </div></div>
+              </div>
+              <div class="field mt-10"><label>مزایا (هر خط یک مزیت)</label>
+                <textarea class="textarea" name="perks[]" rows="3" placeholder="ارسال رایگان&#10;پشتیبانی اختصاصی" <%= canManage ? '' : 'disabled' %>><%= (l.perks || []).join('\n') %></textarea></div>
+            </div>
+          <% }) %>
+        </div>
+        <% if (!canManage) { %>
+          <div class="card-foot text-2xs text-muted">برای ویرایش سطح‌ها به دسترسی «باشگاه مشتریان» نیاز دارید.</div>
+        <% } %>
+      </form>
+      <template id="levelTpl">
+        <div class="repeater-row" data-repeater-row>
+          <div class="grid g-4">
+            <div class="field"><label>کلید سطح <i class="req">*</i></label>
+              <input class="input input-sm mono" name="level[]" dir="ltr" placeholder="diamond" required></div>
+            <div class="field"><label>عنوان نمایشی</label>
+              <input class="input input-sm" name="title[]" placeholder="الماسی"></div>
+            <div class="field"><label>حداقل امتیاز</label>
+              <input class="input input-sm mono" name="min_points[]" dir="ltr" inputmode="numeric" value="0"></div>
+            <div class="field"><label>رنگ</label>
+              <input class="input input-sm" name="color[]" type="color" value="#6366f1"></div>
+          </div>
+          <div class="field mt-10"><label>تخفیف دائمی (٪)</label>
+            <input class="input input-sm mono" name="discount[]" dir="ltr" inputmode="decimal" value="0"></div>
+          <div class="field mt-10"><label>مزایا (هر خط یک مزیت)</label>
+            <textarea class="textarea" name="perks[]" rows="3"></textarea></div>
+        </div>
+      </template>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">رویدادهای امتیاز</h3><span class="text-2xs text-muted">۱۰۰ رویداد اخیر</span></div>
+      <% if (activities.length) { %>
+        <div class="table-wrap"><table class="data compact">
+          <thead><tr><th>تاریخ</th><th>کاربر</th><th>امتیاز</th><th>دلیل</th><th>مرجع</th></tr></thead>
+          <tbody><% activities.forEach(function (a) { %>
+            <tr>
+              <td class="text-2xs"><%= h.formatJalali(a.created_at) %></td>
+              <td class="text-xs">
+                <% if (a.user_id && can('users.view')) { %><a href="/admin/people/users/<%= a.user_id %>"><%= a.name || a.phone || 'کاربر' %></a>
+                <% } else { %><%= a.name || a.phone || '—' %><% } %>
+              </td>
+              <td class="mono text-xs <%= a.points >= 0 ? 'text-success' : 'text-danger' %>"><%= a.points >= 0 ? '+' : '−' %><%= h.toPersianDigits(Math.abs(a.points)) %></td>
+              <td class="text-xs"><%= a.reason %></td>
+              <td class="mono text-2xs" dir="ltr"><%= a.reference || '—' %></td>
+            </tr>
+          <% }) %></tbody></table></div>
+      <% } else { %>
+        <div class="empty" style="padding:24px"><p class="text-sm">رویدادی ثبت نشده است.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">برترین کاربران</h3></div>
+      <div class="card-body" style="padding:8px 0">
+        <% if (top.length) { %>
+          <% top.forEach(function (t, i) { const lv = levels.find(function (x) { return x.level === t.club_level; }); %>
+            <div class="link-row" style="padding:9px 16px">
+              <span class="mono text-xs" style="width:22px"><%= h.toPersianDigits(i + 1) %></span>
+              <span class="avatar sm"><%= String(t.name || t.phone || 'ک').trim().charAt(0) %></span>
+              <div class="grow min-0">
+                <% if (can('users.view')) { %><a class="text-xs bold block truncate" href="/admin/people/users/<%= t.id %>"><%= t.name || 'بدون نام' %></a>
+                <% } else { %><span class="text-xs bold block truncate"><%= t.name || 'بدون نام' %></span><% } %>
+                <span class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(t.phone || '') %></span>
+              </div>
+              <span class="mono text-xs bold" style="color:<%= lv ? lv.color : 'var(--text)' %>"><%= h.toPersianDigits(t.points) %></span>
+            </div>
+          <% }) %>
+        <% } else { %><div class="empty" style="padding:20px"><p class="text-sm">کاربری امتیاز ندارد.</p></div><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">نحوه کارکرد</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.1">
+        <b class="text-foreground">منابع امتیاز:</b>
+        <ul class="bullets m-0 mt-6">
+          <li>هر خرید موفق به نسبت مبلغ</li>
+          <li>ثبت دیدگاه و پرسش تاییدشده</li>
+          <li>تکمیل پروفایل و دعوت دوستان</li>
+          <li>امتیاز دستی مدیر از پروفایل کاربر</li>
+        </ul>
+        <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body">
+          پس از ذخیره سطح‌ها، سطح همه کاربران بر اساس امتیاز فعلی بازمحاسبه می‌شود.
+        </div></div>
+        <% if (can('users.points')) { %>
+          <a class="btn btn-sm btn-outline w-100 mt-10" href="/admin/people/users?level=<%= levels[0] ? levels[0].level : '' %>">مشاهده کاربران هر سطح</a>
+        <% } %>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

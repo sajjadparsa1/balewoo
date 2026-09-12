@@ -1,0 +1,96 @@
+<%
+  const STATUS = { open: ['باز', 'badge-info'], answered: ['پاسخ داده شده', 'badge-success'], pending: ['در انتظار مشتری', 'badge-warning'], closed: ['بسته شده', 'badge-outline'] };
+  const PRIORITY = { low: ['کم', 'badge-outline'], normal: ['عادی', 'badge-info'], high: ['زیاد', 'badge-warning'], critical: ['بحرانی', 'badge-danger'] };
+  const DEPT = { support: 'پشتیبانی', sales: 'فروش', finance: 'مالی', technical: 'فنی', sellers: 'امور فروشندگان' };
+  const openCount = rows.filter(function (t) { return t.status === 'open'; }).length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">تیکت‌های پشتیبانی <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> تیکت</span>
+    <% if (openCount) { %><span class="badge badge-info"><%= h.toPersianDigits(openCount) %> باز در این صفحه</span><% } %></h2>
+  <div class="text-xs text-muted">پاسخ‌ها به‌صورت اعلان (و در صورت فعال بودن، پیامک) به کاربر اطلاع داده می‌شود.</div>
+</div>
+
+<section class="card mb-20">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/system/tickets">
+      <div class="field grow"><label for="f_search">جستجو</label>
+        <input class="input input-sm" id="f_search" type="search" name="search" value="<%= query.search || '' %>" placeholder="کد تیکت یا موضوع"></div>
+      <div class="field"><label for="f_status">وضعیت</label>
+        <select class="select" id="f_status" name="status">
+          <option value="">همه</option>
+          <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>" <%= query.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option><% }) %>
+        </select></div>
+      <div class="field"><label for="f_dept">دپارتمان</label>
+        <select class="select" id="f_dept" name="department">
+          <option value="">همه</option>
+          <% Object.keys(DEPT).forEach(function (k) { %><option value="<%= k %>" <%= query.department === k ? 'selected' : '' %>><%= DEPT[k] %></option><% }) %>
+        </select></div>
+      <div class="flex gap-8 align-end">
+        <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg> فیلتر</button>
+        <a class="btn btn-sm btn-ghost" href="/admin/system/tickets">پاکسازی</a>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr>
+          <th>کد</th><th>موضوع</th><th>کاربر / فروشنده</th><th>دپارتمان</th><th>اولویت</th>
+          <th>پیام‌ها</th><th>آخرین پیام</th><th>وضعیت</th><th>عملیات</th>
+        </tr></thead>
+        <tbody>
+          <% rows.forEach(function (t) {
+               const st = STATUS[t.status] || [t.status, 'badge-outline'];
+               const pr = PRIORITY[t.priority] || [t.priority, 'badge-outline']; %>
+            <tr>
+              <td class="mono text-2xs" dir="ltr"><%= t.code %></td>
+              <td>
+                <a class="text-sm bold" href="/admin/system/tickets/<%= t.code %>"><%= h.truncate(t.subject, 52) %></a>
+                <% if (t.order_id) { %><span class="badge badge-outline text-2xs">سفارش #<%= h.toPersianDigits(t.order_id) %></span><% } %>
+                <% if (t.product_id) { %><span class="badge badge-outline text-2xs">محصول #<%= h.toPersianDigits(t.product_id) %></span><% } %>
+                <div class="text-2xs text-muted"><%= h.formatJalali(t.created_at) %></div>
+              </td>
+              <td class="text-xs">
+                <%= t.owner_type === 'seller' ? (t.shop_name || 'فروشنده') : (t.owner_name || 'کاربر') %>
+                <span class="badge <%= t.owner_type === 'seller' ? 'badge-info' : 'badge-outline' %> text-2xs"><%= t.owner_type === 'seller' ? 'فروشنده' : 'کاربر' %></span>
+                <div class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(t.owner_phone || '—') %></div>
+              </td>
+              <td class="text-xs"><%= DEPT[t.department] || t.department %></td>
+              <td><span class="badge <%= pr[1] %> text-2xs"><%= pr[0] %></span></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(t.messages || 0) %></td>
+              <td class="text-2xs"><%= t.last_message_at ? h.timeAgo(t.last_message_at) : '—' %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/admin/system/tickets/<%= t.code %>" title="مشاهده گفتگو"><svg><use href="#i-message"/></svg></a>
+                <% if (t.owner_type === 'user' && t.owner_id && can('users.view')) { %>
+                  <a class="btn btn-sm btn-ghost" href="/admin/people/users/<%= t.owner_id %>" title="پروفایل کاربر"><svg><use href="#i-user"/></svg></a>
+                <% } %>
+                <% if (t.status !== 'closed' && can('tickets.manage')) { %>
+                  <form method="post" action="/admin/system/tickets/<%= t.code %>/status" class="m-0">
+                    <input type="hidden" name="status" value="closed">
+                    <button class="btn btn-sm btn-ghost" type="submit" title="بستن تیکت"><svg><use href="#i-check"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/system/tickets', extraQuery: query }) %>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-life-buoy"/></svg></span>
+      <h3>تیکتی یافت نشد</h3>
+      <p>کاربران و فروشندگان از پنل خود می‌توانند تیکت پشتیبانی ثبت کنند.</p>
+      <a class="btn btn-sm btn-primary" href="/admin/system/tickets">نمایش همه تیکت‌ها</a>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

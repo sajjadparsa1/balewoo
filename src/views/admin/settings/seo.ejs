@@ -1,0 +1,106 @@
+<%
+  const canEdit = can('seo.manage');
+  const dis = canEdit ? '' : 'disabled';
+  const v = function (k, d) { return setting(k, d === undefined ? '' : d); };
+  const on = function (k, d) { const x = String(setting(k, d)); return x === '1' || x === 'true'; };
+%>
+<%- include('../../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">تنظیمات سئو</h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/robots.txt" target="_blank" rel="noopener"><svg><use href="#i-file"/></svg> robots.txt</a>
+    <a class="btn btn-sm" href="/sitemap.xml" target="_blank" rel="noopener"><svg><use href="#i-globe"/></svg> sitemap.xml</a>
+    <% if (canEdit) { %><button class="btn btn-sm btn-primary" type="submit" form="seoForm"><svg><use href="#i-save"/></svg> ذخیره</button><% } %>
+  </div>
+</div>
+
+<form method="post" action="/admin/settings/seo" id="seoForm">
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">صفحه نخست</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="s_ht">عنوان سئوی صفحه نخست</label>
+            <input class="input" id="s_ht" name="home_seo_title" value="<%= v('home_seo_title') %>" maxlength="70" <%= dis %>>
+            <div class="help">خالی بگذارید تا «نام فروشگاه — شعار» استفاده شود.</div></div>
+          <div class="field"><label for="s_hd">توضیحات متای صفحه نخست</label>
+            <textarea class="textarea" id="s_hd" name="home_seo_desc" rows="3" maxlength="200" <%= dis %>><%= v('home_seo_desc') %></textarea></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">پیش‌فرض‌های همه صفحات</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="s_dt">عنوان پیش‌فرض</label>
+            <input class="input" id="s_dt" name="seo_default_title" value="<%= v('seo_default_title') %>" <%= dis %>></div>
+          <div class="field"><label for="s_dd">توضیحات پیش‌فرض</label>
+            <textarea class="textarea" id="s_dd" name="seo_default_desc" rows="2" <%= dis %>><%= v('seo_default_desc') %></textarea></div>
+          <div class="field"><label for="s_kw">کلمات کلیدی پیش‌فرض</label>
+            <input class="input" id="s_kw" name="seo_keywords" value="<%= v('seo_keywords') %>" <%= dis %>>
+            <div class="help">با کاما جدا کنید؛ برای صفحاتی که کلمه کلیدی اختصاصی ندارند.</div></div>
+          <div class="field"><label for="s_robots">قوانین اضافی robots.txt</label>
+            <textarea class="textarea mono" id="s_robots" name="robots_extra" rows="4" dir="ltr" placeholder="Disallow: /compare" <%= dis %>><%= v('robots_extra') %></textarea></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">داده ساختاریافته و نقشه سایت</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="s_schema">داده ساختاریافته (Schema.org)</label>
+              <select class="select" id="s_schema" name="schema_enabled" <%= dis %>>
+                <option value="1" <%= on('schema_enabled', true) ? 'selected' : '' %>>فعال</option>
+                <option value="0" <%= !on('schema_enabled', true) ? 'selected' : '' %>>غیرفعال</option>
+              </select>
+              <div class="help">Product، Organization، WebSite، BreadcrumbList، FAQPage، Article و Review به‌صورت خودکار تولید می‌شوند.</div></div>
+            <div class="field"><label for="s_sitemap">نقشه سایت XML</label>
+              <select class="select" id="s_sitemap" name="sitemap_enabled" <%= dis %>>
+                <option value="1" <%= on('sitemap_enabled', true) ? 'selected' : '' %>>فعال</option>
+                <option value="0" <%= !on('sitemap_enabled', true) ? 'selected' : '' %>>غیرفعال</option>
+              </select>
+              <div class="help">شامل صفحه‌ها، دسته‌ها، محصولات و مقالات.</div></div>
+          </div>
+          <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body text-xs">
+            هر محصول با <span class="mono" dir="ltr">Product + Offer + AggregateRating</span>، هر مقاله با <span class="mono" dir="ltr">Article</span> و سوالات متداول با <span class="mono" dir="ltr">FAQPage</span> نشانه‌گذاری می‌شوند.
+          </div></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ابزارهای تحلیل</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="s_ga">کد گوگل آنالیتیکس (GA4)</label>
+            <textarea class="textarea mono" id="s_ga" name="google_analytics" rows="4" dir="ltr" placeholder="G-XXXXXXXXXX یا کد کامل اسکریپت" <%= dis %>><%= v('google_analytics') %></textarea>
+            <div class="help">اگر فقط شناسه را بنویسید، اسکریپت gtag به‌صورت خودکار ساخته می‌شود.</div></div>
+          <div class="field"><label for="s_gtm">گوگل تگ منیجر</label>
+            <input class="input mono" id="s_gtm" name="google_tag_manager" dir="ltr" value="<%= v('google_tag_manager') %>" placeholder="GTM-XXXXXXX" <%= dis %>></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">چک‌لیست سئو</h3></div>
+        <div class="card-body text-xs text-muted" style="line-height:2.1">
+          <ul class="bullets m-0">
+            <li>آدرس سایت را در «تنظیمات عمومی» درست وارد کنید — در canonical و sitemap استفاده می‌شود.</li>
+            <li>برای هر دسته‌بندی و محصول، عنوان و توضیح یکتا بنویسید.</li>
+            <li>تصاویر محصولات را با نام و alt مناسب بارگذاری کنید.</li>
+            <li>مقالات مجله را با برچسب و دسته منتشر کنید.</li>
+            <li>صفحات «درباره ما» و «تماس با ما» اعتبار دامنه را تقویت می‌کنند.</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="stack" style="gap:8px">
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/categories"><svg><use href="#i-layers"/></svg> سئوی دسته‌بندی‌ها</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/products"><svg><use href="#i-box"/></svg> سئوی محصولات</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/content/pages"><svg><use href="#i-file"/></svg> صفحات ثابت</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/reports"><svg><use href="#i-chart"/></svg> آمار بازدید صفحات</a>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<%- include('../../partials/panel-foot') %>

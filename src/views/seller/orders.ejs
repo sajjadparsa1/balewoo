@@ -1,0 +1,106 @@
+<%
+  const ITEM_STATUS = {
+    pending: ['در انتظار پردازش', 'badge-warning'], processing: ['در حال آماده‌سازی', 'badge-info'],
+    shipping: ['ارسال شده', 'badge-primary'], delivered: ['تحویل شده', 'badge-success'],
+    canceled: ['لغو شده', 'badge-danger'], returned: ['مرجوع شده', 'badge-danger'],
+  };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">سفارش‌های فروشگاه</h2>
+    <div class="text-xs text-muted mt-4">هر ردیف یک قلم از سفارش مشتری است که به فروشگاه شما تعلق دارد.</div>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head flex-wrap gap-10">
+    <div class="chips">
+      <a class="chip <%= !query.status ? 'active' : '' %>" href="/seller/orders">همه</a>
+      <% Object.keys(statuses || {}).forEach(function (k) { %>
+        <% if (['processing', 'shipping', 'delivered', 'canceled', 'returned'].indexOf(k) === -1) return; %>
+        <a class="chip <%= query.status === k ? 'active' : '' %>" href="/seller/orders?status=<%= k %>"><%= statuses[k].title %></a>
+      <% }) %>
+    </div>
+  </div>
+
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th></th><th>محصول</th><th>سفارش</th><th>خریدار</th><th>تعداد</th><th>مبلغ قلم</th><th>کمیسیون</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <% const st = ITEM_STATUS[r.status] || [r.status, 'badge-outline']; %>
+            <tr>
+              <td><span class="thumb-sm"><img src="<%= r.image || '/img/placeholder-product.svg' %>" alt="" loading="lazy"></span></td>
+              <td>
+                <b class="text-sm line-2"><%= h.truncate(r.title, 46) %></b>
+                <% if (r.variant_title) { %><div class="text-2xs text-muted"><%= r.variant_title %></div><% } %>
+                <div class="text-2xs text-muted mono" dir="ltr">قلم #<%= h.toPersianDigits(r.id) %></div>
+              </td>
+              <td>
+                <span class="mono text-xs" dir="ltr"><%= r.order_code %></span>
+                <div class="text-2xs text-muted"><%= h.formatJalali(r.order_date) %></div>
+                <% if (r.payment_status !== 'paid') { %><span class="badge badge-warning text-2xs">پرداخت نشده</span><% } %>
+              </td>
+              <td class="text-xs">
+                <%= r.receiver_name || r.customer_name || '—' %>
+                <div class="text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(r.receiver_phone || r.customer_phone || '') %></div>
+                <% if (r.address && r.address.city) { %><div class="text-2xs text-muted"><%= [r.address.province, r.address.city].filter(Boolean).join('، ') %></div><% } %>
+              </td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.qty) %></td>
+              <td class="mono text-xs bold"><%= h.fa(r.total) %></td>
+              <td class="mono text-xs text-danger"><%= r.commission ? '− ' + h.fa(r.commission) : '—' %></td>
+              <td><span class="badge <%= st[1] %>"><%= st[0] %></span>
+                <% if (r.tracking_code) { %><div class="text-2xs text-muted mono mt-4" dir="ltr"><%= h.toPersianDigits(r.tracking_code) %></div><% } %></td>
+              <td class="actions">
+                <button class="btn btn-sm btn-ghost" type="button" data-modal-open="statusModal-<%= r.id %>" title="تغییر وضعیت"><svg><use href="#i-refresh"/></svg></button>
+                <a class="btn btn-sm btn-ghost" href="/seller/orders/<%= r.order_code %>/label" target="_blank" title="برچسب ارسال"><svg><use href="#i-print"/></svg></a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot"><%- include('../partials/pagination', { pagination: pg, baseUrl: '/seller/orders', extraQuery: { status: query.status || '' } }) %></div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-cart"/></svg>
+      <h4>سفارشی برای پردازش ندارید</h4>
+      <p class="text-sm"><%= query.status ? 'این فیلتر نتیجه‌ای نداشت.' : 'به محض خرید مشتریان، قلم‌های مربوط به فروشگاه شما اینجا نمایش داده می‌شوند.' %></p>
+      <a class="btn btn-primary btn-sm" href="/seller/dashboard">بازگشت به داشبورد</a></div>
+  <% } %>
+</section>
+
+<% rows.forEach(function (r) { %>
+<div class="modal-backdrop" id="statusModal-<%= r.id %>">
+  <div class="modal">
+    <div class="modal-head"><h3>تغییر وضعیت قلم</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/seller/orders/<%= r.id %>/status">
+      <div class="modal-body">
+        <div class="alert alert-info" style="padding:10px 12px"><div class="body text-xs">
+          سفارش <span class="mono" dir="ltr"><%= r.order_code %></span> — <%= h.truncate(r.title, 40) %> (تعداد <%= h.toPersianDigits(r.qty) %>)
+        </div></div>
+        <div class="field"><label for="st_<%= r.id %>">وضعیت جدید</label>
+          <select class="select" id="st_<%= r.id %>" name="status" required>
+            <option value="processing" <%= r.status === 'processing' ? 'selected' : '' %>>در حال آماده‌سازی</option>
+            <option value="shipping" <%= r.status === 'shipping' ? 'selected' : '' %>>ارسال شده</option>
+            <option value="delivered" <%= r.status === 'delivered' ? 'selected' : '' %>>تحویل شده</option>
+            <option value="canceled" <%= r.status === 'canceled' ? 'selected' : '' %>>لغو (بازگشت موجودی)</option>
+            <option value="returned" <%= r.status === 'returned' ? 'selected' : '' %>>مرجوع شده (بازگشت موجودی)</option>
+          </select></div>
+        <div class="field"><label for="tc_<%= r.id %>">کد رهگیری پستی</label>
+          <input class="input mono" id="tc_<%= r.id %>" name="tracking_code" dir="ltr" value="<%= r.tracking_code || '' %>" placeholder="مثلاً 1234567890">
+          <div class="help">کد رهگیری برای خریدار پیامک و در جزئیات سفارش نمایش داده می‌شود.</div></div>
+        <div class="field"><label for="nt_<%= r.id %>">یادداشت (اختیاری)</label>
+          <input class="input" id="nt_<%= r.id %>" name="note" placeholder="توضیح برای سوابق سفارش"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت وضعیت</button></div>
+    </form>
+  </div>
+</div>
+<% }) %>
+
+<%- include('../partials/panel-foot') %>

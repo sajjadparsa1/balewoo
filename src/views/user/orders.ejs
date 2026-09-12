@@ -1,0 +1,62 @@
+<% const q = query || {}; %>
+<%- include('../partials/panel-head') %>
+
+<div class="card mb-20">
+  <div class="table-toolbar">
+    <div class="flex gap-8 flex-wrap grow">
+      <a class="chip <%= !q.status ? 'active' : '' %>" href="/user/orders">همه</a>
+      <% Object.entries(statuses).forEach(function (e) { %>
+        <a class="chip <%= q.status === e[0] ? 'active' : '' %>" href="/user/orders?status=<%= e[0] %>"><%= e[1].title %></a>
+      <% }) %>
+    </div>
+    <form method="get" action="/user/orders" class="m-0 flex gap-8">
+      <% if (q.status) { %><input type="hidden" name="status" value="<%= q.status %>"><% } %>
+      <input class="input" type="search" name="search" value="<%= q.search || '' %>" placeholder="کد سفارش…" style="width:180px">
+      <button class="btn btn-sm" type="submit"><svg><use href="#i-search"/></svg></button>
+    </form>
+  </div>
+
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد سفارش</th><th>تاریخ</th><th>اقلام</th><th>مبلغ کل</th><th>وضعیت</th><th>پرداخت</th><th>گیرنده</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (o) { %>
+            <tr>
+              <td class="mono" dir="ltr"><a class="text-brand bold" href="/user/orders/<%= o.code %>"><%= o.code %></a></td>
+              <td class="text-xs"><%= h.formatJalali(o.created_at) %><div class="text-muted" style="font-size:.7rem"><%= String(o.created_at || '').slice(11, 16) %></div></td>
+              <td class="flex items-center gap-8">
+                <% if (o.cover) { %><img class="thumb-sm" src="<%= o.cover %>" alt="" loading="lazy"><% } %>
+                <span class="mono"><%= h.toPersianDigits(o.items_count || 0) %> قلم</span>
+              </td>
+              <td class="mono bold"><%= h.fa(o.total) %> <span class="text-xs text-muted"><%= site.currency %></span></td>
+              <td><span class="badge badge-<%= o.status === 'delivered' ? 'success' : o.status === 'canceled' || o.status === 'returned' ? 'danger' : o.status === 'pending' ? 'warning' : 'info' %>"><%= o.status_title %></span>
+                <% if (o.tracking_code) { %><div class="text-xs text-muted mt-6">رهگیری: <span class="mono" dir="ltr"><%= o.tracking_code %></span></div><% } %></td>
+              <td><span class="badge <%= o.payment_status === 'paid' ? 'badge-success' : o.payment_status === 'refunded' ? 'badge-danger' : 'badge-warning' %>">
+                <%= o.payment_status === 'paid' ? 'پرداخت شده' : o.payment_status === 'refunded' ? 'بازگشت وجه' : o.payment_status === 'partial' ? 'پرداخت جزئی' : 'پرداخت نشده' %></span>
+                <div class="text-xs text-muted mt-6"><%= o.payment_method === 'cod' ? 'پرداخت در محل' : o.payment_method === 'wallet' ? 'کیف پول' : o.payment_method === 'card2card' ? 'کارت به کارت' : (o.gateway || '—') %></div></td>
+              <td class="text-xs"><%= o.receiver_name || user.name || '—' %></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/user/orders/<%= o.code %>" title="جزئیات"><svg><use href="#i-eye"/></svg></a>
+                <% if (o.payment_status !== 'paid' && o.status !== 'canceled') { %>
+                  <a class="btn btn-sm btn-primary" href="/user/orders/<%= o.code %>" title="پرداخت">پرداخت</a>
+                <% } %>
+                <a class="btn btn-sm btn-ghost" href="/user/ticket-new?order=<%= o.code %>" title="پشتیبانی"><svg><use href="#i-ticket"/></svg></a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/pagination', { pagination: pg, baseUrl: '/user/orders', extraQuery: { status: q.status || '', search: q.search || '' } }) %>
+  <% } else { %>
+    <div class="empty">
+      <svg><use href="#i-order"/></svg>
+      <h4>سفارشی با این فیلتر یافت نشد</h4>
+      <p class="text-sm">برای مشاهده همه سفارش‌ها فیلتر وضعیت را بردارید.</p>
+      <a class="btn btn-primary btn-sm" href="/products">شروع خرید</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/panel-foot') %>

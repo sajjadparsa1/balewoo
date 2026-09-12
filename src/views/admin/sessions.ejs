@@ -1,0 +1,128 @@
+<%
+  const canManage = can('sessions.manage');
+  const byUser = {};
+  rows.forEach(function (r) { (byUser[r.user_id] = byUser[r.user_id] || []).push(r); });
+  const staffSessions = rows.filter(function (r) { return r.role === 'admin' || r.role === 'staff'; });
+  const now = Date.now();
+  const stale = rows.filter(function (r) { return r.last_seen_at && (now - new Date(String(r.last_seen_at).replace(' ', 'T') + 'Z').getTime()) > 7 * 86400000; });
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">نشست‌های فعال <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> نشست</span></h2>
+  <div class="text-xs text-muted">هر ورود با دستگاه، مرورگر، سیستم‌عامل و موقعیت تقریبی ثبت می‌شود.</div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-monitor"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.length) %></div><div class="l">نشست فعال</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-users"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(Object.keys(byUser).length) %></div><div class="l">کاربر آنلاین</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-shield"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(staffSessions.length) %></div><div class="l">نشست مدیران و کارشناسان</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stale.length) %></div><div class="l">بی‌تحرکت بیش از ۷ روز</div></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">فهرست نشست‌ها</h3><span class="text-2xs text-muted">۳۰۰ نشست اخیر</span></div>
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کاربر</th><th>دستگاه</th><th>موقعیت / IP</th><th>ورود</th><th>آخرین فعالیت</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %></tr></thead>
+        <tbody>
+          <% rows.forEach(function (s) {
+               const idleMs = s.last_seen_at ? now - new Date(String(s.last_seen_at).replace(' ', 'T') + 'Z').getTime() : 0;
+               const isStale = idleMs > 7 * 86400000; %>
+            <tr>
+              <td class="text-xs">
+                <div class="flex items-center gap-10">
+                  <span class="avatar sm"><%= String(s.name || s.phone || 'ک').trim().charAt(0) %></span>
+                  <div>
+                    <% if (can('users.view')) { %><a class="bold" href="/admin/people/users/<%= s.user_id %>"><%= s.name || 'بدون نام' %></a>
+                    <% } else { %><b><%= s.name || 'بدون نام' %></b><% } %>
+                    <div class="mono text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(s.phone || '') %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-2xs">
+                <div class="flex items-center gap-6">
+                  <svg style="width:13px;height:13px"><use href="#i-<%= String(s.device || '').indexOf('mobile') > -1 || String(s.device || '').indexOf('tablet') > -1 ? 'smartphone' : 'monitor' %>"/></svg>
+                  <%= s.browser || '—' %> · <%= s.os || '—' %>
+                </div>
+                <div class="text-muted"><%= s.device || '—' %></div>
+              </td>
+              <td class="text-2xs">
+                <span class="mono" dir="ltr"><%= s.ip || '—' %></span>
+                <div class="text-muted"><%= [s.city, s.country].filter(Boolean).join('، ') || '—' %></div>
+              </td>
+              <td class="text-2xs"><%= h.formatJalali(s.login_at) %><div class="text-muted"><%= h.timeAgo(s.login_at) %></div></td>
+              <td class="text-2xs"><%= s.last_seen_at ? h.timeAgo(s.last_seen_at) : '—' %></td>
+              <td>
+                <% if (s.is_current) { %><span class="badge badge-success">نشست فعلی شما</span>
+                <% } else if (isStale) { %><span class="badge badge-warning">بی‌تحرکت</span>
+                <% } else { %><span class="badge badge-info">فعال</span><% } %>
+                <% if (s.role === 'admin' || s.role === 'staff') { %><div class="badge badge-danger text-2xs mt-4">دسترسی مدیریتی</div><% } %>
+              </td>
+              <% if (canManage) { %>
+                <td class="actions">
+                  <% if (!s.is_current) { %>
+                    <form method="post" action="/admin/system/sessions/<%= s.id %>/revoke" class="m-0">
+                      <button class="btn btn-sm btn-ghost text-danger" type="submit" title="خاتمه این نشست"
+                              data-confirm-click="این نشست خاتمه یابد و کاربر نیاز به ورود مجدد داشته باشد؟"><svg><use href="#i-log-out"/></svg></button>
+                    </form>
+                  <% } %>
+                  <form method="post" action="/admin/system/sessions/revoke-user/<%= s.user_id %>" class="m-0">
+                    <button class="btn btn-sm btn-ghost" type="submit" title="خاتمه همه نشست‌های این کاربر"
+                            data-confirm-click="همه نشست‌های «<%= s.name || 'این کاربر' %>» خاتمه یابد؟"><svg><use href="#i-ban"/></svg></button>
+                  </form>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-monitor"/></svg></span>
+      <h3>نشست فعالی وجود ندارد</h3>
+      <p>با هر ورود کاربر، یک نشست ثبت می‌شود و تا زمان خروج یا انقضا فعال می‌ماند.</p>
+    </div>
+  <% } %>
+</section>
+
+<section class="card mt-20">
+  <div class="card-head"><h3 class="text-sm">کاربران با چند نشست فعال</h3></div>
+  <div class="card-body">
+    <% const multi = Object.keys(byUser).filter(function (k) { return byUser[k].length > 1; }); %>
+    <% if (multi.length) { %>
+      <div class="grid g-3">
+        <% multi.forEach(function (k) { const list = byUser[k]; const u = list[0]; %>
+          <div class="card" style="margin:0">
+            <div class="card-body" style="padding:12px 14px">
+              <div class="flex items-center gap-8 mb-6">
+                <b class="text-xs grow"><%= u.name || 'کاربر #' + k %></b>
+                <span class="badge badge-info text-2xs"><%= h.toPersianDigits(list.length) %> نشست</span>
+              </div>
+              <div class="mono text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(u.phone || '') %></div>
+              <% list.slice(0, 3).forEach(function (s) { %>
+                <div class="text-2xs text-muted mt-4"><%= s.browser || '—' %> · <%= s.os || '—' %> · <span class="mono" dir="ltr"><%= s.ip %></span></div>
+              <% }) %>
+              <% if (canManage) { %>
+                <form method="post" action="/admin/system/sessions/revoke-user/<%= k %>" class="m-0 mt-10">
+                  <button class="btn btn-sm btn-outline w-100" type="submit" data-confirm-click="همه نشست‌های این کاربر خاتمه یابد؟">
+                    <svg><use href="#i-ban"/></svg> خاتمه همه نشست‌ها</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="text-xs text-muted m-0">هیچ کاربری هم‌زمان بیش از یک نشست فعال ندارد.</p>
+    <% } %>
+  </div>
+</section>
+
+<%- include('../partials/panel-foot') %>

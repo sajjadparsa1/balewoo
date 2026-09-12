@@ -1,0 +1,142 @@
+<%- include('../layouts/head', { bodyClass: 'auth-page' }) %>
+
+<div class="auth-page">
+  <aside class="auth-side">
+    <div style="position:relative;z-index:1">
+      <a href="/" class="brand-logo mb-30" style="color:#fff">
+        <img src="<%= site.logoDark || site.logo %>" alt="<%= site.name %>" style="height:44px" onerror="this.style.display='none'">
+        <span class="name" style="color:#fff"><%= site.name %></span>
+      </a>
+      <h2>به <%= site.name %> خوش آمدید</h2>
+      <p style="opacity:.9;line-height:2.1;margin:12px 0 26px">
+        با شماره موبایل وارد شوید یا در چند ثانیه حساب جدید بسازید. خرید، پیگیری سفارش، کیف پول و باشگاه مشتریان همه در یک پنل.
+      </p>
+      <ul>
+        <li><svg><use href="#i-check"/></svg> پیگیری لحظه‌ای سفارش‌ها و کد رهگیری پستی</li>
+        <li><svg><use href="#i-check"/></svg> کیف پول داخلی و پرداخت سریع بدون کارمزد</li>
+        <li><svg><use href="#i-check"/></svg> امتیاز باشگاه مشتریان با هر خرید</li>
+        <li><svg><use href="#i-check"/></svg> علاقمندی‌ها، مقایسه و اعلان موجودی کالا</li>
+        <li><svg><use href="#i-check"/></svg> تیکت پشتیبانی و ارتباط مستقیم با فروشنده</li>
+      </ul>
+      <div style="position:relative;z-index:1;margin-top:34px;font-size:.8rem;opacity:.8">
+        <%= h.toPersianDigits(site.phone || '') %> <% if (site.email) { %> · <%= site.email %><% } %>
+      </div>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <% if (step === 'phone') { %>
+        <h1 style="font-size:1.15rem;margin-bottom:6px">ورود یا ثبت‌نام</h1>
+        <p class="text-sm text-muted mb-20">شماره موبایل خود را وارد کنید تا کد یکبار مصرف برایتان ارسال شود.</p>
+
+        <form method="post" action="/login/send-code">
+          <input type="hidden" name="prev" value="<%= prev || '' %>">
+          <div class="field">
+            <label for="phone">شماره موبایل <span class="req">*</span></label>
+            <input class="input" id="phone" name="phone" type="tel" dir="ltr" inputmode="numeric" autocomplete="tel"
+                   placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}" maxlength="11" value="<%= query.phone || '' %>"
+                   style="text-align:center;font-size:1.1rem;letter-spacing:1px">
+            <div class="help">با ورود، <a class="text-brand" href="/page/terms">قوانین و شرایط</a> و <a class="text-brand" href="/page/privacy">حریم خصوصی</a> را می‌پذیرید.</div>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit">
+            <svg><use href="#i-send"/></svg> دریافت کد ورود
+          </button>
+        </form>
+
+        <div class="divider" style="margin:22px 0"></div>
+        <div class="text-center">
+          <a class="btn btn-outline btn-block" href="/login?status=password"><svg><use href="#i-key"/></svg> ورود با گذرواژه</a>
+          <div class="text-xs text-muted mt-14">
+            حساب فروشندگی ندارید؟ <a class="text-brand semibold" href="/auth/seller/register">فروشنده شوید</a>
+          </div>
+        </div>
+
+      <% } else if (step === 'code') { %>
+        <h1 style="font-size:1.15rem;margin-bottom:6px">کد تایید را وارد کنید</h1>
+        <p class="text-sm text-muted mb-20">کد <%= h.toPersianDigits(setting('otp_length', '5')) %> رقمی ارسال‌شده به <b dir="ltr"><%= h.toPersianDigits(phone) %></b> را وارد کنید.</p>
+
+        <form method="post" action="/login/verify" id="otpForm">
+          <input type="hidden" name="phone" value="<%= phone %>">
+          <input type="hidden" name="code" data-otp-hidden>
+          <div class="otp-inputs mb-14">
+            <% for (let i = 0; i < parseInt(setting('otp_length', '5'), 10); i++) { %>
+              <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="رقم <%= h.toPersianDigits(i + 1) %>" <%= i === 0 ? 'autofocus' : '' %>>
+            <% } %>
+          </div>
+          <div class="timer-text mb-14">
+            <span data-resend-timer="<%= resendIn %>"><%= resendIn ? 'ارسال مجدد کد تا ' + h.toPersianDigits(resendIn) + ' ثانیه' : '' %></span>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit"><svg><use href="#i-check"/></svg> تایید کد و ورود</button>
+        </form>
+
+        <div class="flex gap-8 mt-14">
+          <form method="post" action="/login/send-code" class="grow m-0">
+            <button class="btn btn-outline btn-block" type="submit" data-resend-btn <%= resendIn > 0 ? 'disabled' : '' %>>ارسال مجدد کد</button>
+          </form>
+          <a class="btn btn-ghost" href="/login?reset=1">تغییر شماره</a>
+        </div>
+        <div class="text-xs text-muted text-center mt-14">اعتبار کد: <%= h.toPersianDigits(ttl || 2) %> دقیقه</div>
+
+        <script>
+          // پر کردن خودکار فیلد پنهان و ارسال پس از تکمیل
+          (function () {
+            var form = document.getElementById('otpForm');
+            var inputs = form.querySelectorAll('.otp-inputs input');
+            var hidden = form.querySelector('[data-otp-hidden]');
+            function sync() {
+              hidden.value = Array.prototype.map.call(inputs, function (i) { return i.value; }).join('');
+              if (hidden.value.length === inputs.length) form.submit();
+            }
+            inputs.forEach(function (inp, i) {
+              inp.addEventListener('input', function () {
+                inp.value = inp.value.replace(/\D/g, '').slice(0, 1);
+                if (inp.value && inputs[i + 1]) inputs[i + 1].focus();
+                sync();
+              });
+              inp.addEventListener('keydown', function (e) { if (e.key === 'Backspace' && !inp.value && inputs[i - 1]) inputs[i - 1].focus(); });
+              inp.addEventListener('paste', function (e) {
+                e.preventDefault();
+                var t = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, inputs.length);
+                t.split('').forEach(function (c, k) { if (inputs[k]) inputs[k].value = c; });
+                sync();
+              });
+            });
+          })();
+        </script>
+
+      <% } else { %>
+        <h1 style="font-size:1.15rem;margin-bottom:6px">ورود با گذرواژه</h1>
+        <p class="text-sm text-muted mb-20">شماره موبایل یا ایمیل به همراه گذرواژه را وارد کنید.</p>
+
+        <form method="post" action="/login/password">
+          <input type="hidden" name="prev" value="<%= prev || '' %>">
+          <div class="field">
+            <label for="identifier">شماره موبایل یا ایمیل <span class="req">*</span></label>
+            <input class="input" id="identifier" name="identifier" required autofocus dir="auto" placeholder="09xxxxxxxxx یا you@example.com">
+          </div>
+          <div class="field">
+            <label for="password">گذرواژه <span class="req">*</span></label>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password" required minlength="6" autocomplete="current-password">
+              <button class="addon" type="button" onclick="var i=document.getElementById('password');i.type=i.type==='password'?'text':'password'" aria-label="نمایش گذرواژه"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-eye"/></svg></button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between mb-20">
+            <label class="check text-sm"><input type="checkbox" name="remember" value="1" checked> مرا به خاطر بسپار</label>
+            <a class="text-sm text-brand" href="/forgot">گذرواژه را فراموش کرده‌ام</a>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" type="submit"><svg><use href="#i-lock"/></svg> ورود</button>
+        </form>
+
+        <div class="divider" style="margin:22px 0"></div>
+        <div class="text-center">
+          <a class="btn btn-outline btn-block" href="/login"><svg><use href="#i-phone"/></svg> ورود با کد یکبار مصرف</a>
+          <p class="text-xs text-muted mt-14 m-0">گذرواژه ندارید؟ ابتدا با کد پیامکی وارد شوید، سپس از پنل کاربری › ویرایش پروفایل گذرواژه تعیین کنید.</p>
+        </div>
+      <% } %>
+
+      <div class="text-center mt-20"><a class="text-sm text-muted" href="/">بازگشت به فروشگاه</a></div>
+    </div>
+  </main>
+</div>

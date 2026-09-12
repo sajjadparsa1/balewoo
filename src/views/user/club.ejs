@@ -1,0 +1,107 @@
+<%
+  const reasons = { purchase: 'خرید', review: 'ثبت دیدگاه', register: 'ثبت‌نام', referral: 'معرفی دوست', login: 'ورود روزانه', admin: 'تعدیل توسط مدیر', order: 'سفارش', cancel: 'لغو' };
+%>
+<%- include('../partials/panel-head') %>
+
+<section class="card mb-20">
+  <div class="card-body flex items-center justify-between gap-20 flex-wrap">
+    <div class="flex items-center gap-14">
+      <span style="width:66px;height:66px;border-radius:20px;background:<%= current && current.color ? current.color : 'var(--brand)' %>;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem">
+        <svg width="30" height="30" style="width:30px;height:30px"><use href="#i-medal"/></svg>
+      </span>
+      <div>
+        <div class="bold text-lg"><%= current ? (current.title || current.level) : 'عضو باشگاه مشتریان' %></div>
+        <div class="text-sm text-muted">امتیاز فعلی شما: <b class="mono text-brand"><%= h.toPersianDigits(user.points || 0) %></b>
+          · ارزش تقریبی: <b class="mono"><%= h.fa((user.points || 0) * parseInt(pointValue, 10)) %></b> <%= site.currency %></div>
+      </div>
+    </div>
+    <% if (next) { %>
+      <% const need = Math.max(0, next.min_points - (user.points || 0)); %>
+      <div style="min-width:260px;flex:1">
+        <div class="text-xs text-muted mb-6">تا سطح <%= next.title || next.level %> — <%= h.toPersianDigits(need) %> امتیاز باقی مانده</div>
+        <div class="progress"><i style="width:<%= Math.min(100, Math.round(((user.points || 0) / next.min_points) * 100)) %>%"></i></div>
+      </div>
+    <% } %>
+    <a class="btn btn-outline btn-sm" href="/products?sort=bestselling"><svg><use href="#i-cart"/></svg> کسب امتیاز با خرید</a>
+  </div>
+</section>
+
+<section class="mb-20">
+  <div class="section-head"><h2 style="font-size:1.05rem">سطوح باشگاه مشتریان</h2></div>
+  <div class="grid g-<%= Math.min(4, Math.max(2, levels.length)) %>">
+    <% levels.forEach(function (l) { %>
+      <div class="level-card <%= current && current.level === l.level ? 'current' : '' %>">
+        <span class="medal" style="background:<%= l.color || 'var(--brand)' %>">
+          <svg width="26" height="26" style="width:26px;height:26px"><use href="#i-medal"/></svg>
+        </span>
+        <div class="bold"><%= l.title || l.level %></div>
+        <div class="text-xs text-muted mt-6">از <%= h.toPersianDigits(l.min_points) %> امتیاز</div>
+        <% if (l.discount) { %><div class="badge badge-success mt-10"><%= h.toPersianDigits(l.discount) %>٪ تخفیف دائمی</div><% } %>
+        <% if (current && current.level === l.level) { %><div class="badge badge-primary mt-10">سطح فعلی شما</div><% } %>
+        <% if (l.perks && l.perks.length) { %>
+          <ul>
+            <% l.perks.forEach(function (pk) { %><li><%= typeof pk === 'string' ? pk : (pk.title || pk.label || '') %></li><% }) %>
+          </ul>
+        <% } %>
+      </div>
+    <% }) %>
+    <% if (!levels.length) { %>
+      <div class="empty"><svg><use href="#i-medal"/></svg><h4>سطحی تعریف نشده است</h4>
+        <p class="text-sm">مدیر سایت می‌تواند از بخش «افراد › باشگاه مشتریان» سطوح و مزایا را تعریف کند.</p></div>
+    <% } %>
+  </div>
+</section>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">تاریخچه امتیازها</h3></div>
+    <% if (activities.length) { %>
+      <div class="table-wrap">
+        <table class="data compact">
+          <thead><tr><th>تاریخ</th><th>دلیل</th><th>مرجع</th><th>امتیاز</th></tr></thead>
+          <tbody>
+            <% activities.forEach(function (a) { %>
+              <tr>
+                <td class="text-xs"><%= h.formatJalali(a.created_at) %></td>
+                <td class="text-xs"><%= reasons[a.reason] || a.reason %></td>
+                <td class="text-xs mono" dir="ltr"><%= a.reference || '—' %></td>
+                <td class="mono bold <%= a.points > 0 ? 'text-success' : 'text-danger' %>"><%= a.points > 0 ? '+' : '' %><%= h.toPersianDigits(a.points) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="empty"><svg><use href="#i-medal"/></svg><h4>فعالیتی ثبت نشده است</h4>
+        <p class="text-sm">با هر خرید، ثبت دیدگاه یا معرفی دوست امتیاز بگیرید.</p></div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">چطور امتیاز بگیریم؟</h3></div>
+      <div class="card-body">
+        <ul class="text-sm text-2" style="list-style:none;padding:0;margin:0">
+          <li class="flex items-start gap-8 mb-10"><svg width="16" height="16" style="width:16px;height:16px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg>
+            <span>به ازای هر <b class="mono"><%= h.fa(setting('club_point_per_toman', '1000')) %></b> <%= site.currency %> خرید، <b>۱ امتیاز</b></span></li>
+          <li class="flex items-start gap-8 mb-10"><svg width="16" height="16" style="width:16px;height:16px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg>
+            <span>ثبت دیدگاه تاییدشده: <b><%= h.toPersianDigits(setting('club_review_points', '20')) %> امتیاز</b></span></li>
+          <li class="flex items-start gap-8 mb-10"><svg width="16" height="16" style="width:16px;height:16px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg>
+            <span>ثبت‌نام و تکمیل پروفایل: <b><%= h.toPersianDigits(setting('club_register_points', '50')) %> امتیاز</b></span></li>
+          <li class="flex items-start gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--success);flex:none;margin-top:3px"><use href="#i-check"/></svg>
+            <span>معرفی دوستان از طریق <a class="text-brand" href="/user/affiliate">همکاری در فروش</a></span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">استفاده از امتیاز</h3></div>
+      <div class="card-body">
+        <p class="text-xs text-muted m-0 mb-10">در صفحه سبد خرید می‌توانید تا <b><%= h.toPersianDigits(setting('club_max_use_percent', '20')) %>٪</b> مبلغ سبد را با امتیاز پرداخت کنید. هر امتیاز معادل <b class="mono"><%= h.fa(pointValue) %></b> <%= site.currency %> است.</p>
+        <a class="btn btn-sm btn-primary btn-block" href="/cart">رفتن به سبد خرید</a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

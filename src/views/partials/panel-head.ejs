@@ -1,0 +1,188 @@
+<%
+  const panelKind = (typeof panel !== 'undefined' && panel) ? panel : 'user';
+  const title = (typeof pageTitle !== 'undefined' && pageTitle) ? pageTitle : 'پنل';
+  const ICONS = {
+    grid: 'i-grid', cart: 'i-cart', file: 'i-file', wallet: 'i-wallet', award: 'i-medal', heart: 'i-heart',
+    columns: 'i-compare', clock: 'i-clock', 'map-pin': 'i-pin', star: 'i-star', bell: 'i-bell', 'bell-ring': 'i-bell',
+    link: 'i-link', 'credit-card': 'i-credit-card', bank: 'i-database', 'life-buoy': 'i-ticket', monitor: 'i-eye',
+    user: 'i-user', users: 'i-users', box: 'i-box', tag: 'i-tag', archive: 'i-warehouse', edit: 'i-edit',
+    help: 'i-question', store: 'i-store', settings: 'i-settings', chart: 'i-chart', order: 'i-order',
+    truck: 'i-truck', image: 'i-image', ticket: 'i-ticket', gift: 'i-gift', shield: 'i-shield', key: 'i-key',
+    database: 'i-database', activity: 'i-activity', globe: 'i-globe', layers: 'i-layers', layout: 'i-layout',
+    percent: 'i-percent', book: 'i-book', comment: 'i-comment', package: 'i-package', medal: 'i-medal',
+    megaphone: 'i-send', target: 'i-target', zap: 'i-zap', code: 'i-code', map: 'i-map', refresh: 'i-refresh',
+    download: 'i-download', ban: 'i-ban', search: 'i-search', trash: 'i-trash', 'credit': 'i-credit-card',
+  };
+  const ic = (n) => ICONS[n] || 'i-grid';
+  const items = panelKind === 'user' ? (typeof userMenu !== 'undefined' ? userMenu : [])
+              : panelKind === 'seller' ? (typeof sellerMenu !== 'undefined' ? sellerMenu : [])
+              : (typeof adminMenu !== 'undefined' ? adminMenu : []);
+  const panelName = panelKind === 'admin' ? 'پنل مدیریت' : panelKind === 'seller' ? 'پنل فروشنده' : 'پنل کاربری';
+  const stats = (typeof adminStats === 'function') ? adminStats() : null;
+%>
+<%- include('../layouts/head', { bodyClass: 'panel panel-' + panelKind }) %>
+
+<div class="panel-layout">
+  <aside class="panel-sidebar" id="panelSidebar">
+    <div class="logo">
+      <img src="<%= site.logo %>" alt="<%= site.name %>" onerror="this.style.display='none'">
+      <div class="n"><%= site.name %><small><%= panelName %></small></div>
+    </div>
+
+    <nav class="side-nav" aria-label="منوی پنل">
+      <% if (panelKind === 'admin') { %>
+        <% const groups = [
+          { t: 'پیشخوان', links: [
+            { href: '/admin/dashboard', title: 'داشبورد', icon: 'grid', perm: 'dashboard.view' },
+            { href: '/admin/system/reports', title: 'آمار و گزارش‌ها', icon: 'chart', perm: 'reports.view' },
+            { href: '/admin/system/activities', title: 'گزارش فعالیت‌ها', icon: 'activity', perm: 'logs.view' },
+          ]},
+          { t: 'فروش', links: [
+            { href: '/admin/orders', title: 'سفارشات', icon: 'cart', perm: 'orders.view', badge: stats && stats.pendingOrders },
+            { href: '/admin/preinvoices', title: 'پیش‌فاکتورها', icon: 'file', perm: 'preinvoices.manage' },
+            { href: '/admin/coupons', title: 'کدهای تخفیف', icon: 'percent', perm: 'coupons.manage' },
+            { href: '/admin/shipping', title: 'روش‌های ارسال', icon: 'truck', perm: 'shipping.manage' },
+            { href: '/admin/abandoned-carts', title: 'سبدهای رها شده', icon: 'cart', perm: 'orders.view' },
+            { href: '/admin/people/settlements', title: 'تسویه فروشندگان', icon: 'bank', perm: 'settlements.manage' },
+            { href: '/admin/people/withdrawals', title: 'درخواست‌های برداشت', icon: 'wallet', perm: 'users.wallet', badge: stats && stats.pendingWithdrawals },
+          ]},
+          { t: 'کاتالوگ', links: [
+            { href: '/admin/products', title: 'محصولات', icon: 'box', perm: 'products.view', badge: stats && stats.pendingProducts },
+            { href: '/admin/categories', title: 'دسته‌بندی‌ها', icon: 'layers', perm: 'categories.view' },
+            { href: '/admin/brands', title: 'برندها', icon: 'tag', perm: 'brands.view' },
+            { href: '/admin/attributes', title: 'ویژگی‌ها و فیلترها', icon: 'filter', perm: 'attributes.manage' },
+            { href: '/admin/warehouses', title: 'انبارها و موجودی', icon: 'archive', perm: 'warehouses.manage' },
+            { href: '/admin/trash', title: 'سطل زباله', icon: 'trash', perm: 'trash.manage' },
+          ]},
+          { t: 'افراد', links: [
+            { href: '/admin/people/users', title: 'کاربران', icon: 'user', perm: 'users.view' },
+            { href: '/admin/people/sellers', title: 'فروشندگان', icon: 'store', perm: 'sellers.view', badge: stats && stats.pendingSellers },
+            { href: '/admin/people/roles', title: 'نقش‌ها و دسترسی‌ها', icon: 'key', perm: 'roles.manage' },
+            { href: '/admin/people/affiliates', title: 'همکاری در فروش', icon: 'link', perm: 'affiliates.manage' },
+            { href: '/admin/people/club', title: 'باشگاه مشتریان', icon: 'award', perm: 'club.manage' },
+          ]},
+          { t: 'محتوا', links: [
+            { href: '/admin/content/templates', title: 'صفحه‌ساز و قالب‌ها', icon: 'layout', perm: 'templates.manage' },
+            { href: '/admin/content/posts', title: 'مقالات مجله', icon: 'book', perm: 'posts.view' },
+            { href: '/admin/content/post-categories', title: 'دسته‌بندی مقالات', icon: 'layers', perm: 'posts.manage' },
+            { href: '/admin/content/pages', title: 'صفحات ایستا', icon: 'file', perm: 'pages.manage' },
+            { href: '/admin/content/banners', title: 'بنرها و اسلایدر', icon: 'image', perm: 'banners.manage' },
+            { href: '/admin/content/stories', title: 'استوری‌ها', icon: 'zap', perm: 'stories.manage' },
+            { href: '/admin/content/menus', title: 'منوساز', icon: 'menu', perm: 'menus.manage' },
+            { href: '/admin/content/forms', title: 'فرم‌ساز', icon: 'edit', perm: 'forms.manage' },
+            { href: '/admin/content/faqs', title: 'پرسش‌های متداول', icon: 'help', perm: 'faqs.manage' },
+            { href: '/admin/content/reviews', title: 'دیدگاه‌ها', icon: 'star', perm: 'reviews.manage', badge: stats && stats.pendingReviews },
+            { href: '/admin/content/questions', title: 'پرسش‌ها', icon: 'comment', perm: 'questions.manage' },
+            { href: '/admin/content/comments', title: 'دیدگاه مقالات', icon: 'comment', perm: 'reviews.manage' },
+          ]},
+          { t: 'پشتیبانی', links: [
+            { href: '/admin/system/tickets', title: 'تیکت‌ها', icon: 'life-buoy', perm: 'tickets.view', badge: stats && stats.openTickets },
+            { href: '/admin/system/notifications', title: 'ارسال اعلان', icon: 'bell', perm: 'notifications.send' },
+            { href: '/admin/system/media', title: 'کتابخانه مدیا', icon: 'image', perm: 'media.view' },
+          ]},
+          { t: 'تنظیمات', links: [
+            { href: '/admin/settings/general', title: 'تنظیمات عمومی', icon: 'settings', perm: 'settings.view' },
+            { href: '/admin/settings/seo', title: 'سئو', icon: 'globe', perm: 'seo.manage' },
+            { href: '/admin/settings/gateways', title: 'درگاه‌های پرداخت', icon: 'credit-card', perm: 'gateways.manage' },
+            { href: '/admin/settings/sms', title: 'سامانه پیامکی', icon: 'send', perm: 'gateways.manage' },
+            { href: '/admin/settings/currency', title: 'نرخ ارز و قیمت‌ها', icon: 'refresh', perm: 'currency.manage' },
+            { href: '/admin/settings/map', title: 'نقشه و موقعیت', icon: 'map', perm: 'settings.view' },
+            { href: '/admin/settings/widgets', title: 'ویجت‌های صفحه نخست', icon: 'grid', perm: 'settings.manage' },
+          ]},
+          { t: 'سیستم', links: [
+            { href: '/admin/system/activities', title: 'لاگ فعالیت‌ها', icon: 'activity', perm: 'logs.view' },
+            { href: '/admin/system/sessions', title: 'نشست‌های فعال', icon: 'monitor', perm: 'sessions.manage' },
+            { href: '/admin/system/backup', title: 'پشتیبان‌گیری', icon: 'database', perm: 'backup.manage' },
+            { href: '/admin/system/reports', title: 'گزارش‌های سیستمی', icon: 'chart', perm: 'reports.view' },
+          ]},
+        ]; %>
+        <% groups.forEach(function (g) { %>
+          <% const visible = g.links.filter(function (l) { return !l.perm || (typeof can === 'function' && can(l.perm)); }); %>
+          <% if (visible.length) { %>
+            <div class="side-group-title"><%= g.t %></div>
+            <% visible.forEach(function (l) { %>
+              <a class="side-link <%= path === l.href || (l.href !== '/admin/dashboard' && path.indexOf(l.href) === 0) ? 'active' : '' %>" href="<%= l.href %>">
+                <svg><use href="#<%= ic(l.icon) %>"/></svg> <%= l.title %>
+                <% if (l.badge) { %><span class="badge badge-danger"><%= h.toPersianDigits(l.badge) %></span><% } %>
+              </a>
+            <% }) %>
+          <% } %>
+        <% }) %>
+      <% } else { %>
+        <% items.forEach(function (m) { %>
+          <a class="side-link <%= m.active ? 'active' : '' %>" href="<%= m.href %>">
+            <svg><use href="#<%= ic(m.icon) %>"/></svg> <%= m.title %>
+            <% if (m.badge) { %><span class="badge badge-danger"><%= h.toPersianDigits(m.badge) %></span><% } %>
+          </a>
+        <% }) %>
+      <% } %>
+    </nav>
+
+    <div style="padding:12px 14px;border-top:1px solid var(--border)">
+      <a class="side-link" href="/" target="_blank"><svg><use href="#i-globe"/></svg> مشاهده فروشگاه</a>
+      <% if (panelKind === 'user' && user.seller_id) { %><a class="side-link" href="/seller/dashboard"><svg><use href="#i-store"/></svg> پنل فروشندگی</a><% } %>
+      <% if (panelKind === 'seller' && user.is_staff) { %><a class="side-link" href="/admin/dashboard"><svg><use href="#i-shield"/></svg> پنل مدیریت</a><% } %>
+      <% if (panelKind === 'admin' && user.seller_id) { %><a class="side-link" href="/seller/dashboard"><svg><use href="#i-store"/></svg> پنل فروشندگی</a><% } %>
+      <a class="side-link" href="/user/dashboard" style="<%= panelKind === 'user' ? 'display:none' : '' %>"><svg><use href="#i-user"/></svg> پنل کاربری</a>
+      <a class="side-link text-danger" href="/logout"><svg><use href="#i-logout"/></svg> خروج از حساب</a>
+    </div>
+  </aside>
+
+  <div class="panel-main">
+    <header class="panel-topbar">
+      <button class="icon-btn sidebar-toggle" type="button" data-sidebar-toggle aria-label="منو"><svg><use href="#i-menu"/></svg></button>
+      <h1><%= title %></h1>
+
+      <div class="header-actions" style="margin-inline-start:auto">
+        <form method="get" action="<%= panelKind === 'admin' ? '/admin/products' : panelKind === 'seller' ? '/seller/products' : '/user/orders' %>" class="search-box" style="max-width:260px;display:none" id="panelSearch">
+          <div class="input-wrap"><svg><use href="#i-search"/></svg><input type="search" name="search" placeholder="جستجو…" aria-label="جستجو در پنل"></div>
+        </form>
+        <script>if(window.innerWidth>1200)document.getElementById('panelSearch').style.display='block';</script>
+
+        <button class="icon-btn" type="button" data-theme-toggle aria-label="حالت شب/روز" title="حالت شب/روز"><svg><use href="#i-moon"/></svg></button>
+
+        <div class="dropdown">
+          <button class="icon-btn" type="button" data-dropdown aria-label="اعلان‌ها" title="اعلان‌ها">
+            <svg><use href="#i-bell"/></svg>
+            <% if (notifyCount) { %><span class="count"><%= h.toPersianDigits(notifyCount) %></span><% } %>
+          </button>
+          <div class="dropdown-menu">
+            <div class="dd-head"><span>اعلان‌ها</span>
+              <form method="post" action="/user/notifications/read-all" class="m-0"><button class="btn btn-ghost btn-sm" type="submit">خواندن همه</button></form>
+            </div>
+            <div class="notif-list">
+              <% const _notifs = (typeof notifications !== 'undefined' && notifications) ? (notifications.rows || notifications) : []; %>
+              <% (_notifs || []).forEach(function (n) { %>
+                <a class="notif-item <%= n.read_at ? '' : 'unread' %>" href="<%= n.link || '/user/notifications' %>">
+                  <span class="ic"><svg width="16" height="16" style="width:16px;height:16px"><use href="#<%= ic(n.icon || 'bell') %>"/></svg></span>
+                  <span class="grow"><b class="text-sm" style="display:block"><%= n.title %></b>
+                    <span class="text-xs text-muted line-2" style="display:block"><%= n.body %></span>
+                    <span class="text-xs text-muted"><%= h.timeAgo(n.created_at) %></span></span>
+                </a>
+              <% }) %>
+              <% if (!_notifs.length) { %>
+                <div class="empty" style="padding:26px 12px"><span class="text-xs">اعلان خوانده‌نشده‌ای ندارید</span></div>
+              <% } %>
+            </div>
+            <div class="dd-foot"><a href="/user/notifications">مشاهده همه</a></div>
+          </div>
+        </div>
+
+        <div class="dropdown">
+          <button class="user-chip" type="button" data-dropdown aria-label="حساب">
+            <span class="avatar sm"><% if (user.avatar) { %><img src="<%= user.avatar %>" alt=""><% } else { %><%= (user.name || user.phone || 'ک').slice(0, 1) %><% } %></span>
+            <span class="n"><%= user.name || user.phone %></span>
+            <svg width="14" height="14" style="width:14px;height:14px"><use href="#i-chevron-down"/></svg>
+          </button>
+          <div class="dropdown-menu small">
+            <a class="dd-item" href="/user/profile"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-user"/></svg> ویرایش پروفایل</a>
+            <a class="dd-item" href="/user/wallet"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-wallet"/></svg> کیف پول: <b class="mono"><%= h.fa(user.wallet || 0) %></b></a>
+            <a class="dd-item" href="/user/sessions"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-eye"/></svg> نشست‌های فعال</a>
+            <a class="dd-item" href="/user/tickets"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-ticket"/></svg> تیکت‌ها</a>
+            <a class="dd-item text-danger" href="/logout"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-logout"/></svg> خروج</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-content" id="spa-content">

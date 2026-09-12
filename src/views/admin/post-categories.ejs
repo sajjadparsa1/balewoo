@@ -1,0 +1,77 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">دسته‌بندی مقالات <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> دسته</span></h2>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/admin/content/posts"><svg><use href="#i-book"/></svg> مقالات</a>
+    <button class="btn btn-sm btn-primary" type="button" data-modal-open="pcModal" onclick="openPc(null)"><svg><use href="#i-plus"/></svg> دسته جدید</button>
+  </div>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap"><table class="data">
+      <thead><tr><th style="width:60px">ترتیب</th><th>نام دسته</th><th>نامک (آدرس)</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+      <tbody><% rows.forEach(function (r) { %>
+        <tr>
+          <td class="mono text-xs"><%= h.toPersianDigits(r.sort || 0) %></td>
+          <td class="text-sm bold"><%= r.name %></td>
+          <td class="mono text-2xs" dir="ltr">/blog?cat=<%= r.slug %></td>
+          <td><span class="badge <%= r.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= r.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+          <td class="actions">
+            <a class="btn btn-sm btn-ghost" href="/blog?cat=<%= r.slug %>" target="_blank" rel="noopener" title="مشاهده"><svg><use href="#i-eye"/></svg></a>
+            <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                    onclick='openPc(<%- JSON.stringify(r) %>)'><svg><use href="#i-edit"/></svg></button>
+            <form method="post" action="/admin/content/post-categories/<%= r.id %>/delete" class="m-0">
+              <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف"
+                      data-confirm-click="دسته «<%= r.name %>» حذف شود؟ مقالات آن بدون دسته می‌مانند."><svg><use href="#i-trash"/></svg></button>
+            </form>
+          </td>
+        </tr>
+      <% }) %></tbody></table></div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-layers"/></svg></span>
+      <h3>دسته‌بندی مقاله‌ای وجود ندارد</h3>
+      <p>برای سازماندهی مجله فروشگاه، دسته‌هایی مثل «راهنمای خرید» و «اخبار» بسازید.</p>
+      <button class="btn btn-sm btn-primary" type="button" data-modal-open="pcModal" onclick="openPc(null)"><svg><use href="#i-plus"/></svg> ساخت دسته</button>
+    </div>
+  <% } %>
+</section>
+
+<div class="modal-backdrop" id="pcModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="pcTitle">دسته جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/post-categories">
+      <input type="hidden" name="id" id="pcId">
+      <div class="modal-body">
+        <div class="field"><label for="pcName">نام دسته <i class="req">*</i></label>
+          <input class="input" id="pcName" name="name" required></div>
+        <div class="field"><label for="pcSlug">نامک لاتین</label>
+          <input class="input mono" id="pcSlug" name="slug" dir="ltr" data-slug-from="#pcName" placeholder="buying-guide"></div>
+        <div class="grid g-2">
+          <div class="field"><label for="pcSort">ترتیب نمایش</label>
+            <input class="input mono" id="pcSort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+          <div class="field"><label for="pcStatus">وضعیت</label>
+            <select class="select" id="pcStatus" name="status">
+              <option value="active">فعال</option><option value="inactive">غیرفعال</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openPc(r) {
+    document.getElementById('pcTitle').textContent = r ? 'ویرایش دسته' : 'دسته جدید';
+    document.getElementById('pcId').value = r ? r.id : '';
+    document.getElementById('pcName').value = r ? r.name : '';
+    document.getElementById('pcSlug').value = r ? r.slug : '';
+    document.getElementById('pcSort').value = r ? (r.sort || 0) : 0;
+    document.getElementById('pcStatus').value = r ? (r.status || 'active') : 'active';
+  }
+</script>
+
+<%- include('../partials/panel-foot') %>

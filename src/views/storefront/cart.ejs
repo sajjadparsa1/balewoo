@@ -1,0 +1,173 @@
+<% const t = totals; %>
+<%- include('../layouts/head', { bodyClass: 'page-cart' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'سبد خرید' }] }) %>
+
+  <div class="steps mb-20">
+    <div class="step active"><div class="num">۱</div>سبد خرید</div>
+    <div class="step"><div class="num">۲</div>اطلاعات ارسال</div>
+    <div class="step"><div class="num">۳</div>پرداخت</div>
+    <div class="step"><div class="num">۴</div>تکمیل سفارش</div>
+  </div>
+
+  <% if (!t.items.length) { %>
+    <div class="card">
+      <div class="empty">
+        <svg><use href="#i-cart"/></svg>
+        <h4>سبد خرید شما خالی است</h4>
+        <p class="text-sm">هنوز کالایی به سبد خود اضافه نکرده‌اید. از میان هزاران کالای موجود انتخاب کنید.</p>
+        <div class="flex gap-10 justify-center flex-wrap">
+          <a class="btn btn-primary btn-lg" href="/products">شروع خرید</a>
+          <a class="btn btn-outline btn-lg" href="/products?special=1">فروش ویژه امروز</a>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="cart-grid">
+      <div>
+        <% if (t.hasUnavailable) { %>
+          <div class="alert alert-warning mb-14"><svg><use href="#i-alert"/></svg><div class="body">برخی کالاهای سبد شما ناموجود شده‌اند و در محاسبه مبلغ لحاظ نمی‌شوند. آن‌ها را حذف کنید یا تعداد را کاهش دهید.</div></div>
+        <% } %>
+
+        <% t.bySeller.forEach(function (group) { %>
+          <% const sellerName = group.seller_id ? (group.items[0] && group.items[0].seller_name) || 'فروشنده' : site.name; %>
+          <div class="card mb-14">
+            <div class="card-head">
+              <h3 class="flex items-center gap-8 text-sm"><svg width="17" height="17" style="width:17px;height:17px;color:var(--brand)"><use href="#i-store"/></svg>
+                <%= group.seller_id ? 'فروشنده: ' + (group.items[0].seller_name || '—') : 'فروشگاه اصلی ' + site.name %></h3>
+              <span class="badge badge-outline"><%= h.toPersianDigits(group.items.length) %> قلم</span>
+            </div>
+            <% group.items.forEach(function (it) { %>
+              <div class="cart-item <%= it.available ? '' : 'out' %>" style="opacity:<%= it.available ? 1 : .65 %>">
+                <a href="/product/<%= it.slug %>"><img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy"></a>
+                <div class="grow">
+                  <a href="/product/<%= it.slug %>" class="semibold line-2" style="font-size:.9rem;line-height:1.9"><%= it.title %></a>
+                  <% if (it.variant_title) { %><div class="text-xs text-muted mt-6">متغیر: <%= it.variant_title %></div><% } %>
+                  <% if (it.options_list && it.options_list.length) { %>
+                    <div class="text-xs text-muted mt-6">
+                      <% it.options_list.forEach(function (o) { %><span class="tag"><%= o.title %><%= o.price ? ' + ' + h.fa(o.price) : '' %></span> <% }) %>
+                    </div>
+                  <% } %>
+                  <% if (it.tier) { %><div class="badge badge-success mt-6">تخفیف خرید <%= h.toPersianDigits(it.tier.min_qty) %> عددی اعمال شد</div><% } %>
+                  <% if (!it.available) { %><div class="badge badge-danger mt-6">ناموجود / بیش از موجودی انبار</div><% } %>
+                  <div class="flex items-center gap-10 mt-10 flex-wrap">
+                    <form method="post" action="/cart/update" class="qty-box m-0" data-ajax>
+                      <input type="hidden" name="item_id" value="<%= it.id %>">
+                      <button type="button" onclick="var i=this.parentElement.querySelector('[name=qty]');i.value=Math.max(1,parseInt(i.value||1)-1);this.form.requestSubmit?this.form.requestSubmit():this.form.submit()" aria-label="کاهش">−</button>
+                      <input type="number" name="qty" value="<%= it.qty %>" min="1" max="<%= Math.min(it.variant_stock || it.product_stock || 99, it.max_order || 99) %>" data-qty-input onchange="this.form.requestSubmit?this.form.requestSubmit():this.form.submit()" aria-label="تعداد">
+                      <button type="button" onclick="var i=this.parentElement.querySelector('[name=qty]');i.value=parseInt(i.value||1)+1;this.form.requestSubmit?this.form.requestSubmit():this.form.submit()" aria-label="افزایش">+</button>
+                    </form>
+                    <form method="post" action="/cart/remove" class="m-0">
+                      <input type="hidden" name="item_id" value="<%= it.id %>">
+                      <button class="btn btn-sm btn-ghost text-danger" type="submit"><svg><use href="#i-trash"/></svg> حذف</button>
+                    </form>
+                    <button class="btn btn-sm btn-ghost" type="button" data-favorite data-product-id="<%= it.product_id %>"><svg><use href="#i-heart"/></svg> انتقال به علاقمندی</button>
+                  </div>
+                </div>
+                <div class="col-price text-left" style="min-width:150px">
+                  <% if (it.unit_old_price > it.unit_price) { %>
+                    <div class="del text-xs mono"><%= h.fa(it.unit_old_price) %></div>
+                  <% } %>
+                  <div class="bold mono text-lg"><%= h.fa(it.line_total) %></div>
+                  <div class="text-xs text-muted"><%= site.currency %></div>
+                  <% if (it.discount_percent > 0) { %><div class="badge badge-danger mt-6"><%= h.toPersianDigits(it.discount_percent) %>٪ تخفیف</div><% } %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% }) %>
+
+        <div class="card">
+          <div class="card-head"><h3 class="text-sm">کد تخفیف و امتیاز باشگاه</h3></div>
+          <div class="card-body grid g-2">
+            <form method="post" action="/cart/coupon" class="m-0">
+              <label class="label" for="couponCode">کد تخفیف دارید؟</label>
+              <div class="input-group">
+                <input class="input" id="couponCode" name="code" placeholder="مثلاً WELCOME10" value="<%= t.cart && t.cart.coupon_code ? t.cart.coupon_code : '' %>">
+                <button class="btn btn-primary" type="submit">اعمال</button>
+              </div>
+              <% if (t.couponDiscount > 0) { %>
+                <div class="text-success text-xs mt-6 flex items-center gap-6">
+                  تخفیف <%= h.fa(t.couponDiscount) %> <%= site.currency %> اعمال شد
+                  <form method="post" action="/cart/coupon/remove" class="m-0" style="display:inline"><button class="btn btn-sm btn-ghost text-danger" type="submit">حذف کد</button></form>
+                </div>
+              <% } %>
+            </form>
+            <% if (user && (user.points || 0) > 0) { %>
+              <form method="post" action="/cart/points" class="m-0">
+                <label class="label" for="usePoints">امتیاز باشگاه مشتریان</label>
+                <div class="input-group">
+                  <input class="input" id="usePoints" type="number" name="points" min="0" max="<%= user.points %>" placeholder="مقدار امتیاز">
+                  <span class="addon">از <%= h.toPersianDigits(user.points) %> امتیاز</span>
+                  <button class="btn btn-primary" type="submit">استفاده</button>
+                </div>
+                <div class="help">هر <%= h.toPersianDigits(setting('club_point_value', '100')) %> امتیاز معادل <%= h.fa(setting('club_point_value', '100')) %> <%= site.currency %> — حداکثر <%= h.toPersianDigits(setting('club_max_use_percent', '20')) %>٪ مبلغ سبد.</div>
+                <% if (t.pointsDiscount > 0) { %><div class="text-success text-xs mt-6">تخفیف امتیاز: <%= h.fa(t.pointsDiscount) %> <%= site.currency %></div><% } %>
+              </form>
+            <% } else { %>
+              <div>
+                <label class="label">امتیاز باشگاه مشتریان</label>
+                <p class="text-xs text-muted m-0">برای استفاده از امتیازها وارد حساب شوید. با این خرید <b class="text-brand"><%= h.toPersianDigits(t.pointsEarned) %></b> امتیاز دریافت می‌کنید.</p>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <aside class="summary-box">
+        <div class="card">
+          <div class="card-head"><h3>خلاصه سبد</h3><span class="badge badge-primary"><%= h.toPersianDigits(t.count) %> کالا</span></div>
+          <div class="card-body">
+            <% if (t.freeShippingGap > 0) { %>
+              <div class="text-xs text-muted mb-6">با <%= h.fa(t.freeShippingGap) %> <%= site.currency %> خرید بیشتر، ارسال رایگان می‌شود!</div>
+              <div class="progress-free"><i style="width:<%= Math.min(100, Math.round(((t.shippingMethod.free_above - t.freeShippingGap) / t.shippingMethod.free_above) * 100)) %>%"></i></div>
+            <% } %>
+            <div class="summary-row"><span>قیمت کالاها</span><span class="mono"><%= h.fa(t.subtotal) %></span></div>
+            <% if (t.itemsDiscount > 0) { %><div class="summary-row"><span>تخفیف محصولات</span><span class="discount mono">− <%= h.fa(t.itemsDiscount) %></span></div><% } %>
+            <% if (t.optionsTotal > 0) { %><div class="summary-row"><span>خدمات و اقلام اختیاری</span><span class="mono"><%= h.fa(t.optionsTotal) %></span></div><% } %>
+            <% if (t.couponDiscount > 0) { %><div class="summary-row"><span>کد تخفیف</span><span class="discount mono">− <%= h.fa(t.couponDiscount) %></span></div><% } %>
+            <% if (t.pointsDiscount > 0) { %><div class="summary-row"><span>تخفیف امتیاز</span><span class="discount mono">− <%= h.fa(t.pointsDiscount) %></span></div><% } %>
+            <div class="summary-row"><span>هزینه ارسال</span><span class="mono"><%= t.shippingCost ? h.fa(t.shippingCost) : 'در مرحله بعد' %></span></div>
+            <% if (t.vat > 0) { %><div class="summary-row"><span>مالیات بر ارزش افزوده (<%= h.toPersianDigits(t.vatRate) %>٪)</span><span class="mono"><%= h.fa(t.vat) %></span></div><% } %>
+            <div class="summary-row total"><span>مبلغ قابل پرداخت</span><span class="mono"><%= h.fa(t.total) %> <small><%= site.currency %></small></span></div>
+
+            <a class="btn btn-primary btn-lg btn-block mt-14" href="/checkout">
+              ادامه فرایند خرید <svg><use href="#i-chevron-left"/></svg>
+            </a>
+            <a class="btn btn-ghost btn-block mt-6" href="/products">ادامه خرید</a>
+            <div class="text-xs text-muted text-center mt-14 flex items-center justify-center gap-6">
+              <svg width="14" height="14" style="width:14px;height:14px;color:var(--success)"><use href="#i-shield"/></svg> پرداخت امن از طریق درگاه‌های معتبر بانکی
+            </div>
+          </div>
+        </div>
+
+        <% if (recommended && recommended.length) { %>
+          <div class="card mt-14">
+            <div class="card-head"><h3 class="text-sm">پیشنهاد برای شما</h3></div>
+            <div class="card-body stack">
+              <% recommended.slice(0, 4).forEach(function (rp) { %>
+                <a class="flex items-center gap-10" href="/product/<%= rp.slug %>" style="text-decoration:none;color:inherit">
+                  <img src="<%= rp.cover %>" alt="<%= rp.title %>" style="width:52px;height:52px;border-radius:10px;object-fit:cover" loading="lazy">
+                  <div class="grow"><div class="text-sm line-2"><%= rp.title %></div><div class="text-xs text-brand bold mono"><%= h.fa(rp.final_price) %> <%= site.currency %></div></div>
+                </a>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+      </aside>
+    </div>
+  <% } %>
+</div>
+</main>
+
+<script>
+  window.__renderCart = function (totals) {
+    if (!totals) return;
+    document.querySelectorAll('[data-cart-count]').forEach(function (el) { el.textContent = faNum(totals.count); el.classList.toggle('hidden', !totals.count); });
+  };
+</script>
+
+<%- include('../partials/store-footer') %>

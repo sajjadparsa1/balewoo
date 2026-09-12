@@ -1,0 +1,83 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">نشانی‌های ثبت‌شده برای ارسال سفارش. نشانی پیش‌فرض به‌صورت خودکار در فرایند خرید انتخاب می‌شود.</div>
+  <button class="btn btn-primary btn-sm" type="button" data-modal-open="addressModal"><svg><use href="#i-plus"/></svg> افزودن نشانی</button>
+</div>
+
+<% if (rows.length) { %>
+  <div class="grid g-2">
+    <% rows.forEach(function (a) { %>
+      <div class="card">
+        <div class="card-body">
+          <div class="flex items-center justify-between gap-10 mb-10">
+            <div class="bold text-sm flex items-center gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--brand)"><use href="#i-pin"/></svg> <%= a.title || 'نشانی' %>
+              <% if (a.is_default) { %><span class="badge badge-success">پیش‌فرض</span><% } %></div>
+            <form method="post" action="/user/addresses/<%= a.id %>/delete" class="m-0">
+              <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="این نشانی حذف شود؟" title="حذف"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </form>
+          </div>
+          <div class="text-sm text-2" style="line-height:2.1"><%= [a.province, a.city, a.address].filter(Boolean).join('، ') %></div>
+          <% if (a.postal_code) { %><div class="text-xs text-muted mt-6">کد پستی: <span class="mono" dir="ltr"><%= h.toPersianDigits(a.postal_code) %></span></div><% } %>
+          <div class="text-xs text-muted mt-6">تحویل‌گیرنده: <%= a.receiver || '—' %> · <span dir="ltr"><%= h.toPersianDigits(a.phone || '—') %></span></div>
+          <% if (a.lat && a.lng) { %>
+            <div class="map-frame mt-14" style="height:150px" id="neshanMap"
+                 data-map-key="<%= setting('neshan_api_key', '') %>" data-lat="<%= a.lat %>" data-lng="<%= a.lng %>"></div>
+          <% } %>
+        </div>
+        <div class="card-foot text-xs text-muted flex items-center justify-between">
+          <span>ثبت: <%= h.formatJalali(a.created_at) %></span>
+          <span class="mono" dir="ltr">#<%= h.toPersianDigits(a.id) %></span>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-pin"/></svg>
+    <h4>نشانی ثبت نشده است</h4>
+    <p class="text-sm">برای تکمیل فرایند خرید، حداقل یک نشانی لازم دارید.</p>
+    <button class="btn btn-primary btn-sm" type="button" data-modal-open="addressModal">افزودن اولین نشانی</button>
+  </div></div>
+<% } %>
+
+<div class="modal-backdrop" id="addressModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>افزودن نشانی جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/user/addresses">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="a_title">عنوان <span class="req">*</span></label>
+            <input class="input" id="a_title" name="title" placeholder="منزل / محل کار / …" required></div>
+          <div class="field"><label for="a_province">استان <span class="req">*</span></label>
+            <select class="select" id="a_province" name="province" required>
+              <option value="">انتخاب کنید…</option>
+              <% (provinces || []).forEach(function (pr) { %><option value="<%= pr.name %>"><%= pr.name %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="a_city">شهر <span class="req">*</span></label><input class="input" id="a_city" name="city" required></div>
+          <div class="field"><label for="a_postal">کد پستی</label><input class="input" id="a_postal" name="postal_code" dir="ltr" maxlength="10" inputmode="numeric"></div>
+        </div>
+        <div class="field"><label for="a_address">نشانی کامل <span class="req">*</span></label>
+          <textarea class="textarea" id="a_address" name="address" required placeholder="خیابان، کوچه، پلاک، واحد"></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label for="a_receiver">نام تحویل‌گیرنده</label><input class="input" id="a_receiver" name="receiver" value="<%= user.name || '' %>"></div>
+          <div class="field"><label for="a_phone">تلفن تحویل‌گیرنده</label><input class="input" id="a_phone" name="phone" dir="ltr" value="<%= user.phone || '' %>"></div>
+        </div>
+        <% if (String(setting('map_enabled', '0')) === '1') { %>
+          <div class="grid g-2">
+            <div class="field"><label for="a_lat">عرض جغرافیایی</label><input class="input" id="a_lat" name="lat" dir="ltr" placeholder="35.7448"></div>
+            <div class="field"><label for="a_lng">طول جغرافیایی</label><input class="input" id="a_lng" name="lng" dir="ltr" placeholder="51.3753"></div>
+          </div>
+          <div class="map-frame" id="neshanMap" data-map-key="<%= setting('neshan_api_key', '') %>" data-lat="<%= setting('map_default_lat', '35.7448') %>" data-lng="<%= setting('map_default_lng', '51.3753') %>"></div>
+        <% } %>
+        <label class="check mt-14"><input type="checkbox" name="is_default" value="1"> به‌عنوان نشانی پیش‌فرض ذخیره شود</label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره نشانی</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>

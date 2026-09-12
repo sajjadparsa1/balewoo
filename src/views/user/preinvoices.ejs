@@ -1,0 +1,76 @@
+<%
+  const statusBadge = { pending: 'badge-warning', paid: 'badge-success', canceled: 'badge-danger', expired: 'badge-outline' };
+  const statusTitle = { pending: 'در انتظار پرداخت', paid: 'پرداخت شده', canceled: 'لغو شده', expired: 'منقضی شده' };
+%>
+<%- include('../partials/panel-head') %>
+
+<% if (query.paid) { %><div class="alert alert-success mb-20"><svg><use href="#i-check"/></svg><div class="body">پیش‌فاکتور با موفقیت پرداخت شد.</div></div><% } %>
+
+<section class="card">
+  <div class="card-head"><h3>پیش‌فاکتورها</h3>
+    <span class="text-xs text-muted">پیش‌فاکتور توسط مدیر یا فروشنده برای شما صادر می‌شود (مثلاً برای کالاهای سفارشی یا استعلامی).</span></div>
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد</th><th>تاریخ صدور</th><th>اقلام</th><th>تخفیف</th><th>مالیات</th><th>مبلغ کل</th><th>وضعیت</th><th>اعتبار تا</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (pi) { %>
+            <tr>
+              <td class="mono" dir="ltr"><a class="text-brand bold" href="/user/preinvoices/<%= pi.code %>"><%= pi.code %></a></td>
+              <td class="text-xs"><%= h.formatJalali(pi.created_at) %></td>
+              <td class="text-xs"><%= h.toPersianDigits((pi.items || []).length) %> قلم</td>
+              <td class="mono text-xs"><%= pi.discount ? '− ' + h.fa(pi.discount) : '—' %></td>
+              <td class="mono text-xs"><%= pi.vat ? h.fa(pi.vat) : '—' %></td>
+              <td class="mono bold"><%= h.fa(pi.total) %></td>
+              <td><span class="badge <%= statusBadge[pi.status] || 'badge-outline' %>"><%= statusTitle[pi.status] || pi.status %></span></td>
+              <td class="text-xs"><%= pi.expires_at ? h.formatJalali(pi.expires_at) : '—' %></td>
+              <td class="actions">
+                <a class="btn btn-sm btn-ghost" href="/user/preinvoices/<%= pi.code %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a>
+                <% if (pi.status === 'pending') { %>
+                  <button class="btn btn-sm btn-primary" type="button" data-modal-open="payModal-<%= pi.code %>">پرداخت</button>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-file"/></svg>
+      <h4>پیش‌فاکتوری برای شما صادر نشده است</h4>
+      <p class="text-sm">پس از استعلام قیمت یا ثبت سفارش سفارشی، پیش‌فاکتور در این بخش نمایش داده می‌شود.</p>
+      <a class="btn btn-primary btn-sm" href="/products">مشاهده محصولات</a></div>
+  <% } %>
+</section>
+
+<% rows.filter(function (pi) { return pi.status === 'pending'; }).forEach(function (pi) { %>
+<div class="modal-backdrop" id="payModal-<%= pi.code %>">
+  <div class="modal">
+    <div class="modal-head"><h3>پرداخت پیش‌فاکتور <%= pi.code %></h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/payment/preinvoice/pay/<%= pi.code %>">
+      <div class="modal-body">
+        <div class="summary-row total mb-14"><span>مبلغ قابل پرداخت</span><span class="mono"><%= h.fa(pi.total) %> <%= site.currency %></span></div>
+        <div class="stack" data-choice-group="paymethod">
+          <% if ((user.wallet || 0) >= pi.total) { %>
+            <label class="pay-method active"><input type="radio" name="method" value="wallet" checked>
+              <span class="grow"><span class="t">پرداخت از کیف پول</span><span class="d" style="display:block">موجودی: <%= h.fa(user.wallet) %> <%= site.currency %> — بدون کارمزد</span></span></label>
+          <% } %>
+          <label class="pay-method <%= (user.wallet || 0) >= pi.total ? '' : 'active' %>">
+            <span class="grow"><span class="t">پرداخت اینترنتی</span><span class="d" style="display:block">انتخاب درگاه در مرحله بعد</span></span>
+            <select class="select" name="gateway" style="width:auto" onclick="this.closest('.pay-method').querySelector('input').checked=true">
+              <% (gateways || []).filter(function (g) { return g.type === 'online' || g.type === 'installment'; }).forEach(function (g) { %>
+                <option value="<%= g.key %>"><%= g.name %></option>
+              <% }) %>
+            </select>
+            <input type="radio" name="method" value="gateway" class="hidden" <%= (user.wallet || 0) >= pi.total ? '' : 'checked' %>>
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-lock"/></svg> پرداخت</button></div>
+    </form>
+  </div>
+</div>
+<% }) %>
+
+<%- include('../partials/panel-foot') %>

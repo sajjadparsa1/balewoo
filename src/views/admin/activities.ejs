@@ -1,0 +1,130 @@
+<%
+  const ACTOR = { admin: 'مدیر', staff: 'کارشناس', user: 'کاربر', guest: 'مهمان', seller: 'فروشنده', system: 'سیستم' };
+  const totalSummary = summary.reduce(function (s, x) { return s + x.c; }, 0);
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">گزارش فعالیت‌ها <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> رویداد</span></h2>
+  <div class="text-xs text-muted">هر ورود، تغییر وضعیت سفارش، ویرایش محصول و اقدام مدیریتی ثبت می‌شود.</div>
+</div>
+
+<section class="card mb-20">
+  <div class="card-body">
+    <form class="filters" method="get" action="/admin/system/activities">
+      <div class="field"><label for="f_action">نوع رویداد</label>
+        <select class="select" id="f_action" name="action">
+          <option value="">همه رویدادها</option>
+          <% actions.forEach(function (a) { %>
+            <option value="<%= a.action %>" <%= query.action === a.action ? 'selected' : '' %>><%= activity.label(a.action) %></option>
+          <% }) %>
+        </select></div>
+      <div class="field"><label for="f_user">شناسه کاربر</label>
+        <input class="input input-sm mono" id="f_user" name="user" dir="ltr" value="<%= query.user || '' %>" placeholder="12"></div>
+      <div class="field"><label for="f_from">از تاریخ (میلادی)</label>
+        <input class="input input-sm mono" id="f_from" type="date" name="from" dir="ltr" value="<%= query.from || '' %>"></div>
+      <div class="flex gap-8 align-end">
+        <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-search"/></svg> فیلتر</button>
+        <a class="btn btn-sm btn-ghost" href="/admin/system/activities">پاکسازی</a>
+      </div>
+    </form>
+  </div>
+</section>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">رویدادها</h3></div>
+    <% if (rows.length) { %>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>زمان</th><th>کاربر</th><th>رویداد</th><th>شرح</th><th>موضوع</th><th>نشانی IP</th></tr></thead>
+          <tbody>
+            <% rows.forEach(function (r) { %>
+              <tr>
+                <td class="text-2xs">
+                  <%= h.formatJalali(r.created_at) %>
+                  <div class="text-muted"><%= h.timeAgo(r.created_at) %></div>
+                </td>
+                <td class="text-xs">
+                  <% if (r.user_id && can('users.view')) { %>
+                    <a href="/admin/people/users/<%= r.user_id %>"><%= r.user_name || 'کاربر' %></a>
+                  <% } else { %>
+                    <%= r.user_name || '—' %>
+                  <% } %>
+                  <div class="text-2xs text-muted">
+                    <%= ACTOR[r.actor_type] || r.actor_type %>
+                    <% if (r.phone) { %> · <span class="mono" dir="ltr"><%= h.toPersianDigits(r.phone) %></span><% } %>
+                  </div>
+                </td>
+                <td><span class="badge badge-outline text-2xs"><%= activity.label(r.action) %></span>
+                  <div class="mono text-2xs text-muted" dir="ltr"><%= r.action %></div></td>
+                <td class="text-2xs" style="max-width:300px"><%= r.description || '—' %></td>
+                <td class="text-2xs">
+                  <% if (r.subject_type) { %>
+                    <span class="mono" dir="ltr"><%= r.subject_type %><%= r.subject_id ? '#' + r.subject_id : '' %></span>
+                  <% } else { %><span class="text-muted">—</span><% } %>
+                </td>
+                <td class="mono text-2xs" dir="ltr"><%= r.ip || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <%- include('../partials/pagination', { pagination: pg, baseUrl: '/admin/system/activities', extraQuery: query }) %>
+    <% } else { %>
+      <div class="empty">
+        <span class="ic"><svg><use href="#i-activity"/></svg></span>
+        <h3>رویدادی یافت نشد</h3>
+        <p>با فیلترهای بالا بازه یا نوع رویداد را تغییر دهید.</p>
+        <a class="btn btn-sm btn-primary" href="/admin/system/activities">نمایش همه رویدادها</a>
+      </div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">پرتکرارترین رویدادها (۳۰ روز)</h3></div>
+      <div class="card-body" style="padding:10px 14px">
+        <% if (summary.length) { %>
+          <% summary.forEach(function (s) { const pct = totalSummary ? Math.round((s.c / totalSummary) * 100) : 0; %>
+            <div class="mb-10">
+              <div class="flex items-center justify-between text-2xs mb-4">
+                <a href="/admin/system/activities?action=<%= s.action %>"><%= activity.label(s.action) %></a>
+                <span class="mono"><%= h.toPersianDigits(s.c) %> (<%= h.toPersianDigits(pct) %>٪)</span>
+              </div>
+              <div class="progress" style="height:6px"><i style="width:<%= pct %>%"></i></div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-xs text-muted m-0">رویدادی در ۳۰ روز اخیر ثبت نشده است.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <% if (can('logs.view')) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">پاکسازی رویدادهای قدیمی</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/system/activities/purge">
+            <div class="field"><label for="p_days">حذف رویدادهای قدیمی‌تر از (روز)</label>
+              <input class="input mono" id="p_days" name="days" dir="ltr" inputmode="numeric" value="120"></div>
+            <button class="btn btn-sm btn-danger btn-block" type="submit"
+                    data-confirm-click="رویدادهای قدیمی‌تر از بازه تعیین‌شده برای همیشه حذف شوند؟"><svg><use href="#i-trash"/></svg> پاکسازی گزارش‌ها</button>
+            <div class="help">برای کاهش حجم پایگاه داده؛ رویدادهای اخیر حفظ می‌شوند.</div>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">میان‌برها</h3></div>
+      <div class="card-body stack" style="gap:8px">
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/sessions"><svg><use href="#i-monitor"/></svg> نشست‌های فعال</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/reports"><svg><use href="#i-chart"/></svg> آمار و گزارش‌ها</a>
+        <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/system/backup"><svg><use href="#i-database"/></svg> پشتیبان‌گیری و بهینه‌سازی</a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

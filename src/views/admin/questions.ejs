@@ -1,0 +1,101 @@
+<%
+  const STATUS = { pending: ['در انتظار', 'badge-warning'], approved: ['تایید شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+  const ROLE_LABEL = { admin: 'مدیر فروشگاه', seller: 'فروشنده', user: 'کاربر', buyer: 'خریدار' };
+  const counts = { pending: 0, approved: 0, rejected: 0 };
+  rows.forEach(function (q) { if (counts[q.status] !== undefined) counts[q.status]++; });
+  const canManage = can('questions.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">پرسش و پاسخ محصولات <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> پرسش</span></h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm <%= !query.status ? 'btn-primary' : 'btn-ghost' %>" href="/admin/content/questions">همه</a>
+    <% Object.keys(STATUS).forEach(function (k) { %>
+      <a class="btn btn-sm <%= query.status === k ? 'btn-primary' : 'btn-ghost' %>" href="/admin/content/questions?status=<%= k %>">
+        <%= STATUS[k][0] %> <span class="badge badge-outline"><%= h.toPersianDigits(counts[k]) %></span></a>
+    <% }) %>
+  </div>
+</div>
+
+<% if (counts.pending) { %>
+  <div class="alert alert-warning mb-20"><svg><use href="#i-alert"/></svg><div class="body">
+    <%= h.toPersianDigits(counts.pending) %> پرسش در انتظار پاسخ یا تایید است — پاسخ مدیر زیر پرسش در صفحه محصول نمایش داده می‌شود.
+  </div></div>
+<% } %>
+
+<% if (rows.length) { %>
+  <div class="stack">
+    <% rows.forEach(function (q) { const st = STATUS[q.status] || [q.status, 'badge-outline']; %>
+      <section class="card">
+        <div class="card-head">
+          <div class="flex items-center gap-10 min-0">
+            <span class="avatar sm"><%= String(q.author || 'ک').trim().charAt(0) %></span>
+            <div class="min-0">
+              <b class="text-xs block"><%= q.author || 'کاربر مهمان' %></b>
+              <span class="text-2xs text-muted"><%= h.formatJalali(q.created_at) %> · <%= h.timeAgo(q.created_at) %></span>
+            </div>
+          </div>
+          <div class="flex items-center gap-8">
+            <span class="badge badge-outline text-2xs"><%= h.toPersianDigits(q.answers.length) %> پاسخ</span>
+            <span class="badge <%= st[1] %>"><%= st[0] %></span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-8 flex-wrap mb-10">
+            <span class="text-2xs text-muted">روی محصول:</span>
+            <a class="text-xs bold" href="/product/<%= q.slug %>" target="_blank" rel="noopener"><%= h.truncate(q.title, 56) %></a>
+            <% if (can('products.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/products/<%= q.product_id %>/edit"><svg><use href="#i-box"/></svg> ویرایش محصول</a><% } %>
+            <% if (q.seller_id && can('sellers.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/people/sellers/<%= q.seller_id %>"><svg><use href="#i-store"/></svg> فروشنده</a><% } %>
+          </div>
+
+          <div class="bubble">
+            <div class="bubble-head text-xs bold"><svg style="width:13px;height:13px;vertical-align:-2px"><use href="#i-question"/></svg> پرسش کاربر</div>
+            <div class="bubble-body text-sm"><%= q.body %></div>
+          </div>
+
+          <% q.answers.forEach(function (a) { %>
+            <div class="bubble" style="margin-top:10px;border-inline-start:3px solid <%= a.role_label === 'admin' ? 'var(--brand)' : a.role_label === 'seller' ? 'var(--success)' : 'var(--border)' %>">
+              <div class="bubble-head text-xs bold">
+                <%= a.name || 'کاربر' %> <span class="badge badge-outline text-2xs"><%= ROLE_LABEL[a.role_label] || a.role_label %></span>
+                <span class="text-2xs text-muted ms-auto"><%= h.timeAgo(a.created_at) %></span>
+              </div>
+              <div class="bubble-body text-xs"><%= a.body %></div>
+            </div>
+          <% }) %>
+
+          <% if (canManage) { %>
+            <form method="post" action="/admin/content/questions/<%= q.id %>" class="mt-14">
+              <div class="field"><label for="ans_<%= q.id %>">پاسخ به‌عنوان مدیر</label>
+                <textarea class="textarea" id="ans_<%= q.id %>" name="body" rows="2" placeholder="پاسخ شما زیر پرسش در صفحه محصول نمایش داده می‌شود…"></textarea></div>
+              <div class="flex items-center gap-8 flex-wrap">
+                <div class="field m-0" style="width:auto">
+                  <select class="select" name="status">
+                    <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>" <%= q.status === k ? 'selected' : '' %>><%= STATUS[k][0] %></option><% }) %>
+                  </select></div>
+                <button class="btn btn-sm btn-primary" type="submit"><svg><use href="#i-send"/></svg> ثبت پاسخ و وضعیت</button>
+                <div class="help m-0 ms-auto">اگر متن پاسخ خالی بماند، فقط وضعیت پرسش تغییر می‌کند.</div>
+              </div>
+            </form>
+            <form method="post" action="/admin/content/questions/<%= q.id %>" class="m-0 mt-10">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn btn-sm btn-ghost text-danger" type="submit"
+                      data-confirm-click="پرسش و پاسخ‌های آن حذف شوند؟"><svg><use href="#i-trash"/></svg> حذف پرسش</button>
+            </form>
+          <% } %>
+        </div>
+      </section>
+    <% }) %>
+  </div>
+<% } else { %>
+  <section class="card">
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-question"/></svg></span>
+      <h3>پرسشی ثبت نشده است</h3>
+      <p>کاربران از صفحه محصول می‌توانند پرسش بپرسند؛ پاسخ شما به افزایش نرخ تبدیل کمک می‌کند.</p>
+      <a class="btn btn-sm btn-primary" href="/admin/content/questions">نمایش همه پرسش‌ها</a>
+    </div>
+  </section>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

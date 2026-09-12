@@ -1,0 +1,154 @@
+<%
+  const flat = [];
+  (function walk(list, depth) {
+    (list || []).forEach(function (c) { flat.push(Object.assign({}, c, { depth: depth })); walk(c.children, depth + 1); });
+  })(tree, 0);
+  const parentOptions = flat.filter(function (c) { return c.parent_id == null; });
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">دسته‌بندی محصولات</h2>
+    <div class="text-xs text-muted mt-4">ساختار درختی دسته‌ها، منوی اصلی و فیلترهای آرشیو از اینجا ساخته می‌شود.</div>
+  </div>
+  <% if (can('categories.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openCat(null)"><svg><use href="#i-plus"/></svg> دسته جدید</button>
+  <% } %>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">درخت دسته‌بندی</h3>
+    <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> دسته</span></div>
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th></th><th>نام دسته</th><th>آدرس</th><th>والد</th><th>محصولات</th><th>ترتیب</th><th>منو</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (c) { %>
+            <% const depth = (flat.find(function (f) { return f.id === c.id; }) || {}).depth || 0; %>
+            <tr>
+              <td><% if (c.image) { %><span class="thumb-sm" style="width:30px;height:30px"><img src="<%= c.image %>" alt=""></span><% } else { %><svg width="18" height="18" style="width:18px;height:18px;color:var(--text-3)"><use href="#i-layers"/></svg><% } %></td>
+              <td>
+                <span style="padding-inline-start:<%= depth * 16 %>px" class="text-sm bold <%= depth ? 'text-muted' : '' %>">
+                  <%= depth ? '↳ ' : '' %><%= c.name %></span>
+                <% if (c.description) { %><div class="text-2xs text-muted"><%= h.truncate(h.stripTags(c.description), 70) %></div><% } %>
+              </td>
+              <td class="mono text-2xs" dir="ltr"><a href="/products?cat=<%= c.slug %>" target="_blank"><%= c.slug %></a></td>
+              <td class="text-xs"><%= c.parent_name || '—' %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(c.products_count || 0) %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(c.sort || 0) %></td>
+              <td><span class="badge <%= c.in_menu ? 'badge-success' : 'badge-outline' %>"><%= c.in_menu ? 'در منو' : 'خارج از منو' %></span></td>
+              <td><span class="badge <%= c.status === 'active' ? 'badge-success' : 'badge-outline' %>"><%= c.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <td class="actions">
+                <% if (can('categories.manage')) { %>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openCat(<%- JSON.stringify({ id: c.id, name: c.name, slug: c.slug, parent_id: c.parent_id || '', description: c.description || '', seo_title: c.seo_title || '', seo_desc: c.seo_desc || '', sort: c.sort || 0, in_menu: c.in_menu, status: c.status, image: c.image || '' }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/categories/<%= c.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="دسته «<%= c.name %>» حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+                <a class="btn btn-sm btn-ghost" href="/products?cat=<%= c.slug %>" target="_blank" title="مشاهده محصولات"><svg><use href="#i-eye"/></svg></a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-layers"/></svg>
+      <h4>دسته‌بندی ثبت نشده است</h4>
+      <p class="text-sm">اولین دسته را بسازید تا محصولات قابل طبقه‌بندی باشند.</p>
+      <% if (can('categories.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openCat(null)">افزودن دسته</button><% } %></div>
+  <% } %>
+</section>
+
+<% if (can('categories.manage')) { %>
+<div class="modal-backdrop" id="catModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="catModalTitle">دسته‌بندی جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/categories" enctype="multipart/form-data" data-upload-form>
+      <input type="hidden" name="id" id="cat_id" value="">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="cat_name">نام دسته <span class="req">*</span></label>
+            <input class="input" id="cat_name" name="name" required></div>
+          <div class="field"><label for="cat_slug">آدرس یکتا</label>
+            <div class="input-group"><span class="addon" dir="ltr">?cat=</span>
+              <input class="input mono" id="cat_slug" name="slug" dir="ltr" data-slug-from="#cat_name"></div></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="cat_parent">دسته والد</label>
+            <select class="select" id="cat_parent" name="parent_id">
+              <option value="">دسته اصلی (بدون والد)</option>
+              <% parentOptions.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="cat_sort">ترتیب نمایش</label>
+            <input class="input mono" id="cat_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+        </div>
+        <div class="field"><label for="cat_desc">توضیحات</label>
+          <textarea class="textarea" id="cat_desc" name="description" rows="3"></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label for="cat_seo_title">عنوان سئو</label>
+            <input class="input" id="cat_seo_title" name="seo_title" maxlength="70"></div>
+          <div class="field"><label for="cat_seo_desc">توضیح متا</label>
+            <input class="input" id="cat_seo_desc" name="seo_desc" maxlength="160"></div>
+        </div>
+        <div class="field"><label for="cat_image">تصویر دسته</label>
+          <input class="input" id="cat_image" name="image" type="file" accept="image/*">
+          <div class="input-group mt-10">
+            <input class="input mono" id="cat_image_url" name="image_url" dir="ltr" placeholder="آدرس تصویر /uploads/…">
+            <button class="btn btn-outline" type="button" data-media-pick="image_url"><svg><use href="#i-folder"/></svg> کتابخانه مدیا</button>
+          </div>
+          <div id="cat_image_prev" class="mt-10" data-preview-for="image_url"></div>
+        </div>
+        <div class="flex gap-16">
+          <label class="check"><input type="checkbox" id="cat_in_menu" name="in_menu" value="1" checked> نمایش در منوی اصلی</label>
+          <div class="field m-0" style="min-width:150px"><label for="cat_status">وضعیت</label>
+            <select class="select" id="cat_status" name="status">
+              <option value="active">فعال</option>
+              <option value="inactive">غیرفعال</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره دسته</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<%- include('../partials/panel-foot', { includeMediaModal: true }) %>
+<script>
+  function openCat(d) {
+    var f = document.querySelector('#catModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('catModalTitle').textContent = d ? 'ویرایش دسته‌بندی' : 'دسته‌بندی جدید';
+    ['id', 'name', 'slug', 'description', 'seo_title', 'seo_desc', 'sort', 'status'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el && d) el.value = d[k] != null ? d[k] : (k === 'sort' ? 0 : '');
+    });
+    if (d) {
+      f.querySelector('[name="parent_id"]').value = d.parent_id || '';
+      f.querySelector('[name="in_menu"]').checked = !!d.in_menu;
+      f.querySelector('[name="image_url"]').value = d.image || '';
+      document.getElementById('cat_image_prev').innerHTML = d.image ? '<img src="' + d.image + '" alt="" style="max-height:96px;border-radius:10px">' : '';
+    } else {
+      f.querySelector('[name="in_menu"]').checked = true;
+      document.getElementById('cat_image_prev').innerHTML = '';
+    }
+    openModal('catModal');
+  }
+  /* همگام‌سازی پیش‌نمایش با آدرس تصویر */
+  (function () {
+    var url = document.getElementById('cat_image_url');
+    var prev = document.getElementById('cat_image_prev');
+    if (!url || !prev) return;
+    var sync = function () { prev.innerHTML = url.value ? '<img src="' + url.value + '" alt="" style="max-height:96px;border-radius:10px">' : ''; };
+    url.addEventListener('input', sync);
+    url.addEventListener('change', sync);
+    setInterval(sync, 400);
+  })();
+</script>

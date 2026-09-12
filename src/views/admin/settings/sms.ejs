@@ -1,0 +1,163 @@
+<%
+  const canEdit = can('gateways.manage');
+  const dis = canEdit ? '' : 'disabled';
+  const currentDriver = setting('sms_driver', 'mock');
+  const smsEnabled = String(setting('sms_enabled', '0')) !== '0';
+  // نگاشت فیلد هر درگاه به کلید تنظیمات
+  const KEYS = {
+    kavenegar: { api_key: 'sms_kavenegar_key', sender: 'sms_kavenegar_sender', template_otp: 'sms_kavenegar_template' },
+    ghasedak: { api_key: 'sms_ghasedak_key', line_number: 'sms_ghasedak_line' },
+    melipayamak: { username: 'sms_melipayamak_user', password: 'sms_melipayamak_pass', from: 'sms_melipayamak_from' },
+    smsir: { api_key: 'sms_smsir_key', line_number: 'sms_smsir_template' },
+    ippanel: { api_key: 'sms_ippanel_key', sender: 'sms_ippanel_sender', pattern: 'sms_ippanel_pattern' },
+    mediana: { api_key: 'sms_mediana_key', sender: 'sms_mediana_sender' },
+  };
+  const STATUS = { sent: ['ارسال شد', 'badge-success'], failed: ['ناموفق', 'badge-danger'], mock: ['آزمایشی', 'badge-outline'], pending: ['در انتظار', 'badge-warning'] };
+  const sent = logs.filter(function (l) { return l.status === 'sent'; }).length;
+%>
+<%- include('../../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">درگاه‌های پیامکی
+    <span class="badge badge-outline"><%= h.toPersianDigits(drivers.length) %> سرویس</span>
+    <span class="badge <%= smsEnabled ? 'badge-success' : 'badge-warning' %>"><%= smsEnabled ? 'ارسال فعال' : 'ارسال غیرفعال' %></span>
+  </h2>
+  <% if (canEdit) { %><button class="btn btn-sm btn-primary" type="submit" form="smsForm"><svg><use href="#i-save"/></svg> ذخیره تنظیمات پیامک</button><% } %>
+</div>
+
+<form method="post" action="/admin/settings/sms" id="smsForm">
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سرویس فعال</h3></div>
+        <div class="card-body">
+          <label class="switch-row mb-10"><input type="checkbox" name="sms_enabled" value="1" <%= smsEnabled ? 'checked' : '' %> <%= dis %>><span>ارسال پیامک فعال باشد (کد ورود، اطلاع‌رسانی سفارش و…)</span></label>
+          <div class="grid g-2">
+            <% drivers.forEach(function (d) { %>
+              <label class="check" style="padding:9px 12px;border:1px solid <%= currentDriver === d.key ? 'var(--brand)' : 'var(--border)' %>;border-radius:12px;background:<%= currentDriver === d.key ? 'var(--brand-50)' : 'var(--surface)' %>">
+                <input type="radio" name="sms_driver" value="<%= d.key %>" <%= currentDriver === d.key ? 'checked' : '' %> <%= dis %>>
+                <span class="text-sm bold"><%= d.name %> <span class="mono text-2xs text-muted" dir="ltr"><%= d.key %></span></span>
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      </section>
+
+      <% drivers.forEach(function (d) { const map = KEYS[d.key] || {}; const keys = Object.keys(map); if (!keys.length) return; %>
+        <section class="card driver-box" data-driver="<%= d.key %>" style="<%= currentDriver === d.key ? '' : 'opacity:.6' %>">
+          <div class="card-head"><h3 class="text-sm"><%= d.name %></h3>
+            <% if (currentDriver === d.key) { %><span class="badge badge-success text-2xs">سرویس انتخاب‌شده</span><% } %></div>
+          <div class="card-body">
+            <div class="grid g-2">
+              <% d.fields.forEach(function (f) { const fk = f[0], fl = f[1]; const settingKey = map[fk]; %>
+                <div class="field">
+                  <label class="text-xs" for="sms_<%= d.key %>_<%= fk %>"><%= fl %></label>
+                  <% if (settingKey) { %>
+                    <input class="input mono" id="sms_<%= d.key %>_<%= fk %>" name="<%= settingKey %>" dir="ltr"
+                           value="<%= setting(settingKey, '') %>" <%= (fk === 'password' || fk.indexOf('key') > -1 || fk === 'api_key') ? 'type="password"' : '' %> <%= dis %>>
+                  <% } else { %>
+                    <input class="input mono" dir="ltr" value="<%= fl %>" disabled>
+                    <div class="help">این فیلد در نسخه فعلی از طریق فایل پیکربندی خوانده می‌شود.</div>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </section>
+      <% }) %>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">الگوها و اطلاع‌رسانی‌ها</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="sms_otp_tpl">قالب پیامک کد ورود</label>
+            <textarea class="textarea" id="sms_otp_tpl" name="sms_otp_template" rows="3" <%= dis %>><%= setting('sms_otp_template', 'کد ورود شما به {site}: {code}\nاین کد {ttl} ثانیه اعتبار دارد.') %></textarea>
+            <div class="help">متغیرهای قابل استفاده: <span class="mono" dir="ltr">{code}</span> <span class="mono" dir="ltr">{site}</span> <span class="mono" dir="ltr">{ttl}</span> <span class="mono" dir="ltr">{name}</span></div></div>
+          <div class="grid g-3">
+            <div class="field"><label for="sms_n_order">اطلاع‌رسانی ثبت سفارش</label>
+              <select class="select" id="sms_n_order" name="sms_notify_order" <%= dis %>>
+                <option value="1" <%= String(setting('sms_notify_order', '1')) !== '0' ? 'selected' : '' %>>ارسال شود</option>
+                <option value="0" <%= String(setting('sms_notify_order', '1')) === '0' ? 'selected' : '' %>>ارسال نشود</option>
+              </select></div>
+            <div class="field"><label for="sms_n_ship">اطلاع‌رسانی ارسال سفارش</label>
+              <select class="select" id="sms_n_ship" name="sms_notify_shipping" <%= dis %>>
+                <option value="1" <%= String(setting('sms_notify_shipping', '1')) !== '0' ? 'selected' : '' %>>ارسال شود</option>
+                <option value="0" <%= String(setting('sms_notify_shipping', '1')) === '0' ? 'selected' : '' %>>ارسال نشود</option>
+              </select></div>
+            <div class="field"><label for="sms_n_seller">اطلاع‌رسانی سفارش جدید به فروشنده</label>
+              <select class="select" id="sms_n_seller" name="sms_notify_seller" <%= dis %>>
+                <option value="1" <%= String(setting('sms_notify_seller', '1')) !== '0' ? 'selected' : '' %>>ارسال شود</option>
+                <option value="0" <%= String(setting('sms_notify_seller', '1')) === '0' ? 'selected' : '' %>>ارسال نشود</option>
+              </select></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">تست ارسال</h3></div>
+        <div class="card-body">
+          <form method="post" action="/admin/settings/sms/test">
+            <div class="field"><label for="t_phone">شماره مقصد</label>
+              <input class="input mono" id="t_phone" name="phone" dir="ltr" required placeholder="09xxxxxxxxx"></div>
+            <div class="field"><label for="t_body">متن پیامک</label>
+              <textarea class="textarea" id="t_body" name="body" rows="3">تست ارسال پیامک از بالی‌وو</textarea></div>
+            <button class="btn btn-sm btn-primary btn-block" type="submit" <%= dis %>><svg><use href="#i-send"/></svg> ارسال تست</button>
+            <div class="help">در حالت آزمایشی، پیامک ارسال نمی‌شود و فقط در گزارش زیر ثبت می‌گردد.</div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">گزارش ارسال‌ها <span class="badge badge-outline"><%= h.toPersianDigits(logs.length) %></span></h3></div>
+        <div class="card-body" style="padding:0">
+          <% if (logs.length) { %>
+            <div class="stack" style="gap:0;max-height:520px;overflow:auto">
+              <% logs.forEach(function (l) { const st = STATUS[l.status] || [l.status, 'badge-outline']; %>
+                <div class="link-row" style="padding:9px 14px;align-items:flex-start">
+                  <div class="grow min-0">
+                    <div class="flex items-center gap-6 flex-wrap">
+                      <span class="mono text-xs" dir="ltr"><%= h.toPersianDigits(l.phone || '') %></span>
+                      <span class="badge badge-outline text-2xs" dir="ltr"><%= l.provider %></span>
+                      <span class="badge <%= st[1] %> text-2xs"><%= st[0] %></span>
+                    </div>
+                    <div class="text-2xs text-muted mt-4" style="line-height:1.9"><%= h.truncate(l.body || '', 90) %></div>
+                    <div class="text-2xs text-muted"><%= h.formatJalaliFull(l.created_at) %></div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="empty" style="padding:22px"><p class="text-sm">پیامکی ارسال نشده است.</p></div>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">خلاصه</h3></div>
+        <div class="card-body">
+          <table class="table-kv"><tbody>
+            <tr><th>سرویس فعال</th><td class="text-xs"><%= (drivers.find(function (d) { return d.key === currentDriver; }) || {}).name || currentDriver %></td></tr>
+            <tr><th>ارسال موفق</th><td class="mono"><%= h.toPersianDigits(sent) %></td></tr>
+            <tr><th>کل گزارش‌ها</th><td class="mono"><%= h.toPersianDigits(logs.length) %></td></tr>
+          </tbody></table>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<script>
+  (function () {
+    const radios = document.querySelectorAll('[name="sms_driver"]');
+    const boxes = document.querySelectorAll('.driver-box');
+    function sync() {
+      const val = (document.querySelector('[name="sms_driver"]:checked') || {}).value;
+      boxes.forEach(function (b) { b.style.opacity = b.dataset.driver === val ? '1' : '.55'; });
+    }
+    radios.forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+  })();
+</script>
+
+<%- include('../../partials/panel-foot') %>

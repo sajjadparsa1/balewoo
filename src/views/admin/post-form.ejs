@@ -1,0 +1,164 @@
+<%
+  const isNew = !post;
+  const p = post || {};
+  const tagsVal = Array.isArray(p.tags) ? p.tags.join('، ') : '';
+  const STATUS = [['draft', 'پیش‌نویس'], ['pending', 'در انتظار تایید'], ['published', 'منتشر شده']];
+  const KINDS = [['text', 'مقاله متنی'], ['video', 'ویدیو / آپارات'], ['podcast', 'پادکست']];
+  const action = isNew ? '/admin/content/posts' : '/admin/content/posts';
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0"><%= isNew ? 'مقاله جدید' : 'ویرایش مقاله' %></h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/content/posts"><svg><use href="#i-chevron-right"/></svg> فهرست مقالات</a>
+    <% if (!isNew) { %><a class="btn btn-sm btn-outline" href="/blog/<%= p.slug %>" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg> مشاهده</a><% } %>
+    <button class="btn btn-sm btn-primary" type="submit" form="postForm"><svg><use href="#i-save"/></svg> ذخیره مقاله</button>
+  </div>
+</div>
+
+<form method="post" action="<%= action %>" enctype="multipart/form-data" id="postForm">
+  <% if (!isNew) { %><input type="hidden" name="id" value="<%= p.id %>"><% } %>
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">محتوای مقاله</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_title">عنوان <i class="req">*</i></label>
+            <input class="input" id="f_title" name="title" value="<%= p.title || '' %>" required></div>
+          <div class="field"><label for="f_slug">نامک (آدرس مقاله)</label>
+            <div class="input-group"><span class="mono text-2xs" dir="ltr">/blog/</span>
+              <input class="input mono" id="f_slug" name="slug" dir="ltr" value="<%= p.slug || '' %>" data-slug-from="#f_title"></div>
+            <div class="help">خالی بگذارید تا از عنوان ساخته شود.</div></div>
+          <div class="field"><label for="f_excerpt">خلاصه / لید مقاله</label>
+            <textarea class="textarea" id="f_excerpt" name="excerpt" rows="3" placeholder="دو تا سه خط که در کارت مقالات و توضیحات متا نمایش داده می‌شود."><%= p.excerpt || '' %></textarea></div>
+          <div class="field"><label for="f_body">متن کامل</label>
+            <div class="rich-editor" data-editor>
+              <div class="toolbar">
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertUnorderedList">• فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertOrderedList">۱. فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h2">تیتر ۲</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h3">تیتر ۳</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:blockquote">نقل قول</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="createLink">پیوند</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertImage">تصویر</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="removeFormat">پاکسازی</button>
+              </div>
+              <div class="editable" contenteditable="true" data-placeholder="متن مقاله را بنویسید…"></div>
+              <textarea id="f_body" name="body" hidden><%= p.body || '' %></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">رسانه‌ها</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="f_cover">تصویر شاخص</label>
+              <div class="dropzone" data-dropzone data-target="#f_cover">
+                <svg><use href="#i-image"/></svg>
+                <div class="text-sm">رها کردن یا کلیک برای انتخاب</div>
+                <div class="dz-hint text-xs">jpg / png / webp — نسبت ۱۶:۹ پیشنهاد می‌شود</div>
+              </div>
+              <input class="input mt-10" id="f_cover" name="cover" type="file" accept="image/*">
+              <input class="input mono mt-10" name="cover_url" dir="ltr" placeholder="یا آدرس تصویر (URL)" value="<%= p.cover || '' %>">
+              <% if (p.cover) { %><img class="mt-10" src="<%= p.cover %>" alt="" style="width:100%;max-height:150px;object-fit:cover;border-radius:10px"><% } %>
+            </div>
+            <div class="stack">
+              <div class="field"><label for="f_kind">نوع محتوا</label>
+                <select class="select" id="f_kind" name="kind">
+                  <% KINDS.forEach(function (k) { %><option value="<%= k[0] %>" <%= p.kind === k[0] ? 'selected' : '' %>><%= k[1] %></option><% }) %>
+                </select></div>
+              <div class="field"><label for="f_video">آدرس ویدیو (آپارات / یوتیوب)</label>
+                <input class="input mono" id="f_video" name="video_url" dir="ltr" value="<%= p.video_url || '' %>"></div>
+              <div class="field"><label for="f_audio">آدرس فایل صوتی (پادکست)</label>
+                <input class="input mono" id="f_audio" name="audio_url" dir="ltr" value="<%= p.audio_url || '' %>"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">محصولات مرتبط با مقاله</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_products">انتخاب محصولات</label>
+            <select class="select" id="f_products" name="product_ids[]" multiple size="10">
+              <% products.forEach(function (pr) { %>
+                <option value="<%= pr.id %>" <%= (p.mentioned || []).indexOf(pr.id) > -1 ? 'selected' : '' %>><%= h.truncate(pr.title, 60) %></option>
+              <% }) %>
+            </select>
+            <div class="help">این محصولات در انتهای مقاله به شکل «خرید از مقاله» نمایش داده می‌شوند (Ctrl/⌘ + کلیک برای چند انتخاب).</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">انتشار</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_status">وضعیت</label>
+            <select class="select" id="f_status" name="status">
+              <% STATUS.forEach(function (s2) { %><option value="<%= s2[0] %>" <%= (p.status || 'published') === s2[0] ? 'selected' : '' %>><%= s2[1] %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="f_cat">دسته مقاله</label>
+            <select class="select" id="f_cat" name="category_id">
+              <option value="">بدون دسته</option>
+              <% categories.forEach(function (c) { %><option value="<%= c.id %>" <%= p.category_id === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="f_seller">نویسنده فروشنده (اختیاری)</label>
+            <select class="select" id="f_seller" name="seller_id">
+              <option value="">مقاله از طرف فروشگاه اصلی</option>
+              <% sellers.forEach(function (s2) { %><option value="<%= s2.id %>" <%= p.seller_id === s2.id ? 'selected' : '' %>><%= s2.shop_name %></option><% }) %>
+            </select>
+            <div class="help">مقالات فروشندگان پس از تایید شما منتشر می‌شوند.</div></div>
+          <div class="field"><label for="f_pub">تاریخ انتشار</label>
+            <input class="input mono" id="f_pub" name="published_at" dir="ltr" value="<%= p.published_at || '' %>" placeholder="خالی = اکنون">
+            <div class="help">قالب میلادی: <span class="mono" dir="ltr">2026-09-12 10:30:00</span></div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">برچسب‌ها</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_tags">برچسب‌ها (با کاما جدا کنید)</label>
+            <input class="input" id="f_tags" name="tags" value="<%= tagsVal %>" placeholder="راهنمای خرید، موبایل، تخفیف"></div>
+          <% if (tags.length) { %>
+            <div class="chips">
+              <% tags.slice(0, 24).forEach(function (t) { %>
+                <button class="chip" type="button" data-tag-add="<%= t.name %>"><%= t.name %></button>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سئو</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_seot">عنوان سئو</label>
+            <input class="input" id="f_seot" name="seo_title" value="<%= p.seo_title || '' %>" maxlength="70"></div>
+          <div class="field"><label for="f_seod">توضیحات متا</label>
+            <textarea class="textarea" id="f_seod" name="seo_desc" rows="3" maxlength="200"><%= p.seo_desc || '' %></textarea></div>
+          <div class="text-2xs text-muted">در صورت خالی بودن، عنوان و خلاصه مقاله استفاده می‌شود و داده ساختاریافته <span class="mono" dir="ltr">Article</span> خودکار تولید می‌گردد.</div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<script>
+  document.querySelectorAll('[data-tag-add]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const inp = document.getElementById('f_tags');
+      const list = inp.value.split(/[،,]/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (list.indexOf(b.dataset.tagAdd) === -1) list.push(b.dataset.tagAdd);
+      inp.value = list.join('، ');
+    });
+  });
+</script>
+
+<%- include('../partials/panel-foot', { includeMediaModal: false }) %>

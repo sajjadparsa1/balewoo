@@ -1,0 +1,80 @@
+<%
+  const statusTitle = { pending: 'در انتظار تایید', paid: 'واریز شده', rejected: 'رد شده' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="grid g-panel">
+  <section class="card">
+    <div class="card-head"><h3>درخواست‌های برداشت</h3></div>
+    <% if (rows.length) { %>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>شناسه</th><th>تاریخ</th><th>حساب مقصد</th><th>مبلغ</th><th>وضعیت</th><th>پیگیری</th><th></th></tr></thead>
+          <tbody>
+            <% rows.forEach(function (w) { %>
+              <tr>
+                <td class="mono text-xs" dir="ltr">#<%= h.toPersianDigits(w.id) %></td>
+                <td class="text-xs"><%= h.formatJalali(w.created_at) %></td>
+                <td class="text-xs"><%= w.bank_name || '—' %><% if (w.card_number) { %> <span class="text-muted mono" dir="ltr"><%= h.toPersianDigits(String(w.card_number).slice(-6)) %></span><% } %></td>
+                <td class="mono bold"><%= h.fa(w.amount) %> <span class="text-xs text-muted"><%= site.currency %></span></td>
+                <td><span class="badge <%= w.status === 'paid' ? 'badge-success' : w.status === 'rejected' ? 'badge-danger' : 'badge-warning' %>"><%= statusTitle[w.status] || w.status %></span></td>
+                <td class="mono text-xs" dir="ltr"><%= w.reference || '—' %></td>
+                <td class="actions">
+                  <% if (w.admin_note) { %>
+                    <span class="text-xs text-muted" title="یادداشت مدیر"><%= h.truncate(w.admin_note, 40) %></span>
+                  <% } else { %>
+                    <span class="text-xs text-muted">—</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="empty"><svg><use href="#i-bank"/></svg>
+        <h4>درخواست برداشتی ثبت نشده است</h4>
+        <p class="text-sm">از فرم روبه‌رو می‌توانید موجودی کیف پول را به حساب بانکی خود منتقل کنید.</p></div>
+    <% } %>
+  </section>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">ثبت درخواست برداشت</h3></div>
+      <div class="card-body">
+        <div class="summary-row total mb-14"><span>موجودی کیف پول</span><span class="mono"><%= h.fa(user.wallet) %> <%= site.currency %></span></div>
+        <% if (!accounts.length) { %>
+          <div class="alert alert-warning"><svg><use href="#i-alert"/></svg><div class="body">برای ثبت درخواست، ابتدا یک <a class="text-danger bold" href="/user/bank-accounts">حساب بانکی</a> ثبت کنید و منتظر تایید مدیر بمانید.</div></div>
+        <% } else { %>
+          <form method="post" action="/user/withdrawals">
+            <div class="field"><label for="w_amount">مبلغ (<%= site.currency %>) <span class="req">*</span></label>
+              <input class="input mono" id="w_amount" name="amount" dir="ltr" inputmode="numeric"
+                     min="<%= minWithdraw %>" max="<%= user.wallet %>" required
+                     placeholder="حداقل <%= h.fa(minWithdraw) %>">
+              <div class="help">حداقل مبلغ برداشت <%= h.fa(minWithdraw) %> و حداکثر موجودی کیف پول (<%= h.fa(user.wallet) %>) است.</div>
+            </div>
+            <div class="field"><label for="w_account">حساب مقصد <span class="req">*</span></label>
+              <select class="select" id="w_account" name="bank_account_id" required>
+                <% accounts.forEach(function (a) { %>
+                  <option value="<%= a.id %>"><%= a.bank_name %> — <%= a.owner_name %><% if (a.card_number) { %> (<%= h.toPersianDigits(String(a.card_number).slice(-6)) %>)<% } else if (a.iban) { %> (<%= h.toPersianDigits(String(a.iban).slice(-6)) %>)<% } %></option>
+                <% }) %>
+              </select></div>
+            <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-bank"/></svg> ثبت درخواست برداشت</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">قوانین برداشت</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.2">
+        · مبلغ درخواستی از کیف پول کسر و پس از تایید مدیر به حساب شما واریز می‌شود.<br>
+        · در صورت رد درخواست، مبلغ به کیف پول بازمی‌گردد.<br>
+        · نام صاحب حساب باید با نام کاربری شما مطابقت داشته باشد.<br>
+        · پس از واریز، کد پیگیری بانکی در همین جدول نمایش داده می‌شود.
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

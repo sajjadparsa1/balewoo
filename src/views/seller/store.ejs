@@ -1,0 +1,187 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">ویرایش فروشگاه</h2>
+    <div class="text-xs text-muted mt-4">اطلاعات هویتی، تماس و نشانی فروشگاه عمومی شما.</div>
+  </div>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/store/<%= seller.shop_slug %>" target="_blank"><svg><use href="#i-store"/></svg> مشاهده فروشگاه</a>
+  </div>
+</div>
+
+<% if (seller.status === 'pending') { %>
+  <div class="alert alert-warning mb-20"><svg><use href="#i-alert"/></svg>
+    <div class="body">فروشگاه شما در انتظار بررسی است. تکمیل مدارک و اطلاعات هویتی، فرایند تایید را سریع‌تر می‌کند.</div></div>
+<% } else if (seller.status === 'blocked') { %>
+  <div class="alert alert-danger mb-20"><svg><use href="#i-ban"/></svg>
+    <div class="body">فروشگاه شما مسدود است.
+      <% if (seller.blocked_until) { %>تا <%= h.formatJalali(seller.blocked_until) %>. <% } %>
+      برای پیگیری <a class="text-brand bold" href="/seller/tickets">تیکت بزنید</a>.</div></div>
+<% } %>
+
+<form method="post" action="/seller/store" enctype="multipart/form-data" data-upload-form>
+  <div class="grid g-panel">
+    <div class="stack">
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">هویت فروشگاه</h3></div>
+        <div class="card-body">
+          <div class="flex items-center gap-16 flex-wrap mb-20">
+            <div>
+              <div class="avatar lg" id="logoPrev" style="width:84px;height:84px;border-radius:16px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center">
+                <% if (seller.logo) { %><img src="<%= seller.logo %>" alt="" style="width:100%;height:100%;object-fit:cover">
+                <% } else { %><svg width="30" height="30" style="width:30px;height:30px;color:var(--text-3)"><use href="#i-store"/></svg><% } %>
+              </div>
+              <div class="text-2xs text-muted mt-6 text-center">لوگو</div>
+            </div>
+            <div class="grow" style="min-width:220px">
+              <div class="field m-0"><label for="s_logo">بارگذاری لوگو</label>
+                <input class="input" id="s_logo" name="logo" type="file" accept="image/*"
+                       onchange="if(this.files[0]){var u=URL.createObjectURL(this.files[0]);document.getElementById('logoPrev').innerHTML='<img src=&quot;'+u+'&quot; style=&quot;width:100%;height:100%;object-fit:cover&quot;>'}">
+                <div class="help">تصویر مربعی با پس‌زمینه روشن — حداقل ۳۰۰×۳۰۰ پیکسل.</div></div>
+            </div>
+          </div>
+
+          <div class="field"><label for="s_banner">بنر فروشگاه</label>
+            <input class="input" id="s_banner" name="banner" type="file" accept="image/*">
+            <div class="help">ابعاد پیشنهادی ۱۹۲۰×۴۲۰ پیکسل.</div>
+            <% if (seller.banner) { %><img src="<%= seller.banner %>" alt="" class="mt-10" style="max-height:110px;border-radius:10px;width:100%;object-fit:cover"><% } %>
+          </div>
+
+          <div class="grid g-2">
+            <div class="field"><label for="s_name">نام فروشگاه <span class="req">*</span></label>
+              <input class="input" id="s_name" name="shop_name" value="<%= seller.shop_name %>" required></div>
+            <div class="field"><label for="s_en">نام انگلیسی</label>
+              <input class="input mono" id="s_en" name="shop_en" dir="ltr" value="<%= seller.shop_en || '' %>" placeholder="Balewoo Store"></div>
+          </div>
+
+          <div class="field"><label for="s_desc">درباره فروشگاه</label>
+            <textarea class="textarea" id="s_desc" name="description" rows="4" placeholder="زمینه فعالیت، سابقه، مزیت‌های رقابتی و خدمات پس از فروش را بنویسید."><%= seller.description || '' %></textarea>
+            <div class="help">این متن در صفحه عمومی فروشگاه نمایش داده می‌شود و بر اعتماد خریدار اثر دارد.</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">اطلاعات تماس و نشانی</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="s_phone">تلفن پشتیبانی</label>
+              <input class="input mono" id="s_phone" name="phone" dir="ltr" value="<%= seller.phone || '' %>"></div>
+            <div class="field"><label for="s_email">ایمیل</label>
+              <input class="input mono" id="s_email" name="email" type="email" dir="ltr" value="<%= seller.email || '' %>"></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="s_province">استان</label>
+              <select class="select" id="s_province" name="province">
+                <option value="">انتخاب کنید…</option>
+                <% (provinces || []).forEach(function (pr) { %>
+                  <option value="<%= pr.name %>" <%= seller.province === pr.name ? 'selected' : '' %>><%= pr.name %></option>
+                <% }) %>
+              </select></div>
+            <div class="field"><label for="s_city">شهر</label>
+              <input class="input" id="s_city" name="city" value="<%= seller.city || '' %>"></div>
+          </div>
+          <div class="field"><label for="s_address">نشانی کامل</label>
+            <textarea class="textarea" id="s_address" name="address" rows="2"><%= seller.address || '' %></textarea></div>
+          <% if (String(setting('map_enabled', '0')) === '1') { %>
+            <div class="grid g-2">
+              <div class="field"><label for="s_lat">عرض جغرافیایی</label>
+                <input class="input mono" id="s_lat" name="lat" dir="ltr" value="<%= seller.lat || '' %>"></div>
+              <div class="field"><label for="s_lng">طول جغرافیایی</label>
+                <input class="input mono" id="s_lng" name="lng" dir="ltr" value="<%= seller.lng || '' %>"></div>
+            </div>
+            <div class="map-frame" id="neshanMap" data-map-key="<%= setting('neshan_api_key', '') %>"
+                 data-lat="<%= seller.lat || setting('map_default_lat', '35.7448') %>" data-lng="<%= seller.lng || setting('map_default_lng', '51.3753') %>"></div>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">اطلاعات حقوقی و مدارک</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="s_nid">کد ملی / شناسه ملی</label>
+              <input class="input mono" id="s_nid" name="national_id" dir="ltr" value="<%= seller.national_id || '' %>" maxlength="11"></div>
+            <div class="field"><label for="s_reg">شماره ثبت</label>
+              <input class="input mono" id="s_reg" name="reg_no" dir="ltr" value="<%= seller.reg_no || '' %>"></div>
+          </div>
+          <div class="field"><label for="s_docs">بارگذاری مدارک (حداکثر ۶ فایل)</label>
+            <div class="dropzone" data-dropzone data-target="#s_docs">
+              <svg><use href="#i-file"/></svg>
+              <div class="text-sm">کارت ملی، پروانه کسب یا روزنامه رسمی را رها کنید</div>
+              <div class="dz-hint text-xs">تصویر یا PDF</div>
+            </div>
+            <input class="input mt-10" id="s_docs" name="documents" type="file" accept="image/*,.pdf" multiple>
+          </div>
+          <% if ((documents || []).length) { %>
+            <div class="text-xs text-muted mb-10">مدارک بارگذاری‌شده:</div>
+            <div class="stack" style="gap:8px">
+              <% documents.forEach(function (d, i) { %>
+                <a class="link-row" href="<%= d %>" target="_blank" rel="noopener">
+                  <svg width="15" height="15" style="width:15px;height:15px"><use href="#i-paperclip"/></svg>
+                  <span class="grow text-xs mono" dir="ltr"><%= h.truncate(d, 60) %></span>
+                  <span class="badge badge-outline text-2xs">فایل <%= h.toPersianDigits(i + 1) %></span>
+                </a>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack sticky-col">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">ذخیره تغییرات</h3></div>
+        <div class="card-body">
+          <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-save"/></svg> ذخیره اطلاعات فروشگاه</button>
+          <div class="text-2xs text-muted mt-10">تغییر نام فروشگاه پس از بررسی مدیریت اعمال می‌شود.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">شرایط همکاری (غیرقابل ویرایش)</h3></div>
+        <div class="card-body">
+          <table class="table-kv">
+            <tbody>
+              <tr><th>نوع فروشگاه</th><td><%= seller.type === 'legal' ? 'شخص حقوقی' : 'شخص حقیقی' %></td></tr>
+              <tr><th>آدرس عمومی</th><td class="mono text-xs" dir="ltr">/store/<%= seller.shop_slug %></td></tr>
+              <tr><th>کمیسیون</th><td class="mono"><%= h.toPersianDigits(seller.commission) %>٪</td></tr>
+              <tr><th>دوره تسویه</th><td class="mono"><%= h.toPersianDigits(seller.settlement_days) %> روز</td></tr>
+              <tr><th>ارسال مستقیم</th><td><%= seller.direct_shipping ? 'فعال' : 'از طریق انبار مرکزی' %></td></tr>
+              <tr><th>امتیاز فروشگاه</th><td class="mono"><%= h.toPersianDigits((seller.score || 5).toFixed(1)) %> از ۵</td></tr>
+              <tr><th>نرخ موفقیت</th><td class="mono text-success"><%= h.toPersianDigits(seller.success_rate) %>٪</td></tr>
+              <tr><th>نرخ لغو / مرجوعی</th><td class="mono"><%= h.toPersianDigits(seller.cancel_rate) %>٪ / <%= h.toPersianDigits(seller.return_rate) %>٪</td></tr>
+              <tr><th>تاریخ همکاری</th><td class="text-xs"><%= h.formatJalali(seller.created_at) %></td></tr>
+            </tbody>
+          </table>
+          <% if (seller.is_main) { %><div class="alert alert-info mt-10" style="padding:10px 12px"><div class="body text-xs">این فروشگاه به‌عنوان «فروشگاه اصلی» سایت تعریف شده است.</div></div><% } %>
+        </div>
+      </section>
+
+      <% if ((shippingMethods || []).length) { %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">روش‌های ارسال قابل استفاده</h3></div>
+          <div class="card-body stack" style="gap:10px">
+            <% shippingMethods.forEach(function (m) { %>
+              <div class="flex items-start gap-10">
+                <span class="grow">
+                  <b class="text-xs"><%= m.title %></b>
+                  <span class="text-2xs text-muted" style="display:block">
+                    <%= m.base_price ? h.fa(m.base_price) + ' ' + site.currency : 'هزینه بر اساس وزن' %>
+                    <% if (m.eta_days) { %> · <%= h.toPersianDigits(m.eta_days) %> روز کاری<% } %>
+                    <% if (m.free_above) { %> · ارسال رایگان بالای <%= h.fa(m.free_above) %><% } %>
+                  </span>
+                </span>
+                <span class="badge <%= m.status === 'active' ? 'badge-success' : 'badge-outline' %>"><%= m.status === 'active' ? 'فعال' : 'غیرفعال' %></span>
+              </div>
+            <% }) %>
+            <div class="text-2xs text-muted">تنظیم روش‌های ارسال اختصاصی توسط مدیریت انجام می‌شود.</div>
+          </div>
+        </section>
+      <% } %>
+    </aside>
+  </div>
+</form>
+
+<%- include('../partials/panel-foot', { includeMediaModal: true, mediaUrl: '/seller/media' }) %>

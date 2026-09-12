@@ -1,0 +1,164 @@
+<%
+  const KIND = { text: 'متنی', video: 'ویدیویی', podcast: 'پادکست' };
+  const PSTATUS = { draft: ['پیش‌نویس', 'badge-outline'], pending: ['در انتظار تایید', 'badge-warning'], published: ['منتشر شده', 'badge-success'] };
+  const linkedMap = {};
+  (linked || []).forEach(function (l) { (linkedMap[l.post_id] = linkedMap[l.post_id] || []).push(l.product_id); });
+  const needApproval = String(setting('seller_posts_need_approval', '1')) === '1';
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">مقالات فروشگاه</h2>
+    <div class="text-xs text-muted mt-4">محتوای آموزشی و معرفی محصول بنویسید تا بازدید و اعتبار فروشگاهتان بالا برود.</div>
+  </div>
+  <button class="btn btn-primary btn-sm" type="button" onclick="openPostForm(null)"><svg><use href="#i-plus"/></svg> مقاله جدید</button>
+</div>
+
+<% if (rows.length) { %>
+  <div class="grid g-3">
+    <% rows.forEach(function (b) { %>
+      <% const st = PSTATUS[b.status] || [b.status, 'badge-outline']; %>
+      <div class="post-card">
+        <div class="cover"><% if (b.cover) { %><img src="<%= b.cover %>" alt="<%= b.title %>" loading="lazy"><% } else { %>
+          <div class="map-frame" style="height:100%;border:0"><svg width="28" height="28" style="width:28px;height:28px"><use href="#i-image"/></svg></div><% } %></div>
+        <div class="body">
+          <div class="flex items-center gap-6">
+            <span class="badge <%= st[1] %>"><%= st[0] %></span>
+            <span class="badge badge-outline"><%= KIND[b.kind] || 'متنی' %></span>
+            <span class="text-2xs text-muted ms-auto"><%= h.formatJalali(b.published_at || b.created_at) %></span>
+          </div>
+          <h3 class="text-sm bold line-2" style="margin:6px 0"><%= h.truncate(b.title, 62) %></h3>
+          <% if (b.excerpt) { %><p class="text-xs text-muted line-2 m-0"><%= h.truncate(h.stripTags(b.excerpt), 90) %></p><% } %>
+          <div class="meta">
+            <span><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-eye"/></svg> <%= h.toPersianDigits(b.views || 0) %> بازدید</span>
+            <% if ((b.tags || []).length) { %><span><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-tag"/></svg> <%= h.toPersianDigits(b.tags.length) %> برچسب</span><% } %>
+            <% if ((linkedMap[b.id] || []).length) { %><span><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-box"/></svg> <%= h.toPersianDigits(linkedMap[b.id].length) %> محصول</span><% } %>
+          </div>
+          <div class="flex gap-6 mt-6">
+            <% if (b.status === 'published') { %><a class="btn btn-sm btn-ghost grow" href="/blog/<%= b.slug %>" target="_blank">مشاهده</a><% } %>
+            <button class="btn btn-sm btn-outline grow" type="button" onclick='openPostForm(<%- JSON.stringify({ id: b.id, title: b.title, slug: b.slug, category_id: b.category_id, kind: b.kind, excerpt: b.excerpt || '', body: b.body || '', cover: b.cover || '', video_url: b.video_url || '', audio_url: b.audio_url || '', tags: (b.tags || []).join('، ') }) %>)'>ویرایش</button>
+            <form method="post" action="/seller/blog/<%= b.id %>/delete" class="m-0">
+              <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="این مقاله حذف شود؟"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-edit"/></svg>
+    <h4>مقاله‌ای ننوشته‌اید</h4>
+    <p class="text-sm">با معرفی محصولات و راهنمای خرید، مشتریان بیشتری به فروشگاه شما می‌رسند.</p>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openPostForm(null)"><svg><use href="#i-plus"/></svg> نوشتن اولین مقاله</button>
+  </div></div>
+<% } %>
+
+<div class="modal-backdrop" id="postModal">
+  <div class="modal xl">
+    <div class="modal-head"><h3 id="postModalTitle">مقاله جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/seller/blog" enctype="multipart/form-data" data-upload-form>
+      <input type="hidden" name="id" id="pf_id" value="">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="pf_title">عنوان مقاله <span class="req">*</span></label>
+            <input class="input" id="pf_title" name="title" required maxlength="200"></div>
+          <div class="field"><label for="pf_slug">آدرس یکتا</label>
+            <div class="input-group"><span class="addon" dir="ltr">/blog/</span>
+              <input class="input mono" id="pf_slug" name="slug" dir="ltr" data-slug-from="#pf_title"></div></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="pf_cat">دسته مقاله</label>
+            <select class="select" id="pf_cat" name="category_id">
+              <option value="">بدون دسته</option>
+              <% (categories || []).forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="pf_kind">نوع محتوا</label>
+            <select class="select" id="pf_kind" name="kind">
+              <option value="text">متنی</option>
+              <option value="video">ویدیویی</option>
+              <option value="podcast">پادکست</option>
+            </select></div>
+        </div>
+        <div class="field"><label for="pf_excerpt">خلاصه</label>
+          <textarea class="textarea" id="pf_excerpt" name="excerpt" rows="2" maxlength="300"></textarea></div>
+        <div class="field"><label for="pf_body">متن مقاله <span class="req">*</span></label>
+          <div class="rich-editor" data-editor>
+            <div class="toolbar">
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="bold"><b>B</b></button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="italic"><i>I</i></button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertUnorderedList">• فهرست</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertOrderedList">۱. فهرست</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h2">تیتر ۲</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h3">تیتر ۳</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="createLink">پیوند</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertImage">تصویر</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-cmd="removeFormat">پاکسازی</button>
+            </div>
+            <div class="editable" contenteditable="true" data-placeholder="متن مقاله را اینجا بنویسید…"></div>
+            <textarea id="pf_body" name="body" hidden></textarea>
+          </div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="pf_cover">تصویر شاخص</label>
+            <div class="dropzone" data-dropzone data-target="#pf_cover_file">
+              <svg><use href="#i-image"/></svg>
+              <div class="text-sm">کلیک یا رهاکردن تصویر</div>
+              <div class="dz-hint text-xs">ابعاد پیشنهادی ۱۲۰۰×۶۷۵ پیکسل</div>
+            </div>
+            <input class="input mt-10" id="pf_cover_file" name="cover" type="file" accept="image/*">
+            <input class="input mt-10 mono" id="pf_cover_url" name="cover_url" dir="ltr" placeholder="یا آدرس تصویر (در صورت ویرایش حفظ می‌شود)">
+            <div id="pf_cover_prev" class="mt-10"></div></div>
+          <div class="stack">
+            <div class="field"><label for="pf_video">آدرس ویدیو</label>
+              <input class="input mono" id="pf_video" name="video_url" dir="ltr" placeholder="https://…"></div>
+            <div class="field"><label for="pf_audio">آدرس پادکست</label>
+              <input class="input mono" id="pf_audio" name="audio_url" dir="ltr" placeholder="https://….mp3"></div>
+            <div class="field"><label for="pf_tags">برچسب‌ها</label>
+              <input class="input" id="pf_tags" name="tags" placeholder="راهنمای خرید، سامسونگ، ساعت هوشمند">
+              <div class="help">با کامما جدا کنید.</div></div>
+          </div>
+        </div>
+        <div class="field"><label for="pf_products">محصولات مرتبط</label>
+          <select class="select" id="pf_products" name="product_ids" multiple size="6">
+            <% (products || []).forEach(function (pp) { %><option value="<%= pp.id %>"><%= h.truncate(pp.title, 60) %></option><% }) %>
+          </select>
+          <div class="help">با نگه‌داشتن Ctrl/⌘ چند محصول انتخاب کنید؛ این محصولات در کنار مقاله نمایش داده می‌شوند.</div></div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg>
+          <div class="body"><% if (needApproval) { %>مقالات فروشندگان پس از تایید مدیریت منتشر می‌شوند.<% } else { %>مقاله بلافاصله منتشر می‌شود.<% } %></div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره مقاله</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  var POST_LINKS = <%- JSON.stringify(linkedMap) %>;
+  function openPostForm(data) {
+    var f = document.querySelector('#postModal form');
+    f.reset();
+    document.getElementById('postModalTitle').textContent = data ? 'ویرایش مقاله' : 'مقاله جدید';
+    document.getElementById('pf_id').value = data ? data.id : '';
+    if (data) {
+      ['title', 'slug', 'excerpt', 'body', 'video_url', 'audio_url', 'tags'].forEach(function (k) {
+        var el = f.querySelector('[name="' + k + '"]'); if (el) el.value = data[k] || '';
+      });
+      var kind = f.querySelector('[name="kind"]'); if (kind) kind.value = data.kind || 'text';
+      var cat = f.querySelector('[name="category_id"]'); if (cat) cat.value = data.category_id || '';
+      var url = f.querySelector('[name="cover_url"]'); if (url) url.value = data.cover || '';
+      var prev = document.getElementById('pf_cover_prev');
+      prev.innerHTML = data.cover ? '<img src="' + data.cover + '" alt="" style="max-height:110px;border-radius:10px">' : '';
+      var ids = (POST_LINKS[data.id] || []).map(String);
+      Array.prototype.forEach.call(f.querySelector('[name="product_ids"]').options, function (o) { o.selected = ids.indexOf(o.value) > -1; });
+      var ed = f.querySelector('[data-editor] textarea');
+      var area = f.querySelector('[data-editor] .editable');
+      if (ed && area) { ed.value = data.body || ''; area.innerHTML = data.body || ''; }
+    }
+    if (window.openModal) openModal('postModal');
+    else document.getElementById('postModal').classList.add('open');
+  }
+</script>

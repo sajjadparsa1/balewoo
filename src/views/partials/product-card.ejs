@@ -1,0 +1,83 @@
+<%
+  const p = product || null;
+  const showSeller = typeof showSellerCol === 'undefined' ? true : showSellerCol;
+  const url = '/product/' + p.slug;
+  const off = p.discount_percent || 0;
+%>
+<article class="p-card <%= p.in_stock ? '' : 'out' %>" data-product-card="<%= p.id %>">
+  <a class="thumb" href="<%= url %>" aria-label="<%= p.title %>">
+    <img src="<%= p.cover || '/img/placeholder-product.svg' %>" alt="<%= p.title %>" loading="lazy" width="300" height="300">
+    <% if (off > 0) { %><span class="off-badge"><%= h.toPersianDigits(off) %>٪</span><% } %>
+    <span class="flags">
+      <% if (p.is_special == 1) { %><span class="badge badge-danger">فروش ویژه</span><% } %>
+      <% if (p.is_featured == 1) { %><span class="badge badge-primary">ویژه</span><% } %>
+      <% if (p.is_original == 1) { %><span class="badge badge-success">کالای اصل</span><% } %>
+      <% if (p.is_inquiry == 1) { %><span class="badge badge-info">استعلام قیمت</span><% } %>
+    </span>
+    <span class="quick">
+      <a class="btn btn-sm" href="<%= url %>#specs">مشخصات</a>
+      <button class="btn btn-sm" type="button" data-compare data-product-id="<%= p.id %>" title="مقایسه">مقایسه</button>
+    </span>
+  </a>
+  <div class="info">
+    <% if (p.category_name) { %><div class="cat"><%= p.category_name %><% if (p.brand_name) { %> · <%= p.brand_name %><% } %></div><% } %>
+    <a class="title" href="<%= url %>"><%= p.title %></a>
+    <% if (p.rating_count) { %>
+      <div class="rate">
+        <svg><use href="#i-star"/></svg>
+        <span class="mono"><%= h.toPersianDigits(p.rating) %></span>
+        <span>(<%= h.toPersianDigits(p.rating_count) %>)</span>
+      </div>
+    <% } %>
+    <% if (showSeller && p.seller_name) { %>
+      <div class="seller-line"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-store"/></svg> <%= p.seller_name %></div>
+    <% } %>
+    <div class="price-row">
+      <div>
+        <% if (p.is_inquiry == 1) { %>
+          <span class="price text-sm">استعلام موجودی</span>
+        <% } else if (p.in_stock) { %>
+          <% if (p.old_price > p.final_price) { %><div class="old del mono"><%= h.fa(p.old_price) %></div><% } %>
+          <div class="price mono"><%= h.fa(p.final_price) %> <small><%= site.currency %></small></div>
+        <% } else { %>
+          <span class="price text-sm text-muted">ناموجود</span>
+        <% } %>
+      </div>
+      <% if (p.in_stock && p.is_inquiry != 1) { %>
+        <form method="post" action="/cart/add" class="m-0">
+          <input type="hidden" name="product_id" value="<%= p.id %>">
+          <button class="add-btn" type="submit" aria-label="افزودن به سبد خرید" title="افزودن به سبد">
+            <svg><use href="#i-plus"/></svg>
+          </button>
+        </form>
+      <% } else { %>
+        <button class="add-btn" type="button" data-modal-open="alertModal<%= p.id %>" aria-label="اطلاع‌رسانی موجودی" title="خبرم کن">
+          <svg><use href="#i-bell"/></svg>
+        </button>
+      <% } %>
+      <button class="add-btn" style="background:var(--surface-3);color:var(--text-2)" type="button" data-favorite data-product-id="<%= p.id %>" aria-label="افزودن به علاقمندی‌ها" title="علاقه‌مندی">
+        <svg><use href="#i-heart"/></svg>
+      </button>
+    </div>
+  </div>
+</article>
+<% if (!p.in_stock) { %>
+<div class="modal-backdrop" id="alertModal<%= p.id %>">
+  <div class="modal">
+    <div class="modal-head"><h3>اطلاع‌رسانی موجودی</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/alerts">
+      <div class="modal-body">
+        <input type="hidden" name="product_id" value="<%= p.id %>">
+        <p class="text-sm text-2 mb-14">به محض موجود شدن «<%= h.truncate(p.title, 60) %>» یا شروع تخفیف آن، به شما اطلاع می‌دهیم.</p>
+        <div class="field">
+          <label class="check"><input type="radio" name="kind" value="in_stock" checked> اعلام موجودی</label>
+        </div>
+        <div class="field">
+          <label class="check"><input type="radio" name="kind" value="on_sale"> اعلام تخفیف</label>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button><button class="btn btn-primary" type="submit">ثبت اعلان</button></div>
+    </form>
+  </div>
+</div>
+<% } %>

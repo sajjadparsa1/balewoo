@@ -1,0 +1,415 @@
+<%
+  const STATUS = { pending: ['در انتظار تایید', 'badge-warning'], active: ['فعال', 'badge-success'], blocked: ['مسدود', 'badge-danger'], rejected: ['رد شده', 'badge-danger'] };
+  const st = STATUS[s.status] || [s.status, 'badge-outline'];
+  const ITEM = { pending: 'در انتظار', processing: 'در حال پردازش', shipping: 'ارسال شده', delivered: 'تحویل شده', canceled: 'لغو شده', returned: 'مرجوع شده' };
+  const docs = Array.isArray(s.documents) ? s.documents : [];
+  const canManage = can('sellers.manage'), canApprove = can('sellers.approve');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-start justify-between gap-14 flex-wrap mb-20">
+  <div class="flex items-center gap-14">
+    <span class="avatar lg" style="width:64px;height:64px;font-size:1.3rem">
+      <% if (s.logo) { %><img src="<%= s.logo %>" alt=""><% } else { %><%= String(s.shop_name).trim().charAt(0) %><% } %></span>
+    <div>
+      <h2 style="font-size:1.1rem;margin:0" class="flex items-center gap-10 flex-wrap">
+        <%= s.shop_name %>
+        <span class="badge <%= st[1] %>"><%= st[0] %></span>
+        <% if (s.is_main) { %><span class="badge badge-info">فروشگاه اصلی</span><% } %>
+        <% if (s.direct_shipping) { %><span class="badge badge-outline">ارسال مستقیم از فروشنده</span><% } %>
+      </h2>
+      <div class="text-xs text-muted mt-6">
+        <span class="mono" dir="ltr">/seller/<%= s.shop_slug %></span> ·
+        <%= s.type === 'legal' ? 'شخص حقوقی' : 'شخص حقیقی' %> ·
+        ثبت <%= h.formatJalali(s.created_at) %> ·
+        <%= h.toPersianDigits(s.views || 0) %> بازدید فروشگاه
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/people/sellers"><svg><use href="#i-chevron-right"/></svg> بازگشت</a>
+    <% if (canApprove) { %>
+      <% if (s.status !== 'active') { %>
+        <form method="post" action="/admin/people/sellers/<%= s.id %>/status" class="m-0">
+          <input type="hidden" name="status" value="active">
+          <button class="btn btn-sm btn-success" type="submit" data-confirm-click="فروشگاه تایید و فعال شود؟"><svg><use href="#i-check"/></svg> تایید فروشگاه</button>
+        </form>
+      <% } else { %>
+        <form method="post" action="/admin/people/sellers/<%= s.id %>/status" class="m-0">
+          <input type="hidden" name="status" value="blocked">
+          <button class="btn btn-sm btn-danger" type="submit" data-confirm-click="فروشگاه مسدود شود؟"><svg><use href="#i-ban"/></svg> مسدودسازی</button>
+        </form>
+      <% } %>
+    <% } %>
+    <% if (canManage) { %>
+      <button class="btn btn-sm btn-outline" type="button" data-modal-open="editSellerModal"><svg><use href="#i-edit"/></svg> ویرایش</button>
+      <button class="btn btn-sm btn-outline" type="button" data-modal-open="walletModal"><svg><use href="#i-wallet"/></svg> موجودی</button>
+    <% } %>
+  </div>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.revenue) %></div><div class="l">درآمد موفق</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-percent"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.commission) %></div><div class="l">کمیسیون کسر شده</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-box"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(s.products_count || products.length) %></div><div class="l">محصولات</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.delivered) %></div><div class="l">تحویل شده</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-x"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.canceled) %> / <%= h.toPersianDigits(stats.returned) %></div><div class="l">لغو / مرجوعی</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(s.wallet) %></div><div class="l">قابل برداشت</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-body" data-tabs style="padding-top:0">
+        <div class="tabs">
+          <button class="tab-btn active" type="button" data-tab="t-items">فروش‌ها <span class="badge badge-outline"><%= h.toPersianDigits(orderItems.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-products">محصولات <span class="badge badge-outline"><%= h.toPersianDigits(products.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-settle">تسویه‌ها <span class="badge badge-outline"><%= h.toPersianDigits(settlements.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-wh">انبارها <span class="badge badge-outline"><%= h.toPersianDigits(warehouses.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-bank">حساب بانکی <span class="badge badge-outline"><%= h.toPersianDigits(bankAccounts.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-wd">برداشت‌ها <span class="badge badge-outline"><%= h.toPersianDigits(withdrawals.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-reviews">دیدگاه‌ها <span class="badge badge-outline"><%= h.toPersianDigits(reviews.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-tickets">تیکت‌ها <span class="badge badge-outline"><%= h.toPersianDigits(tickets.length) %></span></button>
+          <button class="tab-btn" type="button" data-tab="t-docs">مدارک <span class="badge badge-outline"><%= h.toPersianDigits(docs.length) %></span></button>
+        </div>
+
+        <div class="tab-pane active" data-pane="t-items">
+          <% if (orderItems.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>سفارش</th><th>محصول</th><th>تعداد</th><th>مبلغ</th><th>کمیسیون</th><th>خالص</th><th>وضعیت</th></tr></thead>
+              <tbody><% orderItems.forEach(function (oi) { %>
+                <tr>
+                  <td class="text-2xs">
+                    <% if (can('orders.view')) { %><a class="mono" dir="ltr" href="/admin/orders/<%= oi.order_code %>"><%= oi.order_code %></a><% } else { %><span class="mono" dir="ltr"><%= oi.order_code %></span><% } %>
+                    <div class="text-muted"><%= h.formatJalali(oi.order_date) %></div>
+                  </td>
+                  <td class="text-xs"><%= h.truncate(oi.title, 44) %><% if (oi.variant_title) { %><div class="text-2xs text-muted"><%= oi.variant_title %></div><% } %></td>
+                  <td class="mono text-xs"><%= h.toPersianDigits(oi.qty) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(oi.total) %></td>
+                  <td class="mono text-2xs text-danger"><%= h.fa(oi.commission) %></td>
+                  <td class="mono text-xs text-success"><%= h.fa(oi.total - oi.commission) %></td>
+                  <td><span class="badge badge-outline text-2xs"><%= ITEM[oi.status] || oi.status %></span></td>
+                </tr>
+              <% }) %></tbody></table></div>
+            <div class="text-2xs text-muted mt-10">۲۰ مورد اخیر از فروش‌های این فروشگاه.</div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">هنوز فروشی ثبت نشده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-products">
+          <% if (products.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>محصول</th><th>قیمت</th><th>موجودی</th><th>بازدید</th><th>فروش</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody><% products.forEach(function (p) { %>
+                <tr>
+                  <td class="text-xs"><%= h.truncate(p.title, 52) %></td>
+                  <td class="mono text-xs"><%= h.fa(p.price) %></td>
+                  <td class="mono text-xs <%= p.stock > 0 ? 'text-success' : 'text-danger' %>"><%= h.toPersianDigits(p.stock) %></td>
+                  <td class="mono text-2xs"><%= h.toPersianDigits(p.views) %></td>
+                  <td class="mono text-2xs"><%= h.toPersianDigits(p.sold || 0) %></td>
+                  <td><span class="badge <%= p.status === 'active' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= p.status %></span></td>
+                  <td class="actions"><% if (can('products.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/products/<%= p.id %>/edit"><svg><use href="#i-eye"/></svg></a><% } %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">محصولی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-settle">
+          <% if (settlements.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>شناسه</th><th>مبلغ فروش</th><th>کمیسیون</th><th>خالص</th><th>سررسید</th><th>وضعیت</th></tr></thead>
+              <tbody><% settlements.forEach(function (x) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(x.id) %></td>
+                  <td class="mono text-xs"><%= h.fa(x.amount) %></td>
+                  <td class="mono text-xs text-danger"><%= h.fa(x.commission) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(x.net) %></td>
+                  <td class="text-2xs"><%= x.due_at ? h.formatJalali(x.due_at) : '—' %></td>
+                  <td><span class="badge <%= x.status === 'paid' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= x.status === 'paid' ? 'پرداخت شده' : 'در انتظار' %></span>
+                    <% if (x.paid_at) { %><div class="text-2xs text-muted"><%= h.formatJalali(x.paid_at) %></div><% } %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+            <% const unpaid = settlements.filter(function (x) { return x.status !== 'paid'; }); %>
+            <% if (can('settlements.manage') && unpaid.length) { %>
+              <form method="post" action="/admin/people/settlements/pay" class="flex gap-8 mt-14 flex-wrap">
+                <% unpaid.forEach(function (x) { %><input type="hidden" name="ids[]" value="<%= x.id %>"><% }) %>
+                <button class="btn btn-sm btn-primary" type="submit"
+                        data-confirm-click="<%= h.toPersianDigits(unpaid.length) %> رکورد تسویه این فروشگاه «پرداخت شده» علامت بخورد؟">
+                  <svg><use href="#i-send"/></svg> پرداخت <%= h.toPersianDigits(unpaid.length) %> تسویه باز</button>
+                <a class="btn btn-sm btn-ghost" href="/admin/people/settlements">مدیریت همه تسویه‌ها</a>
+              </form>
+            <% } %>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">رکورد تسویه‌ای ندارد.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-wh">
+          <% if (warehouses.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>انبار</th><th>نشانی</th><th>تماس</th><th>پیش‌فرض</th></tr></thead>
+              <tbody><% warehouses.forEach(function (w) { %>
+                <tr>
+                  <td class="text-xs bold"><%= w.name %></td>
+                  <td class="text-2xs"><%= w.address || '—' %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(w.phone || '—') %></td>
+                  <td><%= w.is_default ? '<span class="badge badge-success text-2xs">پیش‌فرض</span>' : '<span class="text-muted text-2xs">—</span>' %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">انبار اختصاصی ندارد؛ موجودی از انبار اصلی خوانده می‌شود.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-bank">
+          <% if (bankAccounts.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>بانک</th><th>صاحب حساب</th><th>شماره کارت</th><th>شبا</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+              <tbody><% bankAccounts.forEach(function (a) { %>
+                <tr>
+                  <td class="text-xs"><%= a.bank_name || '—' %></td>
+                  <td class="text-xs"><%= a.owner_name || '—' %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(a.card_number || '—') %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= h.toPersianDigits(a.iban || a.account_no || '—') %></td>
+                  <td><span class="badge <%= a.status === 'approved' ? 'badge-success' : a.status === 'rejected' ? 'badge-danger' : 'badge-warning' %> text-2xs"><%= a.status === 'approved' ? 'تایید شده' : a.status === 'rejected' ? 'رد شده' : 'در انتظار' %></span></td>
+                  <td class="actions">
+                    <% if (can('users.wallet')) { %>
+                      <form method="post" action="/admin/people/bank-accounts/<%= a.id %>/approve" class="m-0">
+                        <input type="hidden" name="status" value="<%= a.status === 'approved' ? 'rejected' : 'approved' %>">
+                        <button class="btn btn-sm btn-ghost" type="submit"><%= a.status === 'approved' ? 'رد' : 'تایید' %></button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">حساب بانکی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-wd">
+          <% if (withdrawals.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>شناسه</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th>یادداشت</th><th>عملیات</th></tr></thead>
+              <tbody><% withdrawals.forEach(function (w) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(w.id) %></td>
+                  <td class="text-2xs"><%= h.formatJalali(w.created_at) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(w.amount) %></td>
+                  <td><span class="badge <%= w.status === 'paid' ? 'badge-success' : w.status === 'rejected' ? 'badge-danger' : 'badge-warning' %> text-2xs"><%= w.status === 'paid' ? 'پرداخت شده' : w.status === 'rejected' ? 'رد شده' : 'در انتظار' %></span>
+                    <% if (w.reference) { %><div class="mono text-2xs" dir="ltr"><%= w.reference %></div><% } %></td>
+                  <td class="text-2xs text-muted"><%= w.admin_note || '—' %></td>
+                  <td class="actions">
+                    <% if (w.status === 'pending' && can('users.wallet')) { %>
+                      <form method="post" action="/admin/people/withdrawals/<%= w.id %>" class="m-0">
+                        <input type="hidden" name="status" value="paid">
+                        <button class="btn btn-sm btn-ghost text-success" type="submit" title="پرداخت شد"><svg><use href="#i-check"/></svg></button>
+                      </form>
+                    <% } %>
+                    <% if (can('users.wallet')) { %>
+                      <button class="btn btn-sm btn-ghost" type="button" title="بررسی دستی"
+                              onclick='openWd(<%- JSON.stringify({ id: w.id, amount: w.amount, status: w.status, admin_note: w.admin_note || '', reference: w.reference || '' }) %>)'><svg><use href="#i-edit"/></svg></button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">درخواست برداشتی ندارد.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-reviews">
+          <% if (reviews.length) { %>
+            <div class="stack" style="gap:0">
+              <% reviews.forEach(function (r) { %>
+                <div class="review-item">
+                  <div class="review-head">
+                    <span class="grow text-xs bold"><%= h.truncate(r.title, 48) %></span>
+                    <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+                    <span class="badge <%= r.status === 'approved' ? 'badge-success' : r.status === 'pending' ? 'badge-warning' : 'badge-danger' %> text-2xs"><%= r.status %></span>
+                  </div>
+                  <% if (r.body) { %><p class="text-xs text-muted m-0 mt-6"><%= h.truncate(r.body, 180) %></p><% } %>
+                  <div class="text-2xs text-muted mt-6">توسط <%= r.author || 'کاربر' %> · <%= h.formatJalali(r.created_at) %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">دیدگاهی دریافت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-tickets">
+          <% if (tickets.length) { %>
+            <div class="table-wrap"><table class="data compact">
+              <thead><tr><th>کد</th><th>موضوع</th><th>اولویت</th><th>تاریخ</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody><% tickets.forEach(function (t) { %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr"><%= t.code %></td>
+                  <td class="text-xs"><%= h.truncate(t.subject, 44) %></td>
+                  <td class="text-2xs"><%= t.priority %></td>
+                  <td class="text-2xs"><%= h.formatJalali(t.created_at) %></td>
+                  <td><span class="badge badge-outline text-2xs"><%= t.status %></span></td>
+                  <td class="actions"><% if (can('tickets.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/system/tickets/<%= t.code %>"><svg><use href="#i-eye"/></svg></a><% } %></td>
+                </tr>
+              <% }) %></tbody></table></div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">تیکتی ثبت نکرده است.</p></div><% } %>
+        </div>
+
+        <div class="tab-pane" data-pane="t-docs">
+          <% if (docs.length) { %>
+            <div class="media-grid sm">
+              <% docs.forEach(function (d) { const u = typeof d === 'string' ? d : (d.url || d.path || ''); %>
+                <% if (u) { %><a class="media-tile" href="<%= u %>" target="_blank" rel="noopener">
+                  <% if (/\.(png|jpe?g|webp|gif)$/i.test(u)) { %><img src="<%= u %>" alt="مدارک فروشنده"><% } else { %>
+                    <span class="ic"><svg><use href="#i-file"/></svg></span><% } %>
+                  <span class="cap mono text-2xs"><%= typeof d === 'object' && d.name ? d.name : u.split('/').pop() %></span>
+                </a><% } %>
+              <% }) %>
+            </div>
+          <% } else { %><div class="empty" style="padding:22px"><p class="text-sm">مدارکی بارگذاری نشده است.</p></div><% } %>
+          <% if (s.national_id || s.reg_no) { %>
+            <table class="table-kv mt-14"><tbody>
+              <tr><th>کد ملی / شناسه ملی</th><td class="mono" dir="ltr"><%= h.toPersianDigits(s.national_id || '—') %></td></tr>
+              <tr><th>شماره ثبت</th><td class="mono" dir="ltr"><%= h.toPersianDigits(s.reg_no || '—') %></td></tr>
+            </tbody></table>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">اطلاعات فروشگاه</h3></div>
+      <div class="card-body">
+        <table class="table-kv">
+          <tbody>
+            <tr><th>نام لاتین</th><td class="mono text-xs" dir="ltr"><%= s.shop_en || '—' %></td></tr>
+            <tr><th>تلفن</th><td class="mono text-xs" dir="ltr"><%= h.toPersianDigits(s.phone || '—') %></td></tr>
+            <tr><th>ایمیل</th><td class="mono text-xs" dir="ltr"><%= s.email || '—' %></td></tr>
+            <tr><th>استان / شهر</th><td class="text-xs"><%= [s.province, s.city].filter(Boolean).join(' / ') || '—' %></td></tr>
+            <tr><th>نشانی</th><td class="text-xs"><%= s.address || '—' %></td></tr>
+            <tr><th>کمیسیون</th><td class="mono text-xs"><%= h.toPersianDigits(s.commission) %>٪</td></tr>
+            <tr><th>چرخه تسویه</th><td class="mono text-xs"><%= h.toPersianDigits(s.settlement_days) %> روز</td></tr>
+            <tr><th>امتیاز فروشگاه</th><td class="mono text-xs"><%= h.toPersianDigits(s.score) %> از ۵</td></tr>
+            <tr><th>نرخ موفقیت</th><td class="mono text-xs"><%= h.toPersianDigits(s.success_rate) %>٪</td></tr>
+            <% if (s.blocked_until) { %><tr><th>مسدود تا</th><td class="text-xs text-danger"><%= h.formatJalali(s.blocked_until) %></td></tr><% } %>
+          </tbody>
+        </table>
+        <% if (s.description) { %><div class="text-xs text-muted mt-10" style="line-height:1.9"><%= s.description %></div><% } %>
+        <a class="btn btn-sm btn-outline w-100 mt-14" href="/seller/<%= s.shop_slug %>" target="_blank" rel="noopener"><svg><use href="#i-store"/></svg> مشاهده فروشگاه</a>
+      </div>
+    </section>
+
+    <% if (owner) { %>
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">مالک فروشگاه</h3></div>
+        <div class="card-body">
+          <table class="table-kv">
+            <tbody>
+              <tr><th>نام</th><td class="text-xs"><%= owner.name || '—' %></td></tr>
+              <tr><th>موبایل</th><td class="mono text-xs" dir="ltr"><%= h.toPersianDigits(owner.phone || '—') %></td></tr>
+              <tr><th>ایمیل</th><td class="mono text-xs" dir="ltr"><%= owner.email || '—' %></td></tr>
+              <tr><th>وضعیت کاربر</th><td><span class="badge <%= owner.status === 'active' ? 'badge-success' : 'badge-danger' %> text-2xs"><%= owner.status %></span></td></tr>
+            </tbody>
+          </table>
+          <a class="btn btn-sm btn-outline w-100 mt-14" href="/admin/people/users/<%= owner.id %>">پروفایل کاربر</a>
+        </div>
+      </section>
+    <% } %>
+  </aside>
+</div>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="editSellerModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>ویرایش فروشگاه</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/sellers/<%= s.id %>">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="es_name">نام فروشگاه <i class="req">*</i></label>
+            <input class="input" id="es_name" name="shop_name" value="<%= s.shop_name %>" required></div>
+          <div class="field"><label for="es_en">نام لاتین</label>
+            <input class="input mono" id="es_en" name="shop_en" dir="ltr" value="<%= s.shop_en || '' %>"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="es_phone">تلفن</label>
+            <input class="input mono" id="es_phone" name="phone" dir="ltr" value="<%= s.phone || '' %>"></div>
+          <div class="field"><label for="es_email">ایمیل</label>
+            <input class="input mono" id="es_email" name="email" dir="ltr" value="<%= s.email || '' %>"></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label for="es_prov">استان</label>
+            <input class="input" id="es_prov" name="province" value="<%= s.province || '' %>"></div>
+          <div class="field"><label for="es_city">شهر</label>
+            <input class="input" id="es_city" name="city" value="<%= s.city || '' %>"></div>
+        </div>
+        <div class="field"><label for="es_addr">نشانی</label>
+          <input class="input" id="es_addr" name="address" value="<%= s.address || '' %>"></div>
+        <div class="field"><label for="es_desc">معرفی فروشگاه</label>
+          <textarea class="textarea" id="es_desc" name="description" rows="3"><%= s.description || '' %></textarea></div>
+        <div class="grid g-4">
+          <div class="field"><label for="es_comm">کمیسیون (٪)</label>
+            <input class="input mono" id="es_comm" name="commission" dir="ltr" inputmode="decimal" value="<%= s.commission %>"></div>
+          <div class="field"><label for="es_days">روز تسویه</label>
+            <input class="input mono" id="es_days" name="settlement_days" dir="ltr" inputmode="numeric" value="<%= s.settlement_days %>"></div>
+          <div class="field"><label for="es_score">امتیاز (از ۵)</label>
+            <input class="input mono" id="es_score" name="score" dir="ltr" inputmode="decimal" value="<%= s.score %>"></div>
+          <div class="field"><label>ارسال مستقیم</label>
+            <label class="switch-row"><input type="checkbox" name="direct_shipping" value="1" <%= s.direct_shipping ? 'checked' : '' %>><span>بسته‌بندی و ارسال توسط فروشنده</span></label></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره تغییرات</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="walletModal">
+  <div class="modal">
+    <div class="modal-head"><h3>تغییر موجودی فروشگاه</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/people/sellers/<%= s.id %>/wallet">
+      <div class="modal-body">
+        <div class="summary-row total mb-14"><span>موجودی فعلی</span><span class="mono"><%= h.fa(s.wallet) %> <%= site.currency %></span></div>
+        <div class="field"><label for="sw_amount">مبلغ (مثبت = افزودن، منفی = کسر)</label>
+          <input class="input mono" id="sw_amount" name="amount" dir="ltr" inputmode="numeric" required placeholder="2000000"></div>
+        <div class="alert alert-info"><svg><use href="#i-info"/></svg><div class="body">موجودی منفی نمی‌شود؛ برای فروشنده اعلان ارسال می‌گردد.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت تغییر</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (can('users.wallet')) { %>
+<div class="modal-backdrop" id="wdModal">
+  <div class="modal">
+    <div class="modal-head"><h3>بررسی درخواست برداشت</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="" id="wdForm">
+      <div class="modal-body">
+        <div class="summary-row total mb-14"><span>مبلغ درخواست</span><span class="mono" id="wdAmount">—</span></div>
+        <div class="field"><label for="wd_status">وضعیت</label>
+          <select class="select" id="wd_status" name="status">
+            <option value="paid">پرداخت شد</option>
+            <option value="rejected">رد درخواست (بازگشت به موجودی)</option>
+            <option value="pending">بازگشت به حالت در انتظار</option>
+          </select></div>
+        <div class="field"><label for="wd_ref">شماره پیگیری بانکی</label>
+          <input class="input mono" id="wd_ref" name="reference" dir="ltr"></div>
+        <div class="field"><label for="wd_note">یادداشت برای فروشنده</label>
+          <textarea class="textarea" id="wd_note" name="note" rows="2"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت وضعیت</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openWd(w) {
+    document.getElementById('wdForm').action = '/admin/people/withdrawals/' + w.id;
+    document.getElementById('wdAmount').textContent = new Intl.NumberFormat('fa-IR').format(w.amount) + ' تومان';
+    document.getElementById('wd_status').value = w.status || 'paid';
+    document.getElementById('wd_ref').value = w.reference || '';
+    document.getElementById('wd_note').value = w.admin_note || '';
+    if (window.openModal) window.openModal('wdModal');
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

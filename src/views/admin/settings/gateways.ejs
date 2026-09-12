@@ -1,0 +1,158 @@
+<%
+  const canEdit = can('gateways.manage');
+  const dis = canEdit ? '' : 'disabled';
+  const TYPES = { online: 'درگاه‌های آنلاین بانکی', installment: 'پرداخت اقساطی (BNPL)', manual: 'پرداخت دستی', internal: 'پرداخت داخلی', cod: 'پرداخت در محل' };
+  const FIELD_LABEL = {
+    merchant_id: 'شناسه پذیرنده (Merchant ID)', api_key: 'کلید API', code: 'کد درگاه', pin: 'پین / PIN',
+    terminal_id: 'شناسه پایانه (Terminal ID)', key: 'کلید رمزنگاری', username: 'نام کاربری', password: 'گذرواژه',
+    certificate: 'گواهی (Certificate)', client_id: 'شناسه کاربری (Client ID)', client_secret: 'رمز کاربری (Client Secret)',
+    card_number: 'شماره کارت', owner_name: 'نام صاحب کارت', bank_name: 'نام بانک', max_amount: 'سقف مبلغ سفارش',
+  };
+  const grouped = {};
+  gateways.forEach(function (g) { (grouped[g.type] = grouped[g.type] || []).push(g); });
+  const defaultGw = setting('default_gateway', 'zarinpal');
+  const sandbox = String(setting('payment_sandbox', '0')) !== '0';
+  const TX_STATUS = { success: ['موفق', 'badge-success'], failed: ['ناموفق', 'badge-danger'], pending: ['در انتظار', 'badge-warning'] };
+  const totals = { success: 0, failed: 0, pending: 0 };
+  transactions.forEach(function (t) { if (totals[t.status] !== undefined) totals[t.status]++; });
+%>
+<%- include('../../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">درگاه‌های پرداخت <span class="badge badge-outline"><%= h.toPersianDigits(gateways.length) %> درگاه</span>
+    <span class="badge <%= sandbox ? 'badge-warning' : 'badge-success' %>"><%= sandbox ? 'حالت آزمایشی' : 'حالت واقعی' %></span></h2>
+  <% if (canEdit) { %><button class="btn btn-sm btn-primary" type="submit" form="gwForm"><svg><use href="#i-save"/></svg> ذخیره تنظیمات درگاه‌ها</button><% } %>
+</div>
+
+<form method="post" action="/admin/settings/gateways" id="gwForm">
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">حالت و درگاه پیش‌فرض</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label>حالت پرداخت</label>
+              <label class="switch-row"><input type="checkbox" name="sandbox" value="1" <%= sandbox ? 'checked' : '' %> <%= dis %>><span>حالت آزمایشی (sandbox) — تراکنش‌ها واقعی ارسال نمی‌شوند</span></label>
+              <div class="help">در حالت آزمایشی، صفحه شبیه‌ساز درگاه نمایش داده می‌شود تا جریان خرید کامل قابل تست باشد.</div></div>
+            <div class="field"><label for="gw_default">درگاه پیش‌فرض</label>
+              <select class="select" id="gw_default" name="default_gateway" <%= dis %>>
+                <% gateways.forEach(function (g) { %>
+                  <option value="<%= g.key %>" <%= defaultGw === g.key ? 'selected' : '' %>><%= g.name %><%= g.enabled ? '' : ' (غیرفعال)' %></option>
+                <% }) %>
+              </select>
+              <div class="help">در صفحه پرداخت به‌صورت پیش‌فرض انتخاب می‌شود.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <% Object.keys(TYPES).forEach(function (type) { const list = grouped[type] || []; if (!list.length) return; %>
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm"><%= TYPES[type] %> <span class="badge badge-outline"><%= h.toPersianDigits(list.length) %></span></h3></div>
+          <div class="card-body">
+            <div class="grid g-2">
+              <% list.forEach(function (g) { %>
+                <div class="card" style="margin:0">
+                  <div class="card-head" style="padding:11px 14px">
+                    <label class="check m-0 text-sm bold">
+                      <input type="checkbox" name="enabled[]" value="<%= g.key %>" <%= g.enabled ? 'checked' : '' %> <%= dis %>>
+                      <span><%= g.name %></span>
+                    </label>
+                    <div class="flex items-center gap-6">
+                      <% if (g.installment) { %><span class="badge badge-info text-2xs">اقساطی <%= (g.months || []).map(function (m) { return h.toPersianDigits(m); }).join('/') %> ماه</span><% } %>
+                      <% if (g.enabled) { %><span class="badge badge-success text-2xs">فعال</span><% } %>
+                      <span class="mono text-2xs text-muted" dir="ltr"><%= g.key %></span>
+                    </div>
+                  </div>
+                  <% if (g.fields.length) { %>
+                    <div class="card-body" style="padding:11px 14px">
+                      <% g.fields.forEach(function (f) { %>
+                        <div class="field" style="margin-bottom:8px">
+                          <label class="text-xs" for="fld_<%= g.key %>_<%= f %>"><%= FIELD_LABEL[f] || f %></label>
+                          <input class="input input-sm mono" id="fld_<%= g.key %>_<%= f %>" name="gw_<%= g.key %>_<%= f %>" dir="ltr"
+                                 value="<%= g.settings[f] || '' %>" placeholder="<%= f === 'password' || f.indexOf('secret') > -1 || f === 'key' ? '••••••••' : '' %>"
+                                 <%= (f === 'password' || f.indexOf('secret') > -1) ? 'type="password"' : '' %> <%= dis %>>
+                        </div>
+                      <% }) %>
+                    </div>
+                  <% } else { %>
+                    <div class="card-body text-2xs text-muted" style="padding:11px 14px">نیازی به کلید ندارد — از موجودی کیف پول کاربر کسر می‌شود.</div>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </section>
+      <% }) %>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">کارت به کارت و پرداخت در محل</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="c2c_card">شماره کارت نمایشی</label>
+              <input class="input mono" id="c2c_card" name="c2c_card_number" dir="ltr" value="<%= setting('c2c_card_number', '') %>" placeholder="6037-9911-2233-4455" <%= dis %>></div>
+            <div class="field"><label for="c2c_owner">به نام</label>
+              <input class="input" id="c2c_owner" name="c2c_owner_name" value="<%= setting('c2c_owner_name', '') %>" <%= dis %>></div>
+          </div>
+          <div class="grid g-2">
+            <div class="field"><label for="c2c_bank">بانک</label>
+              <input class="input" id="c2c_bank" name="c2c_bank_name" value="<%= setting('c2c_bank_name', '') %>" <%= dis %>></div>
+            <div class="field"><label for="cod_max">سقف مبلغ پرداخت در محل</label>
+              <input class="input mono" id="cod_max" name="cod_max_amount" dir="ltr" inputmode="numeric" data-money-input value="<%= setting('cod_max_amount', '20000000') %>" <%= dis %>></div>
+          </div>
+          <div class="field"><label for="c2c_note">توضیح راهنمای کارت به کارت</label>
+            <textarea class="textarea" id="c2c_note" name="c2c_note" rows="2" <%= dis %>><%= setting('c2c_note', 'پس از واریز، تصویر فیش را بارگذاری کنید تا سفارش تایید شود.') %></textarea></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">آخرین تراکنش‌ها</h3></div>
+        <div class="card-body" style="padding:0">
+          <div class="table-kv" style="padding:10px 14px">
+            <div class="flex gap-8 flex-wrap text-2xs">
+              <span class="badge badge-success">موفق <%= h.toPersianDigits(totals.success) %></span>
+              <span class="badge badge-warning">در انتظار <%= h.toPersianDigits(totals.pending) %></span>
+              <span class="badge badge-danger">ناموفق <%= h.toPersianDigits(totals.failed) %></span>
+            </div>
+          </div>
+          <% if (transactions.length) { %>
+            <div class="stack" style="gap:0">
+              <% transactions.slice(0, 12).forEach(function (t) { const st = TX_STATUS[t.status] || [t.status, 'badge-outline']; %>
+                <div class="link-row" style="padding:9px 14px">
+                  <div class="grow min-0">
+                    <b class="text-xs block"><%= t.gateway || '—' %> <span class="badge <%= st[1] %> text-2xs"><%= st[0] %></span></b>
+                    <span class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(t.phone || '') %> · <%= h.timeAgo(t.created_at) %></span>
+                  </div>
+                  <span class="mono text-xs"><%= h.fa(t.amount) %></span>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="empty" style="padding:20px"><p class="text-sm">تراکنشی ثبت نشده است.</p></div>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">راهنما</h3></div>
+        <div class="card-body text-xs text-muted" style="line-height:2.1">
+          <ul class="bullets m-0">
+            <li>کلیدهای هر درگاه به‌صورت رمزنگاری‌نشده در پایگاه داده تنظیمات ذخیره می‌شوند؛ دسترسی «درگاه‌ها» را محدود نگه دارید.</li>
+            <li>برای درگاه‌های اقساطی، تعداد اقساط در صفحه محصول هم نمایش داده می‌شود.</li>
+            <li>پرداخت در محل فقط برای سفارش‌های زیر سقف تعیین‌شده فعال است.</li>
+            <li>کارت به کارت نیازمند تایید دستی فیش توسط مدیر است.</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="stack" style="gap:8px">
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/sms"><svg><use href="#i-message"/></svg> درگاه‌های پیامکی</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/orders"><svg><use href="#i-order"/></svg> سفارش‌ها</a>
+            <a class="btn btn-sm btn-ghost w-100" style="justify-content:flex-start" href="/admin/settings/general?group=pricing"><svg><use href="#i-percent"/></svg> مالیات و کارمزد</a>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<%- include('../../partials/panel-foot') %>

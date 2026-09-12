@@ -1,0 +1,10 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <h2 style="font-size:1.02rem;margin:0">مقایسه محصولات</h2>
+  <span class="badge badge-outline"><%= h.toPersianDigits(products.length) %> از ۴ محصول</span>
+</div>
+
+<%- include('../partials/compare-table', { products: products, groups: groups }) %>
+
+<%- include('../partials/panel-foot') %>

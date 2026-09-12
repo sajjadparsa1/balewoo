@@ -1,0 +1,84 @@
+<% const cats = Object.keys(groups || {}); %>
+<%- include('../layouts/head', { bodyClass: 'page-faq' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container container-sm">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'پرسش‌های متداول' }] }) %>
+
+  <div class="section-head">
+    <h2>پرسش‌های متداول</h2>
+    <a class="link-more" href="/form/contact-us">پرسش دیگری دارید؟ <svg width="14" height="14"><use href="#i-chevron-left"/></svg></a>
+  </div>
+
+  <div class="card mb-20"><div class="card-body">
+    <div class="field m-0">
+      <label for="faqSearch" class="sr-only">جستجو در پرسش‌ها</label>
+      <div class="input-group">
+        <input class="input" id="faqSearch" type="search" placeholder="جستجو در پرسش‌ها…">
+        <span class="addon"><svg width="16" height="16" style="width:16px;height:16px"><use href="#i-search"/></svg></span>
+      </div>
+    </div>
+  </div></div>
+
+  <% if (cats.length) { %>
+    <div class="flex gap-8 flex-wrap mb-20">
+      <% cats.forEach(function (c, i) { %>
+        <a class="chip <%= i === 0 ? 'active' : '' %>" href="#faq-<%= h.slugify(c) %>" data-faq-cat><%= c %> <span class="badge"><%= h.toPersianDigits(groups[c].length) %></span></a>
+      <% }) %>
+    </div>
+
+    <% cats.forEach(function (c) { %>
+      <section class="mb-30" id="faq-<%= h.slugify(c) %>">
+        <h2 class="mb-14" style="font-size:1.05rem"><%= c %></h2>
+        <% groups[c].forEach(function (f) { %>
+          <details class="faq-item" data-faq-item>
+            <summary><span><%= f.question %></span></summary>
+            <div class="a"><%- f.answer %></div>
+          </details>
+        <% }) %>
+      </section>
+    <% }) %>
+  <% } else { %>
+    <div class="card"><div class="empty">
+      <svg><use href="#i-question"/></svg>
+      <h4>هنوز پرسشی ثبت نشده است</h4>
+      <p class="text-sm">پرسش خود را از طریق فرم تماس با ما بپرسید.</p>
+      <a class="btn btn-primary" href="/form/contact-us">ارسال پرسش</a>
+    </div></div>
+  <% } %>
+
+  <div class="card mt-30"><div class="card-body text-center">
+    <svg width="34" height="34" style="color:var(--brand)"><use href="#i-headset"/></svg>
+    <div class="bold mt-10">پاسخ خود را پیدا نکردید؟</div>
+    <p class="text-sm text-muted">کارشناسان پشتیبانی در کمتر از ۲۴ ساعت به شما پاسخ می‌دهند.</p>
+    <div class="flex gap-8 justify-center flex-wrap">
+      <a class="btn btn-primary" href="/form/contact-us">تماس با پشتیبانی</a>
+      <% if (user) { %><a class="btn btn-outline" href="/user/tickets/new">ثبت تیکت</a><% } %>
+    </div>
+  </div></div>
+</div>
+</main>
+
+<script>
+  // جستجوی زنده در پرسش‌ها
+  (function () {
+    var input = document.getElementById('faqSearch');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var q = h_norm(input.value);
+      document.querySelectorAll('[data-faq-item]').forEach(function (d) {
+        var txt = h_norm(d.textContent);
+        d.style.display = !q || txt.indexOf(q) > -1 ? '' : 'none';
+        if (q && txt.indexOf(q) > -1) d.open = true;
+      });
+      document.querySelectorAll('[data-faq-cat]').forEach(function (c) {
+        var sec = document.querySelector(c.getAttribute('href'));
+        if (sec) sec.style.display = sec.querySelector('[data-faq-item]:not([style*="display: none"])') ? '' : 'none';
+      });
+    });
+    function h_norm(s) { return String(s || '').replace(/\u200c/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  })();
+</script>
+
+<%- include('../partials/store-footer') %>

@@ -1,0 +1,32 @@
+<%
+  const STEPS = ['پیش‌نیازها', 'اطلاعات فروشگاه', 'حساب مدیر', 'داده نمونه', 'پایان نصب'];
+%>
+<%- include('../layouts/head', { bodyClass: 'install-page' }) %>
+<div class="install-page">
+  <div class="install-inner">
+    <header class="install-head">
+      <a href="/" class="brand-logo" style="justify-content:center">
+        <img src="<%= site.logoDark || site.logo %>" alt="<%= site.name %>" style="height:40px" onerror="this.style.display='none'">
+        <span class="name"><%= site.name %></span>
+      </a>
+      <h1><%= typeof title !== 'undefined' ? title : 'راه‌اندازی فروشگاه' %></h1>
+      <% if (typeof subtitle !== 'undefined' && subtitle) { %><p><%= subtitle %></p><% } %>
+    </header>
+
+    <nav class="steps" aria-label="مراحل نصب">
+      <% STEPS.forEach(function (label, i) {
+           const n = i + 1;
+           const cls = n < step ? 'step done' : (n === step ? 'step active' : 'step'); %>
+        <div class="<%= cls %>">
+          <div class="num"><% if (n < step) { %><svg style="width:15px;height:15px"><use href="#i-check"/></svg><% } else { %><%= h.toPersianDigits(n) %><% } %></div>
+          <span><%= label %></span>
+        </div>
+      <% }) %>
+    </nav>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger"><svg><use href="#i-alert"/></svg><div class="body text-xs"><%= error %></div></div>
+    <% } %>
+    <% if (typeof flashMessage !== 'undefined' && flashMessage) { %>
+      <div class="alert alert-success"><svg><use href="#i-check"/></svg><div class="body text-xs"><%= flashMessage %></div></div>
+    <% } %>

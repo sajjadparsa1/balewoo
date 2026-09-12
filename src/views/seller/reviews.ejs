@@ -1,0 +1,89 @@
+<%
+  const RSTATUS = { pending: ['در انتظار تایید', 'badge-warning'], approved: ['منتشر شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+  const total = rows.length;
+  const avg = total ? (rows.reduce(function (s, r) { return s + (r.rating || 0); }, 0) / total) : 0;
+  const dist = [5, 4, 3, 2, 1].map(function (n) { return { n: n, c: rows.filter(function (r) { return r.rating === n; }).length }; });
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">دیدگاه‌های مشتریان</h2>
+    <div class="text-xs text-muted mt-4">بازخورد خریداران درباره کیفیت کالا و تجربه خرید از فروشگاه شما.</div>
+  </div>
+  <a class="btn btn-sm btn-outline" href="/seller/questions"><svg><use href="#i-question"/></svg> پرسش‌ها</a>
+</div>
+
+<% if (total) { %>
+  <section class="card mb-20">
+    <div class="card-body flex items-center gap-24 flex-wrap">
+      <div style="text-align:center;min-width:120px">
+        <div class="bold mono" style="font-size:2rem;color:var(--brand)"><%= h.toPersianDigits(avg.toFixed(1)) %></div>
+        <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= Math.round(avg) ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+        <div class="text-2xs text-muted mt-6"><%= h.toPersianDigits(total) %> دیدگاه</div>
+      </div>
+      <div class="grow" style="min-width:220px">
+        <% dist.forEach(function (d) { %>
+          <div class="flex items-center gap-10" style="margin-bottom:5px">
+            <span class="text-2xs" style="width:52px;flex:none"><%= h.toPersianDigits(d.n) %> ستاره</span>
+            <span class="progress grow"><i style="width:<%= total ? Math.round((d.c / total) * 100) : 0 %>%"></i></span>
+            <span class="text-2xs text-muted mono" style="width:28px;text-align:end"><%= h.toPersianDigits(d.c) %></span>
+          </div>
+        <% }) %>
+      </div>
+      <div style="min-width:150px">
+        <div class="text-2xs text-muted mb-6">نرخ توصیه به دیگران</div>
+        <div class="bold mono" style="font-size:1.4rem;color:var(--success)">
+          <%= h.toPersianDigits(Math.round((rows.filter(function (r) { return r.recommend; }).length / total) * 100)) %>٪</div>
+      </div>
+    </div>
+  </section>
+<% } %>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="card-body stack" style="gap:0">
+      <% rows.forEach(function (r) { %>
+        <% const st = RSTATUS[r.status] || [r.status, 'badge-outline']; %>
+        <div class="review-item">
+          <div class="review-head">
+            <div class="grow">
+              <a class="text-sm bold" href="/product/<%= r.slug %>#reviews" target="_blank"><%= h.truncate(r.title || 'بدون عنوان', 58) %></a>
+              <div class="text-2xs text-muted mt-4"><%= r.author || 'کاربر مهمان' %> · <%= h.formatJalali(r.created_at) %> · <%= h.timeAgo(r.created_at) %>
+                <% if (r.is_buyer) { %> · <span class="badge badge-success text-2xs">خریدار</span><% } %>
+                <% if (r.recommend) { %> · <span class="badge badge-outline text-2xs">توصیه می‌کند</span><% } %></div>
+            </div>
+            <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+            <span class="badge <%= st[1] %>"><%= st[0] %></span>
+          </div>
+          <% if (r.body) { %><p class="text-sm text-2 m-0 mt-10" style="line-height:2"><%= r.body %></p><% } %>
+          <% if ((r.pros || []).length || (r.cons || []).length) { %>
+            <div class="grid g-2 mt-10">
+              <% if ((r.pros || []).length) { %>
+                <div><div class="text-2xs bold text-success mb-6">نقاط قوت</div>
+                  <ul class="text-xs text-muted" style="margin:0;padding-inline-start:18px;line-height:2">
+                    <% r.pros.forEach(function (x) { %><li><%= x %></li><% }) %></ul></div>
+              <% } %>
+              <% if ((r.cons || []).length) { %>
+                <div><div class="text-2xs bold text-danger mb-6">نقاط ضعف</div>
+                  <ul class="text-xs text-muted" style="margin:0;padding-inline-start:18px;line-height:2">
+                    <% r.cons.forEach(function (x) { %><li><%= x %></li><% }) %></ul></div>
+              <% } %>
+            </div>
+          <% } %>
+          <div class="flex items-center justify-between gap-10 mt-10 flex-wrap">
+            <span class="text-2xs text-muted"><%= h.toPersianDigits(r.helpful || 0) %> نفر این دیدگاه را مفید دانستند</span>
+            <% if (r.admin_reply) { %><span class="badge badge-primary text-2xs">پاسخ مدیریت ثبت شده</span><% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-star"/></svg>
+      <h4>دیدگاهی ثبت نشده است</h4>
+      <p class="text-sm">پس از اولین فروش و تجربه خریداران، نقدها اینجا نمایش داده می‌شوند.</p>
+      <a class="btn btn-primary btn-sm" href="/seller/products">محصولات من</a></div>
+  <% } %>
+</section>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,31 @@
+{
+  "name": "balewoo-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Balewoo Shop - full featured multi-vendor e-commerce script (Persian / RTL) with admin, seller and customer panels",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node src/db/seed.js",
+    "reset": "node src/db/seed.js --reset",
+    "test": "node tests/smoke.js",
+    "test:e2e": "node tests/e2e.js",
+    "test:links": "node tests/links.js",
+    "assets": "node scripts/gen-assets.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "ejs": "^6.0.1",
+    "express": "^4.22.2",
+    "express-session": "^1.19.0",
+    "multer": "^2.3.0"
+  }
+}

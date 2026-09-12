@@ -1,0 +1,183 @@
+<%
+  const REASON = { purchase: 'ورود کالا', sale: 'فروش', return: 'مرجوعی', adjust: 'انبارگردانی', order: 'ثبت سفارش', cancel: 'لغو سفارش' };
+  const OWNER = { main: 'انبار مرکزی', seller: 'انبار فروشنده' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 flex-wrap mb-20">
+  <div>
+    <h2 style="font-size:1.05rem;margin:0">انبارها و کنترل موجودی</h2>
+    <div class="text-xs text-muted mt-4">موجودی تفکیکی هر انبار؛ مجموع انبارها به‌عنوان موجودی محصول ذخیره می‌شود.</div>
+  </div>
+  <% if (can('warehouses.manage')) { %>
+    <button class="btn btn-primary btn-sm" type="button" onclick="openWh(null)"><svg><use href="#i-plus"/></svg> انبار جدید</button>
+  <% } %>
+</div>
+
+<div class="grid g-3 mb-20">
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">تعداد انبارها</div>
+    <div class="bold mono" style="font-size:1.3rem"><%= h.toPersianDigits(warehouses.length) %></div></div></div>
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">مجموع اقلام انبارشده</div>
+    <div class="bold mono" style="font-size:1.3rem"><%= h.toPersianDigits(warehouses.reduce(function (s, w) { return s + w.items_count; }, 0)) %></div></div></div>
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">مجموع موجودی</div>
+    <div class="bold mono" style="font-size:1.3rem;color:var(--brand)"><%= h.toPersianDigits(warehouses.reduce(function (s, w) { return s + w.qty; }, 0)) %></div></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">فهرست انبارها</h3></div>
+  <% if (warehouses.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>نام انبار</th><th>نوع</th><th>نشانی / تلفن</th><th>اقلام</th><th>موجودی کل</th><th>پیش‌فرض</th><th>عملیات</th></tr></thead>
+        <tbody>
+          <% warehouses.forEach(function (w) { %>
+            <tr>
+              <td class="text-sm bold"><%= w.name %></td>
+              <td class="text-xs"><span class="badge <%= w.owner_type === 'main' ? 'badge-primary' : 'badge-outline' %>"><%= OWNER[w.owner_type] || w.owner_type %></span>
+                <% if (w.shop_name) { %><div class="text-2xs text-muted"><%= w.shop_name %></div><% } %></td>
+              <td class="text-2xs text-muted"><%= w.address || '—' %><% if (w.phone) { %> · <span dir="ltr"><%= h.toPersianDigits(w.phone) %></span><% } %></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(w.items_count) %></td>
+              <td class="mono text-xs bold"><%= h.toPersianDigits(w.qty) %></td>
+              <td><% if (w.is_default) { %><span class="badge badge-success">پیش‌فرض</span><% } else { %>—<% } %></td>
+              <td class="actions">
+                <% if (can('warehouses.manage')) { %>
+                  <button class="btn btn-sm btn-primary" type="button" data-modal-open="adjustModal-<%= w.id %>" title="ورود/اصلاح موجودی"><svg><use href="#i-refresh"/></svg></button>
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش انبار"
+                          onclick='openWh(<%- JSON.stringify({ id: w.id, name: w.name, owner_type: w.owner_type, owner_id: w.owner_id || '', address: w.address || '', phone: w.phone || '', is_default: w.is_default }) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/warehouses/<%= w.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="انبار «<%= w.name %>» به همراه موجودی آن حذف شود؟" title="حذف"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-archive"/></svg>
+      <h4>انباری تعریف نشده است</h4>
+      <p class="text-sm">برای کنترل موجودی چند انباره، ابتدا یک انبار مرکزی بسازید.</p>
+      <% if (can('warehouses.manage')) { %><button class="btn btn-primary btn-sm" type="button" onclick="openWh(null)">ایجاد انبار</button><% } %></div>
+  <% } %>
+</section>
+
+<section class="card mt-20">
+  <div class="card-head"><h3 class="text-sm">گردش موجودی (۶۰ رویداد اخیر)</h3></div>
+  <% if (movements.length) { %>
+    <div class="table-wrap">
+      <table class="data compact">
+        <thead><tr><th>تاریخ</th><th>انبار</th><th>محصول</th><th>تغییر</th><th>دلیل</th><th>مرجع</th><th>کاربر</th></tr></thead>
+        <tbody>
+          <% movements.forEach(function (m) { %>
+            <tr>
+              <td class="text-2xs"><%= h.formatJalali(m.created_at) %> · <%= h.timeAgo(m.created_at) %></td>
+              <td class="text-xs"><%= m.warehouse_name || '—' %></td>
+              <td class="text-xs"><%= m.title || (m.variant_id ? 'متغیر #' + h.toPersianDigits(m.variant_id) : '—') %></td>
+              <td class="mono text-xs <%= m.change >= 0 ? 'text-success' : 'text-danger' %>"><%= m.change >= 0 ? '+' : '−' %><%= h.toPersianDigits(Math.abs(m.change)) %></td>
+              <td class="text-xs"><span class="badge badge-outline"><%= REASON[m.reason] || m.reason || '—' %></span></td>
+              <td class="mono text-2xs" dir="ltr"><%= m.reference || '—' %></td>
+              <td class="text-2xs mono" dir="ltr">#<%= h.toPersianDigits(m.user_id || 0) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty" style="padding:24px"><svg><use href="#i-activity"/></svg><p class="text-sm">رویدادی ثبت نشده است.</p></div>
+  <% } %>
+</section>
+
+<% if (can('warehouses.manage')) { %>
+<div class="modal-backdrop" id="whModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="whModalTitle">انبار جدید</h3>
+      <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/warehouses">
+      <input type="hidden" name="id" id="wh_id" value="">
+      <div class="modal-body">
+        <div class="field"><label for="wh_name">نام انبار <span class="req">*</span></label>
+          <input class="input" id="wh_name" name="name" required placeholder="انبار مرکزی"></div>
+        <div class="grid g-2">
+          <div class="field"><label for="wh_owner_type">نوع انبار</label>
+            <select class="select" id="wh_owner_type" name="owner_type">
+              <option value="main">انبار مرکزی سایت</option>
+              <option value="seller">انبار فروشنده</option>
+            </select></div>
+          <div class="field"><label for="wh_owner_id">شناسه فروشنده</label>
+            <input class="input mono" id="wh_owner_id" name="owner_id" dir="ltr" inputmode="numeric" placeholder="فقط برای انبار فروشنده"></div>
+        </div>
+        <div class="field"><label for="wh_address">نشانی</label>
+          <textarea class="textarea" id="wh_address" name="address" rows="2"></textarea></div>
+        <div class="field"><label for="wh_phone">تلفن</label>
+          <input class="input mono" id="wh_phone" name="phone" dir="ltr"></div>
+        <label class="check"><input type="checkbox" id="wh_default" name="is_default" value="1"> انبار پیش‌فرض</label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره انبار</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<% if (can('warehouses.manage')) { %>
+  <% warehouses.forEach(function (w) { %>
+  <div class="modal-backdrop" id="adjustModal-<%= w.id %>">
+    <div class="modal lg">
+      <div class="modal-head"><h3>ورود / اصلاح موجودی — <%= w.name %></h3>
+        <button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+      <form method="post" action="/admin/warehouses/<%= w.id %>/adjust">
+        <div class="modal-body">
+          <div class="grid g-2">
+            <div class="field"><label for="aj_p_<%= w.id %>">محصول <span class="req">*</span></label>
+              <select class="select" id="aj_p_<%= w.id %>" name="product_id" required>
+                <option value="">انتخاب محصول…</option>
+                <% products.forEach(function (pp) { %>
+                  <option value="<%= pp.id %>"><%= h.truncate(pp.title, 52) %> (موجودی فعلی <%= h.toPersianDigits(pp.stock) %>)</option>
+                <% }) %>
+              </select></div>
+            <div class="field"><label for="aj_v_<%= w.id %>">شناسه متغیر (اختیاری)</label>
+              <input class="input mono" id="aj_v_<%= w.id %>" name="variant_id" dir="ltr" inputmode="numeric" placeholder="—"></div>
+          </div>
+          <div class="grid g-3">
+            <div class="field"><label for="aj_q_<%= w.id %>">موجودی جدید <span class="req">*</span></label>
+              <input class="input mono" id="aj_q_<%= w.id %>" name="qty" dir="ltr" inputmode="numeric" required value="0"></div>
+            <div class="field"><label for="aj_pr_<%= w.id %>">قیمت تمام‌شده</label>
+              <input class="input mono" id="aj_pr_<%= w.id %>" name="price" dir="ltr" inputmode="numeric" data-money-input></div>
+            <div class="field"><label for="aj_r_<%= w.id %>">دلیل تغییر</label>
+              <select class="select" id="aj_r_<%= w.id %>" name="reason">
+                <option value="purchase">ورود کالا</option>
+                <option value="adjust">انبارگردانی</option>
+                <option value="return">مرجوعی</option>
+                <option value="cancel">لغو سفارش</option>
+              </select></div>
+          </div>
+          <div class="alert alert-info"><svg><use href="#i-info"/></svg>
+            <div class="body">مقدار واردشده جایگزین موجودی فعلی می‌شود و مجموع انبارها در موجودی محصول اعمال می‌گردد.</div></div>
+        </div>
+        <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+          <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت موجودی</button></div>
+      </form>
+    </div>
+  </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/panel-foot') %>
+<script>
+  function openWh(d) {
+    var f = document.querySelector('#whModal form');
+    if (!f) return;
+    f.reset();
+    document.getElementById('whModalTitle').textContent = d ? 'ویرایش انبار' : 'انبار جدید';
+    ['id', 'name', 'owner_type', 'owner_id', 'address', 'phone'].forEach(function (k) {
+      var el = f.querySelector('[name="' + k + '"]');
+      if (el) el.value = d && d[k] != null ? d[k] : (k === 'owner_type' ? 'main' : '');
+    });
+    f.querySelector('[name="is_default"]').checked = d ? !!d.is_default : false;
+    openModal('whModal');
+  }
+</script>

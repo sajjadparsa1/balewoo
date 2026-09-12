@@ -1,0 +1,54 @@
+<%
+  const statusTitle = { open: 'باز', answered: 'پاسخ داده شده', closed: 'بسته شده', pending: 'در انتظار پاسخ شما' };
+  const statusBadge = { open: 'badge-danger', answered: 'badge-success', closed: 'badge-outline', pending: 'badge-warning' };
+  const deptTitles = { support: 'پشتیبانی', sales: 'فروش', finance: 'مالی', technical: 'فنی', shipping: 'ارسال', other: 'سایر' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">تیکت‌های پشتیبانی شما؛ پاسخ کارشناسان از طریق پیامک و اعلان داخلی اطلاع‌رسانی می‌شود.</div>
+  <a class="btn btn-primary btn-sm" href="/user/tickets/new"><svg><use href="#i-plus"/></svg> ایجاد تیکت جدید</a>
+</div>
+
+<section class="card">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>کد</th><th>موضوع</th><th>دپارتمان</th><th>اولویت</th><th>آخرین پیام</th><th>تاریخ</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (t) { %>
+            <tr>
+              <td class="mono text-xs" dir="ltr"><%= t.code %></td>
+              <td><a class="text-sm text-brand bold" href="/user/tickets/<%= t.code %>"><%= h.truncate(t.subject, 44) %></a></td>
+              <td class="text-xs"><%= deptTitles[t.department] || t.department || '—' %></td>
+              <td><span class="badge <%= t.priority === 'critical' ? 'badge-danger' : t.priority === 'high' ? 'badge-danger' : t.priority === 'normal' ? 'badge-warning' : 'badge-outline' %>"><%= t.priority === 'critical' ? 'بحرانی' : t.priority === 'high' ? 'فوری' : t.priority === 'normal' ? 'متوسط' : 'کم' %></span></td>
+              <td class="text-xs text-muted"><%= t.last_message_at ? h.timeAgo(t.last_message_at) : '—' %></td>
+              <td class="text-xs"><%= h.formatJalali(t.created_at) %></td>
+              <td><span class="badge <%= statusBadge[t.status] || 'badge-outline' %>"><%= statusTitle[t.status] || t.status %></span></td>
+              <td class="actions"><a class="btn btn-sm btn-ghost" href="/user/tickets/<%= t.code %>" title="مشاهده"><svg><use href="#i-eye"/></svg></a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty"><svg><use href="#i-ticket"/></svg>
+      <h4>تیکتی ثبت نکرده‌اید</h4>
+      <p class="text-sm">اگر درباره سفارش، پرداخت یا حساب کاربری سوالی دارید، با ما در میان بگذارید.</p>
+      <a class="btn btn-primary btn-sm" href="/user/tickets/new">ایجاد تیکت</a></div>
+  <% } %>
+</section>
+
+<div class="grid g-3 mt-20">
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">تیکت‌های باز</div>
+    <div class="bold mono" style="font-size:1.3rem;color:var(--danger)"><%= h.toPersianDigits(rows.filter(function (t) { return t.status === 'open'; }).length) %></div></div></div>
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">پاسخ داده شده</div>
+    <div class="bold mono" style="font-size:1.3rem;color:var(--success)"><%= h.toPersianDigits(rows.filter(function (t) { return t.status === 'answered'; }).length) %></div></div></div>
+  <div class="card"><div class="card-body text-center">
+    <div class="text-2xs text-muted mb-6">بسته شده</div>
+    <div class="bold mono" style="font-size:1.3rem"><%= h.toPersianDigits(rows.filter(function (t) { return t.status === 'closed'; }).length) %></div></div></div>
+</div>
+
+<%- include('../partials/panel-foot') %>

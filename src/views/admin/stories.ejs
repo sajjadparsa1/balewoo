@@ -1,0 +1,136 @@
+<%
+  const canManage = can('stories.manage');
+  const live = rows.filter(function (r) { return r.status === 'active' && (!r.expires_at || new Date(String(r.expires_at).replace(' ', 'T') + 'Z') > new Date()); });
+  const expired = rows.length - live.length;
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">استوری‌ها <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> استوری</span></h2>
+  <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="stModal" onclick="openSt()"><svg><use href="#i-plus"/></svg> استوری جدید</button><% } %>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-image"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(live.length) %></div><div class="l">در حال نمایش</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(expired) %></div><div class="l">منقضی یا غیرفعال</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-eye"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.reduce(function (s, r) { return s + (r.views || 0); }, 0)) %></div><div class="l">مجموع بازدید استوری‌ها</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-heart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(rows.reduce(function (s, r) { return s + (r.likes || 0); }, 0)) %></div><div class="l">مجموع واکنش‌ها</div></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h3 class="text-sm">استوری‌ها</h3>
+    <span class="text-2xs text-muted">۱۰۰ استوری اخیر — استوری‌های منقضی به‌طور خودکار از نوار بالای سایت حذف می‌شوند</span></div>
+  <% if (rows.length) { %>
+    <div class="card-body">
+      <div class="media-grid">
+        <% rows.forEach(function (r) {
+             const ids = h.jparse(r.product_ids, []) || [];
+             const isExpired = r.status !== 'active' || (r.expires_at && new Date(String(r.expires_at).replace(' ', 'T') + 'Z') <= new Date()); %>
+          <div class="media-item story-tile">
+            <div class="prev" style="position:relative">
+              <% if (r.media_type === 'video') { %>
+                <video src="<%= r.media_path %>" muted playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>
+                <span class="badge badge-outline text-2xs" style="position:absolute;top:6px;inset-inline-end:6px">ویدیو</span>
+              <% } else { %>
+                <img src="<%= r.media_path %>" alt="<%= r.shop_name || 'استوری' %>">
+              <% } %>
+              <% if (isExpired) { %><span class="badge badge-danger text-2xs" style="position:absolute;top:6px;inset-inline-start:6px">منقضی</span><% } %>
+            </div>
+            <div class="p-10">
+              <b class="text-xs block truncate"><%= r.shop_name || 'فروشگاه اصلی' %></b>
+              <div class="text-2xs text-muted">
+                <%= h.toPersianDigits(r.views || 0) %> بازدید · <%= h.toPersianDigits(r.likes || 0) %> واکنش · <%= h.toPersianDigits(r.duration || 5) %> ثانیه
+              </div>
+              <% if (ids.length) { %><div class="text-2xs text-brand mt-4"><%= h.toPersianDigits(ids.length) %> محصول پیوست</div><% } %>
+              <% if (r.link) { %><div class="mono text-2xs text-muted truncate" dir="ltr"><%= r.link %></div><% } %>
+              <div class="text-2xs text-muted mt-4">تا <%= r.expires_at ? h.formatJalali(r.expires_at) : '—' %></div>
+              <% if (canManage) { %>
+                <div class="flex gap-4 mt-10">
+                  <a class="btn btn-sm btn-ghost grow" href="/" target="_blank" rel="noopener" title="مشاهده در سایت"><svg><use href="#i-eye"/></svg></a>
+                  <form method="post" action="/admin/content/stories/<%= r.id %>/delete" class="m-0 grow">
+                    <button class="btn btn-sm btn-ghost text-danger w-100" type="submit" title="حذف"
+                            data-confirm-click="استوری حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-image"/></svg></span>
+      <h3>استوری منتشر نشده است</h3>
+      <p>استوری‌ها در نوار بالای فروشگاه نمایش داده می‌شوند و می‌توانند به محصول یا کمپین لینک شوند.</p>
+      <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="stModal" onclick="openSt()"><svg><use href="#i-plus"/></svg> انتشار استوری</button><% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="stModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>انتشار استوری</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/stories" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="st_media">فایل استوری <i class="req">*</i></label>
+            <div class="dropzone" data-dropzone data-target="#st_media">
+              <svg><use href="#i-image"/></svg>
+              <div class="text-sm">رها کردن یا کلیک برای انتخاب</div>
+              <div class="dz-hint text-xs">تصویر یا ویدیوی عمودی (۹:۱۶) پیشنهاد می‌شود</div>
+            </div>
+            <input class="input mt-10" id="st_media" name="media" type="file" accept="image/*,video/*">
+            <input class="input mono mt-6" name="media_url" id="st_media_url" dir="ltr" placeholder="یا آدرس فایل (URL)">
+          </div>
+          <div class="stack">
+            <div class="field"><label for="st_seller">منتشرکننده</label>
+              <select class="select" id="st_seller" name="seller_id">
+                <option value="">فروشگاه اصلی (مدیر سایت)</option>
+                <% sellers.forEach(function (s) { %><option value="<%= s.id %>"><%= s.shop_name %></option><% }) %>
+              </select></div>
+            <div class="field"><label for="st_link">لینک مقصد (کشیدن به بالا)</label>
+              <input class="input mono" id="st_link" name="link" dir="ltr" placeholder="/products?cat=mobile"></div>
+            <div class="grid g-3">
+              <div class="field"><label for="st_dur">مدت هر فریم (ثانیه)</label>
+                <input class="input mono" id="st_dur" name="duration" dir="ltr" inputmode="numeric" value="5"></div>
+              <div class="field"><label for="st_days">روزهای نمایش</label>
+                <input class="input mono" id="st_days" name="duration_days" dir="ltr" inputmode="numeric" value="1"></div>
+              <div class="field"><label for="st_sort">ترتیب</label>
+                <input class="input mono" id="st_sort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+            </div>
+            <div class="field"><label for="st_start">زمان شروع</label>
+              <input class="input mono" id="st_start" name="starts_at" dir="ltr" placeholder="خالی = اکنون"></div>
+          </div>
+        </div>
+        <div class="field"><label for="st_products">محصولات پیوست</label>
+          <select class="select" id="st_products" name="product_ids[]" multiple size="6">
+            <% products.forEach(function (p) { %><option value="<%= p.id %>"><%= h.truncate(p.title, 60) %></option><% }) %>
+          </select>
+          <div class="help">این محصولات زیر استوری به شکل «خرید» نمایش داده می‌شوند.</div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-send"/></svg> انتشار استوری</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openSt() {
+    ['st_media_url', 'st_link', 'st_start'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('st_media').value = '';
+    document.getElementById('st_seller').value = '';
+    document.getElementById('st_dur').value = '5';
+    document.getElementById('st_days').value = '1';
+    document.getElementById('st_sort').value = '0';
+    Array.from(document.getElementById('st_products').options).forEach(function (o) { o.selected = false; });
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,27 @@
+<%- include('../layouts/head', { bodyClass: 'page-error' }) %>
+
+<main id="main">
+<div class="container container-xs section">
+  <div class="card">
+    <div class="card-body text-center" style="padding:52px 26px">
+      <svg width="62" height="62" style="color:var(--danger);width:62px;height:62px"><use href="#i-lock"/></svg>
+      <h1 style="font-size:1.2rem;margin:14px 0 8px">دسترسی غیرمجاز</h1>
+      <p class="text-sm text-muted mb-20">
+        <%= (typeof message !== 'undefined' && message) ? message : 'شما اجازه مشاهده این بخش را ندارید. اگر فکر می‌کنید اشتباهی رخ داده، با مدیر سایت تماس بگیرید.' %>
+      </p>
+      <% if (typeof permission !== 'undefined' && permission) { %>
+        <p class="text-xs"><span class="badge badge-outline mono" dir="ltr"><%= permission %></span></p>
+      <% } %>
+      <div class="flex gap-10 justify-center flex-wrap">
+        <% if (user) { %>
+          <a class="btn btn-primary" href="<%= user.is_staff ? '/admin/dashboard' : user.seller_id ? '/seller/dashboard' : '/user/dashboard' %>">بازگشت به پنل</a>
+          <a class="btn btn-outline" href="/logout">خروج از حساب</a>
+        <% } else { %>
+          <a class="btn btn-primary" href="/login">ورود به حساب کاربری</a>
+        <% } %>
+        <a class="btn btn-ghost" href="/">صفحه نخست</a>
+      </div>
+    </div>
+  </div>
+</div>
+</main>

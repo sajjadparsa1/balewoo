@@ -1,0 +1,75 @@
+<%
+  const ok = status === 'success';
+  const failed = status === 'failed' || status === 'canceled';
+%>
+<%- include('../layouts/head', { bodyClass: 'page-payment-result' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main">
+<div class="container container-xs section">
+  <div class="card">
+    <div class="card-body text-center" style="padding:44px 26px">
+      <% if (ok) { %>
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+          <svg width="44" height="44" style="width:44px;height:44px"><use href="#i-check"/></svg>
+        </div>
+        <h1 style="font-size:1.25rem;margin-bottom:8px;color:var(--success)">پرداخت با موفقیت انجام شد</h1>
+        <p class="text-sm text-muted mb-20">سفارش شما ثبت شد و در حال پردازش است. جزئیات و کد رهگیری از طریق پیامک و اعلان داخلی ارسال می‌شود.</p>
+      <% } else if (failed) { %>
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--danger-bg);color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+          <svg width="44" height="44" style="width:44px;height:44px"><use href="#i-x"/></svg>
+        </div>
+        <h1 style="font-size:1.25rem;margin-bottom:8px;color:var(--danger)"><%= status === 'canceled' ? 'پرداخت لغو شد' : 'پرداخت ناموفق بود' %></h1>
+        <p class="text-sm text-muted mb-20">
+          <% if (status === 'canceled') { %>عملیات پرداخت توسط شما متوقف شد. هیچ مبلغی از حساب شما کسر نشده است.
+          <% } else { %>در فرایند پرداخت خطایی رخ داد. اگر مبلغی کسر شده باشد، تا ۷۲ ساعت کاری به حساب شما بازمی‌گردد.<% } %>
+        </p>
+      <% } else { %>
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--warning-bg);color:var(--warning);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+          <svg width="44" height="44" style="width:44px;height:44px"><use href="#i-clock"/></svg>
+        </div>
+        <h1 style="font-size:1.25rem;margin-bottom:8px;color:var(--warning)">سفارش در انتظار پرداخت است</h1>
+        <p class="text-sm text-muted mb-20">برای تکمیل سفارش، پرداخت را از طریق پنل کاربری انجام دهید.</p>
+      <% } %>
+
+      <div class="card mb-20" style="background:var(--surface-2)">
+        <div class="card-body" style="padding:16px 18px;text-align:right">
+          <div class="row" style="display:flex;justify-content:space-between;padding:6px 0;font-size:.88rem">
+            <span class="text-muted">کد سفارش</span><b class="mono" dir="ltr"><%= order.code %></b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.88rem">
+            <span class="text-muted">مبلغ</span><b class="mono"><%= h.fa(order.total) %> <%= site.currency %></b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.88rem">
+            <span class="text-muted">روش پرداخت</span>
+            <b><%= order.payment_method === 'wallet' ? 'کیف پول' : order.payment_method === 'cod' ? 'پرداخت در محل' : order.payment_method === 'card2card' ? 'کارت به کارت' : (order.gateway || order.payment_method || '—') %></b>
+          </div>
+          <% if (ref) { %>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.88rem">
+              <span class="text-muted">کد رهگیری پرداخت</span><b class="mono text-success" dir="ltr"><%= ref %></b>
+            </div>
+          <% } %>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.88rem">
+            <span class="text-muted">تاریخ</span><b><%= h.formatJalaliFull(order.created_at) %></b>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-10 justify-center flex-wrap">
+        <a class="btn btn-primary" href="/user/orders/<%= order.code %>"><svg><use href="#i-order"/></svg> مشاهده جزئیات سفارش</a>
+        <% if (failed) { %>
+          <a class="btn btn-success" href="/user/orders/<%= order.code %>?retry=1">تلاش مجدد برای پرداخت</a>
+        <% } %>
+        <a class="btn btn-outline" href="/user/orders">همه سفارش‌ها</a>
+        <a class="btn btn-ghost" href="/products">ادامه خرید</a>
+      </div>
+
+      <div class="text-xs text-muted mt-20">
+        برای پیگیری یا ثبت مشکل، <a class="text-brand" href="/user/ticket-new?order=<%= order.code %>">تیکت پشتیبانی</a> باز کنید یا با <span dir="ltr"><%= h.toPersianDigits(site.phone || '') %></span> تماس بگیرید.
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

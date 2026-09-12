@@ -1,0 +1,84 @@
+<%
+  const v = values || {};
+  const val = function (k, d) { return v[k] !== undefined && v[k] !== null && v[k] !== '' ? v[k] : (d || ''); };
+%>
+<%- include('_head', { step: step, title: 'اطلاعات فروشگاه', subtitle: 'این اطلاعات در سربرگ، فوتر و ایمیل‌های ارسالی نمایش داده می‌شود و بعداً از بخش تنظیمات قابل ویرایش است.' }) %>
+
+<form method="post" action="/install/store">
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">هویت فروشگاه</h3></div>
+    <div class="card-body">
+      <div class="grid g-2">
+        <div class="field">
+          <label for="f-site_name">نام فروشگاه <span class="req">*</span></label>
+          <input class="input" id="f-site_name" name="site_name" value="<%= val('site_name', 'بالی‌وو') %>" required maxlength="60" placeholder="مثال: دیجی‌مارکت">
+          <div class="help">در لوگوی متنی، عنوان صفحات و پیامک‌ها استفاده می‌شود.</div>
+        </div>
+        <div class="field">
+          <label for="f-site_slogan">شعار فروشگاه</label>
+          <input class="input" id="f-site_slogan" name="site_slogan" value="<%= val('site_slogan', 'فروشگاه اینترنتی چند فروشنده') %>" maxlength="80">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-site_description">توضیح کوتاه (برای سئو)</label>
+        <textarea class="textarea" id="f-site_description" name="site_description" rows="3" maxlength="300"
+                  placeholder="یک تا دو جمله درباره فروشگاه، محصولات و مزیت رقابتی"><%= val('site_description') %></textarea>
+        <div class="help">به‌عنوان meta description صفحه نخست استفاده می‌شود.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">اطلاعات تماس</h3></div>
+    <div class="card-body">
+      <div class="grid g-2">
+        <div class="field">
+          <label for="f-site_phone">تلفن پشتیبانی</label>
+          <input class="input mono" dir="ltr" id="f-site_phone" name="site_phone" value="<%= val('site_phone') %>" placeholder="02191001234" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="f-site_email">ایمیل پشتیبانی</label>
+          <input class="input mono" dir="ltr" id="f-site_email" name="site_email" type="email" value="<%= val('site_email') %>" placeholder="support@example.com">
+        </div>
+        <div class="field">
+          <label for="f-site_url">آدرس سایت (URL)</label>
+          <input class="input mono" dir="ltr" id="f-site_url" name="site_url" value="<%= val('site_url') %>" placeholder="https://shop.example.com">
+          <div class="help">اگر خالی بگذارید، آدرس جاری به‌کار می‌رود. برای سئو و لینک‌های پیامکی مهم است.</div>
+        </div>
+        <div class="field">
+          <label for="f-currency">واحد پول</label>
+          <select class="input" id="f-currency" name="currency">
+            <% ['تومان', 'ریال'].forEach(function (cur) { %>
+              <option value="<%= cur %>" <%= val('currency', 'تومان') === cur ? 'selected' : '' %>><%= cur %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-site_address">آدرس پستی</label>
+        <input class="input" id="f-site_address" name="site_address" value="<%= val('site_address') %>" placeholder="شهر، خیابان، پلاک">
+      </div>
+    </div>
+  </section>
+
+  <section class="card mb-20">
+    <div class="card-head"><h3 class="text-sm">مدل فروش</h3></div>
+    <div class="card-body">
+      <label class="switch-row">
+        <input type="checkbox" name="multivendor" value="1" <%= val('multivendor', '1') === '1' ? 'checked' : '' %>>
+        <span>فروشگاه چند فروشنده (مارکت‌پلیس) فعال باشد</span>
+      </label>
+      <div class="text-2xs text-muted" style="line-height:2">
+        با فعال بودن این گزینه، فروشنده‌ها می‌توانند ثبت‌نام کنند، پنل اختصاصی داشته باشند و کمیسیون فروش برای آن‌ها محاسبه شود.
+        اگر فقط خودتان کالا می‌فروشید، این گزینه را غیرفعال کنید — بعداً هم از تنظیمات قابل تغییر است.
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-between gap-10">
+    <a class="btn btn-outline btn-sm" href="/install/requirements"><svg><use href="#i-arrow-right"/> مرحله قبل</a>
+    <button class="btn btn-primary" type="submit">ذخیره و ادامه <svg><use href="#i-arrow-left"/></svg></button>
+  </div>
+</form>
+
+<%- include('_foot') %>

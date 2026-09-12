@@ -1,0 +1,124 @@
+<%
+  const canManage = can('faqs.manage');
+  const grouped = {};
+  rows.forEach(function (r) { const k = r.category || 'عمومی'; (grouped[k] = grouped[k] || []).push(r); });
+  const groupKeys = Object.keys(grouped);
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">سوالات متداول <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> پرسش</span></h2>
+  <div class="flex gap-8">
+    <a class="btn btn-sm" href="/faq" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg> صفحه سوالات</a>
+    <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="faqModal" onclick="openFaq(null)"><svg><use href="#i-plus"/></svg> پرسش جدید</button><% } %>
+  </div>
+</div>
+
+<section class="card mb-20">
+  <% if (rows.length) { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th style="width:60px">ترتیب</th><th>پرسش</th><th>پاسخ</th><th>دسته</th><th>بازدید</th><th>وضعیت</th><% if (canManage) { %><th>عملیات</th><% } %></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.sort || 0) %></td>
+              <td class="text-xs bold" style="max-width:320px"><%= h.truncate(r.question, 70) %></td>
+              <td class="text-2xs text-muted" style="max-width:380px"><%= h.truncate(r.answer || '', 110) %></td>
+              <td><span class="badge badge-outline text-2xs"><%= r.category || 'عمومی' %></span></td>
+              <td class="mono text-xs"><%= h.toPersianDigits(r.views || 0) %></td>
+              <td><span class="badge <%= r.status === 'active' ? 'badge-success' : 'badge-warning' %>"><%= r.status === 'active' ? 'فعال' : 'غیرفعال' %></span></td>
+              <% if (canManage) { %>
+                <td class="actions">
+                  <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                          onclick='openFaq(<%- JSON.stringify(r) %>)'><svg><use href="#i-edit"/></svg></button>
+                  <form method="post" action="/admin/content/faqs/<%= r.id %>/delete" class="m-0">
+                    <button class="btn btn-sm btn-ghost text-danger" type="submit" title="حذف"
+                            data-confirm-click="پرسش «<%= h.truncate(r.question, 26) %>» حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                  </form>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-question"/></svg></span>
+      <h3>پرسش متداولی ثبت نشده است</h3>
+      <p>با پاسخ به سوالات پرتکرار، بار پشتیبانی را کم کنید؛ این سوالات با داده ساختاریافته <span class="mono" dir="ltr">FAQPage</span> در گوگل نمایش داده می‌شوند.</p>
+      <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="faqModal" onclick="openFaq(null)"><svg><use href="#i-plus"/></svg> افزودن پرسش</button><% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (groupKeys.length) { %>
+  <section class="card">
+    <div class="card-head"><h3 class="text-sm">نمایش گروه‌بندی شده</h3><span class="text-2xs text-muted">همان چیزی که کاربر در /faq می‌بیند</span></div>
+    <div class="card-body" data-tabs>
+      <div class="tabs">
+        <% groupKeys.forEach(function (k, i) { %>
+          <button class="tab-btn <%= i === 0 ? 'active' : '' %>" type="button" data-tab="faq-<%= i %>"><%= k %>
+            <span class="badge badge-outline"><%= h.toPersianDigits(grouped[k].length) %></span></button>
+        <% }) %>
+      </div>
+      <% groupKeys.forEach(function (k, i) { %>
+        <div class="tab-pane <%= i === 0 ? 'active' : '' %>" data-pane="faq-<%= i %>">
+          <% grouped[k].forEach(function (r) { %>
+            <details class="faq-item" style="margin-bottom:8px">
+              <summary class="text-sm"><%= r.question %></summary>
+              <div class="text-xs text-muted" style="padding:10px 14px;line-height:2"><%= r.answer || '—' %></div>
+            </details>
+          <% }) %>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+<% } %>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="faqModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3 id="faqTitle">پرسش جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/faqs">
+      <input type="hidden" name="id" id="faqId">
+      <div class="modal-body">
+        <div class="field"><label for="faqQ">پرسش <i class="req">*</i></label>
+          <input class="input" id="faqQ" name="question" required></div>
+        <div class="field"><label for="faqA">پاسخ</label>
+          <textarea class="textarea" id="faqA" name="answer" rows="5"></textarea></div>
+        <div class="grid g-3">
+          <div class="field"><label for="faqCat">دسته</label>
+            <input class="input" id="faqCat" name="category" list="faqCats" placeholder="عمومی">
+            <datalist id="faqCats">
+              <% categories.forEach(function (c) { %><option value="<%= c.category %>"></option><% }) %>
+              <option value="ارسال و تحویل"></option><option value="بازگشت کالا"></option><option value="پرداخت"></option><option value="حساب کاربری"></option>
+            </datalist></div>
+          <div class="field"><label for="faqSort">ترتیب</label>
+            <input class="input mono" id="faqSort" name="sort" dir="ltr" inputmode="numeric" value="0"></div>
+          <div class="field"><label for="faqStatus">وضعیت</label>
+            <select class="select" id="faqStatus" name="status">
+              <option value="active">فعال</option><option value="inactive">غیرفعال</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openFaq(r) {
+    document.getElementById('faqTitle').textContent = r ? 'ویرایش پرسش' : 'پرسش جدید';
+    document.getElementById('faqId').value = r ? r.id : '';
+    document.getElementById('faqQ').value = r ? r.question : '';
+    document.getElementById('faqA').value = r ? (r.answer || '') : '';
+    document.getElementById('faqCat').value = r ? (r.category || 'عمومی') : 'عمومی';
+    document.getElementById('faqSort').value = r ? (r.sort || 0) : 0;
+    document.getElementById('faqStatus').value = r ? (r.status || 'active') : 'active';
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

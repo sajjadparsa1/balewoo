@@ -1,0 +1,196 @@
+<%
+  const salesLabels = salesChart.map(function (r) { return r.d.slice(5); });
+  const salesValues = salesChart.map(function (r) { return r.s; });
+  const visitLabels = visits.map(function (r) { return r.d.slice(5); });
+  const visitValues = visits.map(function (r) { return r.c; });
+  const byStatusMap = {};
+  (stats.byStatus || []).forEach(function (r) { byStatusMap[r.status] = r.c; });
+  const STATUS = { pending: 'در انتظار پرداخت', paid: 'پرداخت شده', processing: 'در حال پردازش', shipping: 'ارسال شده', delivered: 'تحویل شده', canceled: 'لغو شده', returned: 'مرجوع شده' };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-bank"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.revenue) %></div><div class="l">درآمد کل (<%= site.currency %>)</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-calendar"/></svg></span>
+    <div><div class="v mono"><%= h.fa(stats.today) %></div><div class="l">فروش امروز (<%= h.toPersianDigits(stats.todayCount) %> سفارش)</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-cart"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.total) %></div><div class="l">کل سفارش‌ها</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(stats.pending) %></div><div class="l">در انتظار پرداخت</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-users"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(users.total) %></div><div class="l">کاربران (<%= h.toPersianDigits(users.new7) %> جدید در هفته)</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-store"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(users.sellers) %></div><div class="l">فروشندگان فعال</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-box"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(products.total) %></div><div class="l">محصولات (<%= h.toPersianDigits(products.active) %> فعال)</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-alert"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(products.outOfStock) %></div><div class="l">ناموجود</div></div></div>
+</div>
+
+<% const pend = adminStats(); %>
+<div class="chips mb-20">
+  <% if (can('orders.view')) { %><a class="chip" href="/admin/orders?status=pending">سفارش‌های در انتظار <b class="mono"><%= h.toPersianDigits(pend.pendingOrders) %></b></a><% } %>
+  <% if (can('products.approve')) { %><a class="chip" href="/admin/products?status=pending">محصولات در انتظار تایید <b class="mono"><%= h.toPersianDigits(pend.pendingProducts) %></b></a><% } %>
+  <% if (can('sellers.manage')) { %><a class="chip" href="/admin/people/sellers?status=pending">فروشندگان در انتظار <b class="mono"><%= h.toPersianDigits(pend.pendingSellers) %></b></a><% } %>
+  <% if (can('tickets.view')) { %><a class="chip" href="/admin/system/tickets">تیکت‌های باز <b class="mono"><%= h.toPersianDigits(pend.openTickets) %></b></a><% } %>
+  <% if (can('users.wallet')) { %><a class="chip" href="/admin/people/withdrawals">برداشت‌های در انتظار <b class="mono"><%= h.toPersianDigits(pend.pendingWithdrawals) %></b></a><% } %>
+  <% if (can('reviews.manage')) { %><a class="chip" href="/admin/content/reviews?status=pending">دیدگاه‌های در انتظار <b class="mono"><%= h.toPersianDigits(pend.pendingReviews) %></b></a><% } %>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="chart-box">
+      <h4>فروش ۱۴ روز اخیر</h4>
+      <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'line', labels: salesLabels, series: [{ data: salesValues }] }) %>'></canvas>
+    </section>
+
+    <section class="chart-box">
+      <h4>بازدید صفحات (۱۴ روز اخیر)</h4>
+      <canvas class="chart" data-chart='<%- JSON.stringify({ type: 'bar', labels: visitLabels, series: [{ data: visitValues, color: '#8b5cf6' }] }) %>'></canvas>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">آخرین سفارش‌ها</h3>
+        <% if (can('orders.view')) { %><a class="text-xs text-brand" href="/admin/orders">همه سفارش‌ها</a><% } %></div>
+      <% if (recentOrders.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>کد</th><th>مشتری</th><th>تاریخ</th><th>مبلغ</th><th>پرداخت</th><th>وضعیت</th></tr></thead>
+            <tbody>
+              <% recentOrders.forEach(function (o) { %>
+                <tr>
+                  <td class="mono text-xs" dir="ltr"><% if (can('orders.view')) { %><a class="text-brand" href="/admin/orders/<%= o.code %>"><%= o.code %></a><% } else { %><%= o.code %><% } %></td>
+                  <td class="text-xs"><%= o.user_name || o.receiver_name || 'مهمان' %><div class="text-2xs text-muted" dir="ltr"><%= h.toPersianDigits(o.phone || o.receiver_phone || '') %></div></td>
+                  <td class="text-2xs"><%= h.formatJalali(o.created_at) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(o.total) %></td>
+                  <td class="text-xs"><span class="badge <%= o.payment_status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= o.payment_status === 'paid' ? 'پرداخت شده' : 'پرداخت نشده' %></span></td>
+                  <td class="text-xs"><span class="badge badge-outline"><%= o.status_title || STATUS[o.status] || o.status %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:26px"><svg><use href="#i-cart"/></svg><p class="text-sm">سفارشی ثبت نشده است.</p></div>
+      <% } %>
+    </section>
+
+    <div class="grid g-2">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">پرفروش‌ترین محصولات</h3></div>
+        <% if (topProducts.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>محصول</th><th>تعداد</th><th>درآمد</th></tr></thead>
+            <tbody><% topProducts.forEach(function (t) { %>
+              <tr><td class="text-xs"><%= h.truncate(t.title, 34) %></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(t.qty) %></td>
+                <td class="mono text-xs bold"><%= h.fa(t.revenue) %></td></tr>
+            <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:22px"><p class="text-xs">داده‌ای نیست.</p></div><% } %>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">فروشندگان برتر</h3></div>
+        <% if (topSellers.length) { %>
+          <div class="table-wrap"><table class="data compact">
+            <thead><tr><th>فروشگاه</th><th>سفارش</th><th>درآمد</th></tr></thead>
+            <tbody><% topSellers.forEach(function (s) { %>
+              <tr>
+                <td class="text-xs flex items-center gap-8">
+                  <% if (s.logo) { %><span class="thumb-sm" style="width:24px;height:24px"><img src="<%= s.logo %>" alt=""></span><% } %>
+                  <% if (can('sellers.view')) { %><a class="text-brand" href="/admin/people/sellers/<%= s.id %>"><%= h.truncate(s.shop_name, 24) %></a><% } else { %><%= h.truncate(s.shop_name, 24) %><% } %></td>
+                <td class="mono text-xs"><%= h.toPersianDigits(s.orders) %></td>
+                <td class="mono text-xs bold"><%= h.fa(s.revenue) %></td>
+              </tr>
+            <% }) %></tbody></table></div>
+        <% } else { %><div class="empty" style="padding:22px"><p class="text-xs">فروشگاهی ثبت نشده است.</p></div><% } %>
+      </section>
+    </div>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">وضعیت سفارش‌ها</h3></div>
+      <div class="card-body">
+        <% Object.keys(STATUS).forEach(function (k) { %>
+          <% const c = byStatusMap[k] || 0; %>
+          <div class="flex items-center gap-10" style="margin-bottom:7px">
+            <span class="text-2xs" style="width:104px;flex:none"><%= STATUS[k] %></span>
+            <span class="progress grow"><i style="width:<%= stats.total ? Math.round((c / stats.total) * 100) : 0 %>%"></i></span>
+            <span class="text-2xs mono" style="width:30px;text-align:end"><%= h.toPersianDigits(c) %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">سهم درگاه‌های پرداخت</h3></div>
+      <% if ((stats.byPayment || []).length) { %>
+        <div class="card-body">
+          <canvas class="chart" style="max-height:190px" data-chart='<%- JSON.stringify({ type: 'donut', labels: stats.byPayment.map(function (p) { return p.m; }), values: stats.byPayment.map(function (p) { return p.s; }) }) %>'></canvas>
+          <div class="stack mt-14" style="gap:6px">
+            <% stats.byPayment.forEach(function (p) { %>
+              <div class="flex items-center justify-between gap-8 text-2xs">
+                <span><%= p.m %></span><span class="mono"><%= h.toPersianDigits(p.c) %> سفارش · <%= h.fa(p.s) %></span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% } else { %><div class="empty" style="padding:22px"><p class="text-xs">پرداختی ثبت نشده است.</p></div><% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">نیازمند شارژ موجودی</h3>
+        <% if (can('products.edit')) { %><a class="text-xs text-brand" href="/admin/warehouses">انبارها</a><% } %></div>
+      <div class="card-body stack" style="gap:9px">
+        <% if (lowStock.length) { %>
+          <% lowStock.forEach(function (p) { %>
+            <div class="flex items-center gap-10">
+              <span class="grow text-xs line-2"><% if (can('products.edit')) { %><a href="/admin/products/<%= p.id %>/edit"><%= h.truncate(p.title, 32) %></a><% } else { %><%= h.truncate(p.title, 32) %><% } %></span>
+              <span class="badge <%= p.stock > 0 ? 'badge-warning' : 'badge-danger' %>"><%= p.stock > 0 ? h.toPersianDigits(p.stock) : 'ناموجود' %></span>
+            </div>
+          <% }) %>
+        <% } else { %><p class="text-xs text-muted m-0">موجودی همه محصولات کافی است.</p><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">جدیدترین کاربران</h3>
+        <% if (can('users.view')) { %><a class="text-xs text-brand" href="/admin/people/users">همه</a><% } %></div>
+      <div class="card-body stack" style="gap:9px">
+        <% recentUsers.forEach(function (u) { %>
+          <div class="flex items-center gap-10">
+            <span class="avatar sm" style="width:30px;height:30px;font-size:.72rem;flex:none">
+              <% if (u.avatar) { %><img src="<%= u.avatar %>" alt=""><% } else { %><%= h.toPersianDigits(String(u.name || u.phone || 'ک').trim().charAt(0)) %><% } %></span>
+            <span class="grow">
+              <% if (can('users.view')) { %><a class="text-xs bold" href="/admin/people/users/<%= u.id %>"><%= u.name || 'بدون نام' %></a><% } else { %><b class="text-xs"><%= u.name || 'بدون نام' %></b><% } %>
+              <span class="text-2xs text-muted" style="display:block" dir="ltr"><%= h.toPersianDigits(u.phone || '') %></span></span>
+            <span class="text-2xs text-muted"><%= h.timeAgo(u.created_at) %></span>
+          </div>
+        <% }) %>
+        <% if (!recentUsers.length) { %><p class="text-xs text-muted m-0">کاربری ثبت‌نام نکرده است.</p><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">فعالیت‌های اخیر</h3>
+        <% if (can('logs.view')) { %><a class="text-xs text-brand" href="/admin/system/activities">گزارش کامل</a><% } %></div>
+      <div class="card-body stack" style="gap:8px;max-height:320px;overflow:auto">
+        <% activities.forEach(function (a) { %>
+          <div class="flex items-start gap-8">
+            <span class="notif-ic" style="width:26px;height:26px"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-activity"/></svg></span>
+            <span class="grow">
+              <b class="text-2xs" style="display:block"><%= a.user_name || a.user_phone || a.actor_type || 'سامانه' %> — <%= a.action %></b>
+              <% if (a.description) { %><span class="text-2xs text-muted" style="display:block"><%= h.truncate(a.description, 60) %></span><% } %>
+              <span class="text-2xs text-muted"><%= h.timeAgo(a.created_at) %></span>
+            </span>
+          </div>
+        <% }) %>
+        <% if (!activities.length) { %><p class="text-xs text-muted m-0">رویدادی ثبت نشده است.</p><% } %>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/panel-foot') %>

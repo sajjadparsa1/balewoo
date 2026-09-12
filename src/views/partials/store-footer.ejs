@@ -1,0 +1,135 @@
+<%
+  const s = allSettings;
+  const socials = [
+    { key: 'social_instagram', icon: 'i-instagram', label: 'اینستاگرام' },
+    { key: 'social_telegram', icon: 'i-telegram', label: 'تلگرام' },
+    { key: 'social_whatsapp', icon: 'i-whatsapp', label: 'واتس‌اپ' },
+    { key: 'social_linkedin', icon: 'i-linkedin', label: 'لینکدین' },
+  ].filter((x) => s[x.key]);
+%>
+<footer class="site-footer">
+  <div class="container">
+    <% if (String(s.newsletter_enabled ?? '1') !== '0') { %>
+    <div class="card mb-30" style="margin-top:-30px;position:relative;z-index:2">
+      <div class="card-body flex items-center justify-between gap-20 flex-wrap">
+        <div class="flex items-center gap-14">
+          <span class="stat-card" style="padding:0;border:none;background:transparent">
+            <span class="ic"><svg><use href="#i-mail"/></svg></span>
+          </span>
+          <div>
+            <div class="bold"><%= s.newsletter_title || 'عضویت در خبرنامه' %></div>
+            <div class="text-sm text-muted"><%= s.newsletter_text || 'از تازه‌ترین تخفیف‌ها و محصولات جدید باخبر شوید.' %></div>
+          </div>
+        </div>
+        <form method="post" action="/newsletter" class="flex items-center gap-8 grow" style="max-width:420px">
+          <input type="email" name="email" class="input" placeholder="آدرس ایمیل شما" required aria-label="ایمیل">
+          <button class="btn btn-primary" type="submit">عضویت</button>
+        </form>
+      </div>
+    </div>
+    <% } %>
+
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a class="brand-logo mb-14" href="/" style="display:inline-flex">
+          <img src="<%= site.logo %>" alt="<%= site.name %>" style="height:38px" onerror="this.style.display='none'">
+          <span class="name"><%= site.name %></span>
+        </a>
+        <p class="text-sm" style="line-height:2.1;color:var(--text-2)">
+          <%= s.footer_about || site.description || `${site.name} یک فروشگاه اینترنتی چند فروشنده است که هزاران کالای اصل را با ضمانت بازگشت، ارسال سریع و پشتیبانی همیشه در دسترس به سراسر ایران عرضه می‌کند.` %>
+        </p>
+        <% if (socials.length) { %>
+          <div class="social-row mt-14">
+            <% socials.forEach((x) => { %>
+              <a href="<%= s[x.key] %>" target="_blank" rel="noopener" aria-label="<%= x.label %>" title="<%= x.label %>"><svg><use href="#<%= x.icon %>"/></svg></a>
+            <% }) %>
+          </div>
+        <% } %>
+        <% if (s.enamad_code || s.trust_note) { %>
+          <div class="trust-badges mt-20">
+            <% if (s.enamad_code) { %><div class="trust-item"><%- s.enamad_code %></div><% } else { %><div class="trust-item">نماد اعتماد<br>الکترونیکی</div><% } %>
+            <div class="trust-item">ساماندهی<br>کسب‌وکار</div>
+            <% if (s.trust_note) { %><div class="trust-item" style="width:auto;padding:6px 12px;text-align:right"><%= s.trust_note %></div><% } %>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="footer-col">
+        <h5>دسترسی سریع</h5>
+        <ul>
+          <% (footerMenu || []).forEach((m) => { %>
+            <li><a href="<%= m.url || '#' %>" target="<%= m.target || '_self' %>"><%= m.title %></a></li>
+          <% }) %>
+          <% if (!(footerMenu || []).length) { %>
+            <li><a href="/page/about-us">درباره ما</a></li>
+            <li><a href="/page/terms">قوانین و شرایط</a></li>
+            <li><a href="/page/privacy">حریم خصوصی</a></li>
+          <% } %>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>خدمات مشتریان</h5>
+        <ul>
+          <li><a href="/page/how-to-buy">راهنمای خرید</a></li>
+          <li><a href="/page/how-to-return">شرایط بازگشت کالا</a></li>
+          <li><a href="/page/shipping">رویه ارسال</a></li>
+          <li><a href="/faq">پرسش‌های متداول</a></li>
+          <li><a href="/form/contact-us">تماس با ما</a></li>
+          <li><a href="/form/complaint">ثبت شکایت</a></li>
+          <% if (site.multivendor) { %><li><a href="/auth/seller/register">فروشنده شوید</a></li><% } %>
+          <% if (String(s.affiliate_enabled ?? '1') !== '0') { %><li><a href="/user/affiliate">همکاری در فروش</a></li><% } %>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>تماس با ما</h5>
+        <ul>
+          <% if (site.phone) { %><li class="flex items-center gap-8 text-sm"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-phone"/></svg> <a href="tel:<%= site.phone %>" dir="ltr"><%= h.toPersianDigits(site.phone) %></a></li><% } %>
+          <% if (site.email) { %><li class="flex items-center gap-8 text-sm"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-mail"/></svg> <a href="mailto:<%= site.email %>"><%= site.email %></a></li><% } %>
+          <% if (site.address) { %><li class="flex items-start gap-8 text-sm" style="line-height:2"><svg width="15" height="15" style="width:15px;height:15px;margin-top:5px;flex:none"><use href="#i-pin"/></svg> <span><%= site.address %></span></li><% } %>
+          <% if (s.work_hours) { %><li class="flex items-center gap-8 text-sm"><svg width="15" height="15" style="width:15px;height:15px"><use href="#i-clock"/></svg> <span><%= s.work_hours %></span></li><% } %>
+        </ul>
+        <% if (String(s.map_enabled ?? '0') === '1' && (s.map_default_lat || s.map_default_lng)) { %>
+          <div class="map-frame mt-14" style="height:130px;font-size:.75rem" id="neshanMap"
+               data-map-key="<%= s.neshan_api_key || '' %>" data-lat="<%= s.map_default_lat || 35.7448 %>" data-lng="<%= s.map_default_lng || 51.3753 %>"></div>
+        <% } %>
+        <div class="flex gap-8 mt-14">
+          <span class="tag">پرداخت امن</span><span class="tag">ضمانت اصالت</span><span class="tag">۷ روز بازگشت</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>© <%= h.toPersianDigits(new Date().getFullYear() - 621 + 0) %> — کلیه حقوق این وب‌سایت متعلق به <b><%= site.name %></b> است.</div>
+      <div class="flex items-center gap-10 text-xs text-muted">
+        <span>سال <%= h.toPersianDigits(new Date().getFullYear()) %></span>
+        <span>·</span>
+        <span>اجرا شده با موتور فروشگاه‌ساز بالی‌وو</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<button class="to-top" id="toTop" type="button" aria-label="بازگشت به بالا"><svg width="20" height="20"><use href="#i-arrow-up"/></svg></button>
+
+<% if (String(s.cookie_notice_enabled ?? '0') === '1' && !s.cookie_notice_hide) { %>
+<div class="cookie-bar" id="cookieBar">
+  <span><%= s.cookie_notice_text || 'ما از کوکی‌ها برای بهبود تجربه کاربری شما استفاده می‌کنیم.' %></span>
+  <button class="btn btn-sm btn-primary" type="button" onclick="localStorage.setItem('bw-cookie','1');document.getElementById('cookieBar').remove()">متوجه شدم</button>
+</div>
+<script>if(localStorage.getItem('bw-cookie'))document.getElementById('cookieBar')?.remove();</script>
+<% } %>
+
+<% if (s.google_tag_manager) { %>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<%= s.google_tag_manager %>');</script>
+<% } %>
+<% if (s.google_analytics) { %>
+<script async src="https://www.googletagmanager.com/gtag/js?id=<%= s.google_analytics %>"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<%= s.google_analytics %>');</script>
+<% } %>
+<script src="/js/app.js" defer></script>
+<% if (s.custom_js) { %><script><%- s.custom_js %></script><% } %>
+<% if (s.footer_code) { %><%- s.footer_code %><% } %>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<%
+  const t = totals;
+  const defaultAddress = addresses.find(function (a) { return a.is_default; }) || addresses[0] || null;
+  const defaultMethod = methods.find(function (m) { return m.cod_allowed; }) || methods[0] || null;
+  const defaultGateway = gateways.find(function (g) { return g.key === setting('default_gateway', 'zarinpal'); }) || gateways[0] || null;
+%>
+<%- include('../layouts/head', { bodyClass: 'page-checkout' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'سبد خرید', url: '/cart' }, { name: 'تکمیل سفارش' }] }) %>
+
+  <div class="steps mb-20">
+    <div class="step done"><div class="num">۱</div>سبد خرید</div>
+    <div class="step active"><div class="num">۲</div>اطلاعات ارسال</div>
+    <div class="step"><div class="num">۳</div>پرداخت</div>
+    <div class="step"><div class="num">۴</div>تکمیل سفارش</div>
+  </div>
+
+  <form method="post" action="/checkout" id="checkoutForm">
+    <div class="cart-grid">
+      <div class="stack">
+
+        <!-- ۱. نشانی -->
+        <section class="card">
+          <div class="card-head">
+            <h3 class="flex items-center gap-8"><span class="badge badge-primary">۱</span> نشانی تحویل‌گیرنده</h3>
+            <button class="btn btn-sm btn-outline" type="button" data-modal-open="addressModal"><svg><use href="#i-plus"/></svg> نشانی جدید</button>
+          </div>
+          <div class="card-body">
+            <% if (addresses.length) { %>
+              <div class="grid g-2" data-choice-group="address">
+                <% addresses.forEach(function (a) { %>
+                  <label class="address-item <%= defaultAddress && a.id === defaultAddress.id ? 'active' : '' %>">
+                    <input type="radio" name="address_id" value="<%= a.id %>" <%= defaultAddress && a.id === defaultAddress.id ? 'checked' : '' %>>
+                    <span class="grow">
+                      <span class="semibold text-sm flex items-center gap-6"><%= a.title || 'نشانی' %> <% if (a.is_default) { %><span class="badge badge-success">پیش‌فرض</span><% } %></span>
+                      <span class="text-xs text-muted" style="display:block;margin-top:4px;line-height:1.9">
+                        <%= a.province %>، <%= a.city %>، <%= a.address %>
+                        <% if (a.postal_code) { %><br>کد پستی: <span class="mono" dir="ltr"><%= h.toPersianDigits(a.postal_code) %></span><% } %>
+                      </span>
+                      <span class="text-xs" style="display:block;margin-top:4px">تحویل‌گیرنده: <%= a.receiver || user.name || '—' %> · <span dir="ltr"><%= h.toPersianDigits(a.phone || user.phone) %></span></span>
+                    </span>
+                  </label>
+                <% }) %>
+              </div>
+              <div class="grid g-2 mt-14">
+                <div class="field m-0"><label for="receiver_name">نام تحویل‌گیرنده</label>
+                  <input class="input" id="receiver_name" name="receiver_name" value="<%= defaultAddress ? (defaultAddress.receiver || user.name || '') : (user.name || '') %>" required></div>
+                <div class="field m-0"><label for="receiver_phone">شماره تماس تحویل‌گیرنده</label>
+                  <input class="input" id="receiver_phone" name="receiver_phone" dir="ltr" value="<%= defaultAddress ? (defaultAddress.phone || user.phone) : user.phone %>" required></div>
+              </div>
+            <% } else { %>
+              <div class="alert alert-warning mb-14"><svg><use href="#i-alert"/></svg><div class="body">هنوز نشانی ثبت نکرده‌اید. یک نشانی جدید اضافه کنید تا بتوانید سفارش را نهایی کنید.</div></div>
+              <div class="grid g-2">
+                <div class="field"><label>استان</label>
+                  <select class="select" name="new_province" required>
+                    <option value="">انتخاب کنید…</option>
+                    <% provinces.forEach(function (pr) { %><option value="<%= pr.name %>"><%= pr.name %></option><% }) %>
+                  </select></div>
+                <div class="field"><label>شهر</label><input class="input" name="new_city" required></div>
+              </div>
+              <div class="field"><label>نشانی کامل</label><textarea class="textarea" name="new_address" required placeholder="خیابان، کوچه، پلاک، واحد"></textarea></div>
+              <div class="grid g-3">
+                <div class="field"><label>کد پستی</label><input class="input" name="new_postal_code" dir="ltr" maxlength="10"></div>
+                <div class="field"><label>نام تحویل‌گیرنده</label><input class="input" name="receiver_name" value="<%= user.name || '' %>" required></div>
+                <div class="field"><label>تلفن تحویل‌گیرنده</label><input class="input" name="receiver_phone" dir="ltr" value="<%= user.phone || '' %>" required></div>
+              </div>
+            <% } %>
+          </div>
+        </section>
+
+        <!-- ۲. روش ارسال -->
+        <section class="card">
+          <div class="card-head"><h3 class="flex items-center gap-8"><span class="badge badge-primary">۲</span> روش ارسال</h3></div>
+          <div class="card-body">
+            <div class="grid g-2" data-choice-group="shipping">
+              <% methods.forEach(function (m) { %>
+                <% const c = m.free_above && t.subtotal >= m.free_above ? 0 : m.base_price; %>
+                <label class="pay-method <%= defaultMethod && m.id === defaultMethod.id ? 'active' : '' %>">
+                  <input type="radio" name="shipping_method_id" value="<%= m.id %>" <%= defaultMethod && m.id === defaultMethod.id ? 'checked' : '' %>>
+                  <span class="grow">
+                    <span class="t flex items-center gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--brand)"><use href="#i-truck"/></svg> <%= m.title %></span>
+                    <span class="d" style="display:block;margin-top:3px">
+                      <%= m.eta_days ? h.toPersianDigits(m.eta_days) + ' روز کاری' : 'تحویل فوری' %>
+                      <% if (m.cod_allowed) { %> · امکان پرداخت در محل<% } %>
+                      <% if (m.description) { %> · <%= m.description %><% } %>
+                    </span>
+                  </span>
+                  <span class="mono bold text-sm"><%= c ? h.fa(c) + ' ' + site.currency : 'رایگان' %></span>
+                </label>
+              <% }) %>
+            </div>
+
+            <% if (pickups && pickups.length) { %>
+              <div class="divider"></div>
+              <div class="label text-sm">تحویل حضوری از مراکز دریافت (اختیاری)</div>
+              <div class="grid g-2">
+                <% pickups.forEach(function (pk) { %>
+                  <label class="pay-method">
+                    <input type="radio" name="pickup_id" value="<%= pk.id %>">
+                    <span class="grow">
+                      <span class="t"><svg width="15" height="15" style="width:15px;height:15px;color:var(--brand)"><use href="#i-pin"/></svg> <%= pk.title %></span>
+                      <span class="d" style="display:block"><%= pk.address %><% if (pk.work_hours) { %> · <%= pk.work_hours %><% } %></span>
+                    </span>
+                  </label>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </section>
+
+        <!-- ۳. روش پرداخت -->
+        <section class="card">
+          <div class="card-head"><h3 class="flex items-center gap-8"><span class="badge badge-primary">۳</span> روش پرداخت</h3></div>
+          <div class="card-body">
+            <div class="stack" data-choice-group="payment">
+              <% gateways.forEach(function (g) { %>
+                <label class="pay-method <%= defaultGateway && g.key === defaultGateway.key ? 'active' : '' %>">
+                  <input type="radio" name="payment_method" value="<%= g.key %>" <%= defaultGateway && g.key === defaultGateway.key ? 'checked' : '' %>>
+                  <span class="grow">
+                    <span class="t flex items-center gap-8">
+                      <svg width="17" height="17" style="width:17px;height:17px;color:var(--brand)"><use href="#i-<%= g.type === 'cod' ? 'truck' : g.type === 'internal' ? 'wallet' : g.type === 'manual' ? 'credit-card' : g.installment ? 'clock' : 'credit-card' %>"/></svg>
+                      <%= g.name %>
+                      <% if (g.key === 'wallet' && user.wallet) { %><span class="badge badge-success">موجودی: <%= h.fa(user.wallet) %> <%= site.currency %></span><% } %>
+                      <% if (g.key === 'cod') { %><span class="badge badge-warning">پرداخت درب منزل</span><% } %>
+                    </span>
+                    <span class="d" style="display:block;margin-top:3px">
+                      <% if (g.key === 'card2card') { %>واریز به حساب <%= setting('c2c_owner_name', '') %> و ثبت رسید در پنل کاربری<% } %>
+                      <% if (g.key === 'wallet') { %>کسر از موجودی کیف پول — بدون کارمزد<% } %>
+                      <% if (g.key === 'cod') { %>پرداخت نقدی یا کارت‌خوان هنگام تحویل<% } %>
+                      <% if (g.installment) { %>امکان پرداخت اقساطی (<%= h.toPersianDigits((g.months || [4]).join('، ')) %> قسط)<% } %>
+                      <% if (g.type === 'online') { %>پرداخت امن اینترنتی از طریق درگاه بانکی<% } %>
+                    </span>
+                  </span>
+                </label>
+              <% }) %>
+            </div>
+
+            <% if (gateways.some(function (g) { return g.key === 'card2card'; })) { %>
+              <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg>
+                <div class="body">
+                  اطلاعات کارت به کارت: <b dir="ltr" class="mono"><%= h.toPersianDigits(setting('c2c_card_number', '—')) %></b>
+                  به نام <%= setting('c2c_owner_name', '—') %> — بانک <%= setting('c2c_bank_name', '—') %>
+                  <% if (setting('c2c_note')) { %><div class="text-xs mt-6"><%= setting('c2c_note') %></div><% } %>
+                </div>
+              </div>
+            <% } %>
+
+            <div class="field mt-14 mb-0">
+              <label for="customer_note">توضیحات سفارش (اختیاری)</label>
+              <textarea class="textarea" id="customer_note" name="customer_note" style="min-height:80px" placeholder="مثلاً: بسته‌بندی هدیه شود / پیش از ارسال تماس بگیرید"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- اقلام سفارش -->
+        <section class="card">
+          <div class="card-head"><h3 class="text-sm">اقلام سفارش (<%= h.toPersianDigits(t.count) %> کالا)</h3><a class="text-xs text-brand" href="/cart">ویرایش سبد</a></div>
+          <% t.availableItems.forEach(function (it) { %>
+            <div class="cart-item">
+              <img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy">
+              <div class="grow">
+                <a href="/product/<%= it.slug %>" class="text-sm semibold line-2"><%= it.title %></a>
+                <% if (it.variant_title) { %><div class="text-xs text-muted mt-6"><%= it.variant_title %></div><% } %>
+                <div class="text-xs text-muted mt-6">تعداد: <%= h.toPersianDigits(it.qty) %></div>
+              </div>
+              <div class="col-price text-left mono bold"><%= h.fa(it.line_total) %></div>
+            </div>
+          <% }) %>
+        </section>
+      </div>
+
+      <aside class="summary-box">
+        <div class="card">
+          <div class="card-head"><h3>خلاصه پرداخت</h3></div>
+          <div class="card-body">
+            <div class="summary-row"><span>قیمت کالاها</span><span class="mono"><%= h.fa(t.subtotal) %></span></div>
+            <% if (t.itemsDiscount > 0) { %><div class="summary-row"><span>تخفیف محصولات</span><span class="discount mono">− <%= h.fa(t.itemsDiscount) %></span></div><% } %>
+            <% if (t.optionsTotal > 0) { %><div class="summary-row"><span>خدمات اختیاری</span><span class="mono"><%= h.fa(t.optionsTotal) %></span></div><% } %>
+            <% if (t.couponDiscount > 0) { %><div class="summary-row"><span>کد تخفیف</span><span class="discount mono">− <%= h.fa(t.couponDiscount) %></span></div><% } %>
+            <% if (t.pointsDiscount > 0) { %><div class="summary-row"><span>تخفیف امتیاز</span><span class="discount mono">− <%= h.fa(t.pointsDiscount) %></span></div><% } %>
+            <div class="summary-row"><span>هزینه ارسال</span><span class="mono" id="shipCost"><%= t.shippingCost ? h.fa(t.shippingCost) : 'پس از انتخاب روش' %></span></div>
+            <% if (t.vat > 0) { %><div class="summary-row"><span>مالیات (<%= h.toPersianDigits(t.vatRate) %>٪)</span><span class="mono"><%= h.fa(t.vat) %></span></div><% } %>
+
+            <% if (user.wallet > 0) { %>
+              <div class="divider"></div>
+              <label class="check text-sm">
+                <input type="checkbox" name="use_wallet" value="on" <%= t.walletUsed > 0 ? 'checked' : '' %> onchange="document.getElementById('walletAmount').classList.toggle('hidden', !this.checked)">
+                استفاده از کیف پول (موجودی: <b class="mono"><%= h.fa(user.wallet) %></b> <%= site.currency %>)
+              </label>
+              <div class="mt-6 <%= t.walletUsed > 0 ? '' : 'hidden' %>" id="walletAmount">
+                <input class="input" type="number" name="amount" min="0" max="<%= user.wallet %>" placeholder="مبلغ (خالی = کل موجودی)">
+              </div>
+            <% } %>
+
+            <div class="summary-row total"><span>مبلغ قابل پرداخت</span><span class="mono" id="grandTotal"><%= h.fa(t.total) %> <small><%= site.currency %></small></span></div>
+
+            <button class="btn btn-primary btn-lg btn-block mt-14" type="submit" data-confirm="با ثبت سفارش، به صفحه پرداخت هدایت می‌شوید. ادامه می‌دهید؟">
+              <svg><use href="#i-lock"/></svg> ثبت سفارش و پرداخت
+            </button>
+            <div class="text-xs text-muted text-center mt-10">با ثبت سفارش، <a href="/page/terms" class="text-brand">قوانین و شرایط</a> را می‌پذیرید.</div>
+          </div>
+        </div>
+
+        <div class="card mt-14"><div class="card-body stack" style="gap:10px">
+          <div class="flex items-center gap-8 text-xs"><svg width="15" height="15" style="width:15px;height:15px;color:var(--success)"><use href="#i-shield"/></svg> پرداخت امن با رمز پویا</div>
+          <div class="flex items-center gap-8 text-xs"><svg width="15" height="15" style="width:15px;height:15px;color:var(--success)"><use href="#i-rotate"/></svg> <%= setting('return_days', '7') %> روز ضمانت بازگشت کالا</div>
+          <div class="flex items-center gap-8 text-xs"><svg width="15" height="15" style="width:15px;height:15px;color:var(--success)"><use href="#i-headset"/></svg> پشتیبانی ۲۴ ساعته<% if (site.phone) { %> — <span dir="ltr"><%= h.toPersianDigits(site.phone) %></span><% } %></div>
+        </div></div>
+      </aside>
+    </div>
+  </form>
+</div>
+</main>
+
+<!-- افزودن نشانی -->
+<div class="modal-backdrop" id="addressModal">
+  <div class="modal lg">
+    <div class="modal-head"><h3>افزودن نشانی جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/user/addresses">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label>عنوان <span class="req">*</span></label><input class="input" name="title" placeholder="مثلاً منزل / محل کار" required></div>
+          <div class="field"><label>استان <span class="req">*</span></label>
+            <select class="select" name="province" required><option value="">انتخاب کنید…</option>
+              <% provinces.forEach(function (pr) { %><option value="<%= pr.name %>"><%= pr.name %></option><% }) %>
+            </select></div>
+        </div>
+        <div class="grid g-2">
+          <div class="field"><label>شهر <span class="req">*</span></label><input class="input" name="city" required></div>
+          <div class="field"><label>کد پستی</label><input class="input" name="postal_code" dir="ltr" maxlength="10" placeholder="۱۰ رقم"></div>
+        </div>
+        <div class="field"><label>نشانی کامل <span class="req">*</span></label><textarea class="textarea" name="address" required></textarea></div>
+        <div class="grid g-2">
+          <div class="field"><label>نام تحویل‌گیرنده</label><input class="input" name="receiver" value="<%= user.name || '' %>"></div>
+          <div class="field"><label>تلفن تحویل‌گیرنده</label><input class="input" name="phone" dir="ltr" value="<%= user.phone || '' %>"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="is_default" value="1"> به‌عنوان نشانی پیش‌فرض ذخیره شود</label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button><button class="btn btn-primary" type="submit">ذخیره نشانی</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/store-footer') %>

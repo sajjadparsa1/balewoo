@@ -1,0 +1,38 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">کالاهایی که پسندیده‌اید در این فهرست نگه داشته می‌شوند و می‌توانید بعداً خریدشان کنید.</div>
+  <span class="badge badge-outline"><%= h.toPersianDigits(products.length) %> کالا</span>
+</div>
+
+<% if (products.length) { %>
+  <div class="products-grid large">
+    <% products.forEach(function (p) { %>
+      <div style="position:relative">
+        <%- include('../partials/product-card', { product: p }) %>
+        <form method="post" action="/user/favorites/<%= p.id %>/remove" style="position:absolute;top:8px;inset-inline-end:8px;z-index:5">
+          <button class="btn btn-sm btn-ghost" type="submit" title="حذف از علاقمندی‌ها"
+                  style="background:var(--surface);box-shadow:var(--shadow);border-radius:50%;width:32px;height:32px;padding:0"
+                  data-confirm-click="از علاقمندی‌ها حذف شود؟"><svg width="15" height="15" style="width:15px;height:15px;color:var(--danger)"><use href="#i-trash"/></svg></button>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="card mt-20"><div class="card-body flex items-center justify-between gap-14 flex-wrap">
+    <div class="text-sm">می‌خواهید همه را با هم مقایسه کنید؟</div>
+    <div class="flex gap-8">
+      <a class="btn btn-sm btn-outline" href="/user/compare"><svg><use href="#i-compare"/></svg> صفحه مقایسه</a>
+      <a class="btn btn-sm" href="/products"><svg><use href="#i-search"/></svg> ادامه خرید</a>
+    </div>
+  </div></div>
+<% } else { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-heart"/></svg>
+    <h4>لیست علاقمندی شما خالی است</h4>
+    <p class="text-sm">روی آیکون قلب در هر محصول کلیک کنید تا اینجا ذخیره شود.</p>
+    <a class="btn btn-primary" href="/products">مشاهده محصولات</a>
+  </div></div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

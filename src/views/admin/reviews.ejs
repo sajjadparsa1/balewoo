@@ -1,0 +1,156 @@
+<%
+  const STATUS = { pending: ['در انتظار تایید', 'badge-warning'], approved: ['تایید شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+  const counts = { pending: 0, approved: 0, rejected: 0 };
+  rows.forEach(function (r) { if (counts[r.status] !== undefined) counts[r.status]++; });
+  const canManage = can('reviews.manage');
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">دیدگاه‌ها و امتیازهای محصولات <span class="badge badge-outline"><%= h.toPersianDigits(rows.length) %> دیدگاه</span></h2>
+  <div class="flex gap-8 flex-wrap">
+    <% Object.keys(STATUS).forEach(function (k) { %>
+      <a class="btn btn-sm <%= query.status === k ? 'btn-primary' : 'btn-ghost' %>" href="/admin/content/reviews?status=<%= k %>">
+        <%= STATUS[k][0] %> <span class="badge badge-outline"><%= h.toPersianDigits(counts[k]) %></span></a>
+    <% }) %>
+    <a class="btn btn-sm <%= !query.status ? 'btn-primary' : 'btn-ghost' %>" href="/admin/content/reviews">همه</a>
+  </div>
+</div>
+
+<% if (counts.pending) { %>
+  <div class="alert alert-warning mb-20"><svg><use href="#i-alert"/></svg><div class="body">
+    <%= h.toPersianDigits(counts.pending) %> دیدگاه در انتظار تایید است. با تایید هر دیدگاه، امتیاز محصول بازمحاسبه و امتیاز باشگاه به کاربر تعلق می‌گیرد.
+  </div></div>
+<% } %>
+
+<% if (rows.length) { %>
+  <div class="stack">
+    <% rows.forEach(function (r) { const st = STATUS[r.status] || [r.status, 'badge-outline']; %>
+      <section class="card">
+        <div class="card-head">
+          <div class="flex items-center gap-10 min-0">
+            <span class="avatar sm"><%= String(r.author || r.phone || 'ک').trim().charAt(0) %></span>
+            <div class="min-0">
+              <b class="text-xs block"><%= r.author || 'کاربر مهمان' %>
+                <% if (r.is_buyer) { %><span class="badge badge-info text-2xs">خریدار</span><% } %></b>
+              <span class="text-2xs text-muted mono" dir="ltr"><%= h.toPersianDigits(r.phone || '') %> · <%= h.formatJalali(r.created_at) %></span>
+            </div>
+          </div>
+          <div class="flex items-center gap-10">
+            <span class="stars"><% for (let i = 1; i <= 5; i++) { %><svg class="<%= i <= r.rating ? 'on' : '' %>"><use href="#i-star"/></svg><% } %></span>
+            <span class="badge <%= st[1] %>"><%= st[0] %></span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-8 flex-wrap mb-10">
+            <a class="text-sm bold" href="/product/<%= r.slug %>" target="_blank" rel="noopener"><%= h.truncate(r.title, 60) %></a>
+            <% if (can('products.view')) { %><a class="btn btn-sm btn-ghost" href="/admin/products/<%= r.product_id %>/edit"><svg><use href="#i-edit"/></svg> ویرایش محصول</a><% } %>
+            <span class="ms-auto text-2xs text-muted">
+              <svg style="width:12px;height:12px;vertical-align:-2px"><use href="#i-heart"/></svg> <%= h.toPersianDigits(r.helpful || 0) %> نفر این دیدگاه را مفید دانستند
+              · <%= r.recommend ? 'پیشنهاد می‌کند' : 'پیشنهاد نمی‌کند' %>
+            </span>
+          </div>
+
+          <% if (r.title && r.body) { %><b class="text-xs block mb-6"><%= r.title %></b><% } %>
+          <% if (r.body) { %><p class="text-sm m-0 mb-10" style="line-height:2"><%= r.body %></p><% } %>
+
+          <% if ((r.pros || []).length || (r.cons || []).length) { %>
+            <div class="grid g-2 mb-10">
+              <% if ((r.pros || []).length) { %>
+                <div class="card" style="background:transparent;box-shadow:none;border-color:var(--border)">
+                  <div class="card-body" style="padding:10px 14px">
+                    <b class="text-xs text-success flex items-center gap-6 mb-6"><svg style="width:13px;height:13px"><use href="#i-check"/></svg> نقاط قوت</b>
+                    <ul class="bullets text-xs m-0"><% r.pros.forEach(function (x) { %><li><%= x %></li><% }) %></ul>
+                  </div>
+                </div>
+              <% } %>
+              <% if ((r.cons || []).length) { %>
+                <div class="card" style="background:transparent;box-shadow:none;border-color:var(--border)">
+                  <div class="card-body" style="padding:10px 14px">
+                    <b class="text-xs text-danger flex items-center gap-6 mb-6"><svg style="width:13px;height:13px"><use href="#i-x"/></svg> نقاط ضعف</b>
+                    <ul class="bullets text-xs m-0"><% r.cons.forEach(function (x) { %><li><%= x %></li><% }) %></ul>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+          <% } %>
+
+          <% if (r.admin_reply) { %>
+            <div class="bubble">
+              <div class="bubble-head text-xs bold">پاسخ مدیر</div>
+              <div class="bubble-body text-xs"><%= r.admin_reply %></div>
+            </div>
+          <% } %>
+
+          <% if (canManage) { %>
+            <div class="flex items-center gap-8 flex-wrap mt-14 pt-14" style="border-top:1px solid var(--border)">
+              <% if (r.status !== 'approved') { %>
+                <button class="btn btn-sm btn-success" type="button" data-modal-open="rvModal"
+                        onclick='openRv(<%- JSON.stringify({ id: r.id, status: 'approved', admin_reply: r.admin_reply || '' }) %>)'>
+                  <svg><use href="#i-check"/></svg> تایید دیدگاه</button>
+              <% } %>
+              <% if (r.status !== 'rejected') { %>
+                <form method="post" action="/admin/content/reviews/<%= r.id %>/status" class="m-0">
+                  <input type="hidden" name="status" value="rejected">
+                  <button class="btn btn-sm btn-outline" type="submit" data-confirm-click="دیدگاه رد شود و از محصول پنهان گردد؟"><svg><use href="#i-x"/></svg> رد کردن</button>
+                </form>
+              <% } %>
+              <% if (r.status !== 'pending') { %>
+                <form method="post" action="/admin/content/reviews/<%= r.id %>/status" class="m-0">
+                  <input type="hidden" name="status" value="pending">
+                  <button class="btn btn-sm btn-ghost" type="submit">بازگردانی به انتظار</button>
+                </form>
+              <% } %>
+              <button class="btn btn-sm btn-ghost" type="button" data-modal-open="rvModal"
+                      onclick='openRv(<%- JSON.stringify({ id: r.id, status: r.status, admin_reply: r.admin_reply || '' }) %>)'>
+                <svg><use href="#i-message"/></svg> <%= r.admin_reply ? 'ویرایش پاسخ' : 'پاسخ مدیر' %></button>
+              <form method="post" action="/admin/content/reviews/<%= r.id %>/delete" class="m-0 ms-auto">
+                <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="دیدگاه حذف شود؟"><svg><use href="#i-trash"/></svg> حذف</button>
+              </form>
+            </div>
+          <% } %>
+        </div>
+      </section>
+    <% }) %>
+  </div>
+<% } else { %>
+  <section class="card">
+    <div class="empty">
+      <span class="ic"><svg><use href="#i-comment"/></svg></span>
+      <h3>دیدگاهی یافت نشد</h3>
+      <p>کاربران پس از خرید یا از صفحه محصول می‌توانند دیدگاه و امتیاز ثبت کنند.</p>
+      <a class="btn btn-sm btn-primary" href="/admin/content/reviews">نمایش همه دیدگاه‌ها</a>
+    </div>
+  </section>
+<% } %>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="rvModal">
+  <div class="modal">
+    <div class="modal-head"><h3>تغییر وضعیت و پاسخ مدیر</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="" id="rvForm">
+      <div class="modal-body">
+        <div class="field"><label for="rv_status">وضعیت</label>
+          <select class="select" id="rv_status" name="status">
+            <% Object.keys(STATUS).forEach(function (k) { %><option value="<%= k %>"><%= STATUS[k][0] %></option><% }) %>
+          </select>
+          <div class="help">با تایید، امتیاز محصول بازمحاسبه و اعلان برای کاربر ارسال می‌شود.</div></div>
+        <div class="field"><label for="rv_reply">پاسخ مدیر (زیر دیدگاه نمایش داده می‌شود)</label>
+          <textarea class="textarea" id="rv_reply" name="admin_reply" rows="3" placeholder="از دیدگاه شما سپاسگزاریم…"></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  function openRv(r) {
+    document.getElementById('rvForm').action = '/admin/content/reviews/' + r.id + '/status';
+    document.getElementById('rv_status').value = r.status || 'approved';
+    document.getElementById('rv_reply').value = r.admin_reply || '';
+    if (window.openModal) window.openModal('rvModal');
+  }
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,85 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">حساب‌های بانکی برای دریافت وجه (درخواست برداشت از کیف پول و تسویه پورسانت) استفاده می‌شوند.</div>
+  <button class="btn btn-primary btn-sm" type="button" data-modal-open="accountModal"><svg><use href="#i-plus"/></svg> افزودن حساب بانکی</button>
+</div>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(user.wallet) %></div><div class="l">موجودی کیف پول (<%= site.currency %>)</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-percent"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(setting('withdraw_fee_percent', '0')) %>٪</div><div class="l">کارمزد برداشت</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(setting('withdraw_period_hours', '72')) %></div><div class="l">سقف پردازش (ساعت)</div></div></div>
+</div>
+
+<% if (rows.length) { %>
+  <div class="grid g-2">
+    <% rows.forEach(function (a) { %>
+      <div class="card">
+        <div class="card-body">
+          <div class="flex items-center justify-between gap-10 mb-10">
+            <div class="bold text-sm flex items-center gap-8"><svg width="16" height="16" style="width:16px;height:16px;color:var(--brand)"><use href="#i-bank"/></svg> <%= a.bank_name || 'حساب بانکی' %>
+              <% if (a.is_default) { %><span class="badge badge-primary">پیش‌فرض</span><% } %></div>
+            <% if (a.status === 'rejected') { %><span class="badge badge-danger">رد شده</span><% } else if (a.status === 'approved') { %><span class="badge badge-success">تایید شده</span><% } else { %><span class="badge badge-warning">در انتظار تایید</span><% } %>
+          </div>
+          <table class="table-kv mb-10">
+            <tbody>
+              <tr><th>صاحب حساب</th><td><%= a.owner_name || '—' %></td></tr>
+              <tr><th>بانک</th><td><%= a.bank_name || '—' %></td></tr>
+              <% if (a.card_number) { %><tr><th>شماره کارت</th><td class="mono" dir="ltr"><%= h.toPersianDigits(a.card_number) %></td></tr><% } %>
+              <% if (a.iban) { %><tr><th>شبا</th><td class="mono" dir="ltr"><%= h.toPersianDigits(a.iban) %></td></tr><% } %>
+              <% if (a.account_no) { %><tr><th>شماره حساب</th><td class="mono" dir="ltr"><%= h.toPersianDigits(a.account_no) %></td></tr><% } %>
+            </tbody>
+          </table>
+          <% if (a.status === 'rejected') { %><div class="alert alert-danger" style="padding:10px 12px"><div class="body text-xs">این حساب رد شده است؛ برای اطلاع از دلیل آن یک تیکت مالی ثبت کنید.</div></div><% } %>
+        </div>
+        <div class="card-foot text-xs text-muted flex items-center justify-between">
+          <span>ثبت: <%= h.formatJalali(a.created_at) %></span>
+          <form method="post" action="/user/bank-accounts/<%= a.id %>/delete" class="m-0">
+            <button class="btn btn-sm btn-ghost text-danger" type="submit" data-confirm-click="این حساب حذف شود؟">حذف</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } else { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-bank"/></svg>
+    <h4>حساب بانکی ثبت نشده است</h4>
+    <p class="text-sm">برای درخواست برداشت از کیف پول، ابتدا یک حساب بانکی اضافه کنید.</p>
+    <button class="btn btn-primary btn-sm" type="button" data-modal-open="accountModal">افزودن حساب</button>
+  </div></div>
+<% } %>
+
+<div class="modal-backdrop" id="accountModal">
+  <div class="modal">
+    <div class="modal-head"><h3>افزودن حساب بانکی</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/user/bank-accounts">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="ba_name">صاحب حساب <span class="req">*</span></label>
+            <input class="input" id="ba_name" name="owner_name" value="<%= user.name || '' %>" required></div>
+          <div class="field"><label for="ba_bank">نام بانک <span class="req">*</span></label>
+            <input class="input" id="ba_bank" name="bank_name" placeholder="ملی / ملت / سامان / …" required></div>
+        </div>
+        <div class="field"><label for="ba_card">شماره کارت</label>
+          <input class="input mono" id="ba_card" name="card_number" dir="ltr" inputmode="numeric" placeholder="6037-XXXX-XXXX-XXXX">
+          <div class="help">در صورت ورود شماره کارت، صحت آن با الگوریتم Luhn بررسی می‌شود.</div></div>
+        <div class="grid g-2">
+          <div class="field"><label for="ba_iban">شماره شبا</label>
+            <input class="input mono" id="ba_iban" name="iban" dir="ltr" placeholder="IR820540102680020817909002"></div>
+          <div class="field"><label for="ba_no">شماره حساب</label>
+            <input class="input mono" id="ba_no" name="account_no" dir="ltr" placeholder="0102680020817909002"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="is_default" value="1"> به‌عنوان حساب پیش‌فرض ذخیره شود</label>
+        <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body">حساب‌های بانکی پس از تایید مدیر در فرم برداشت قابل انتخاب هستند.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت حساب</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>

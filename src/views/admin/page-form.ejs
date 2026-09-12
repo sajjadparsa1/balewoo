@@ -1,0 +1,106 @@
+<%
+  const isNew = !page;
+  const p = page || {};
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0"><%= isNew ? 'صفحه جدید' : 'ویرایش صفحه' %></h2>
+  <div class="flex gap-8 flex-wrap">
+    <a class="btn btn-sm" href="/admin/content/pages"><svg><use href="#i-chevron-right"/></svg> فهرست صفحات</a>
+    <% if (!isNew) { %><a class="btn btn-sm btn-outline" href="/page/<%= p.slug %>" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg> مشاهده صفحه</a><% } %>
+    <button class="btn btn-sm btn-primary" type="submit" form="pageForm"><svg><use href="#i-save"/></svg> ذخیره صفحه</button>
+  </div>
+</div>
+
+<form method="post" action="/admin/content/pages" id="pageForm">
+  <% if (!isNew) { %><input type="hidden" name="id" value="<%= p.id %>"><% } %>
+  <div class="grid g-panel">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">محتوای صفحه</h3></div>
+        <div class="card-body">
+          <div class="grid g-2">
+            <div class="field"><label for="f_title">عنوان <i class="req">*</i></label>
+              <input class="input" id="f_title" name="title" value="<%= p.title || '' %>" required></div>
+            <div class="field"><label for="f_slug">نامک (آدرس صفحه)</label>
+              <div class="input-group"><span class="mono text-2xs" dir="ltr">/page/</span>
+                <input class="input mono" id="f_slug" name="slug" dir="ltr" value="<%= p.slug || '' %>" data-slug-from="#f_title"></div></div>
+          </div>
+          <div class="field"><label for="f_body">متن صفحه</label>
+            <div class="rich-editor" data-editor>
+              <div class="toolbar">
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertUnorderedList">• فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertOrderedList">۱. فهرست</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h2">تیتر ۲</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="formatBlock:h3">تیتر ۳</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="createLink">پیوند</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="insertImage">تصویر</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-cmd="removeFormat">پاکسازی</button>
+              </div>
+              <div class="editable" contenteditable="true" data-placeholder="متن صفحه را بنویسید…"></div>
+              <textarea id="f_body" name="body" hidden><%= p.body || '' %></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">انتشار</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_status">وضعیت</label>
+            <select class="select" id="f_status" name="status">
+              <option value="published" <%= (p.status || 'published') === 'published' ? 'selected' : '' %>>منتشر شده</option>
+              <option value="draft" <%= p.status === 'draft' ? 'selected' : '' %>>پیش‌نویس</option>
+            </select></div>
+          <% if (!isNew) { %>
+            <table class="table-kv">
+              <tbody>
+                <tr><th>بازدید</th><td class="mono"><%= h.toPersianDigits(p.views || 0) %></td></tr>
+                <tr><th>ایجاد</th><td class="text-xs"><%= h.formatJalali(p.created_at) %></td></tr>
+                <tr><th>بروزرسانی</th><td class="text-xs"><%= p.updated_at ? h.formatJalali(p.updated_at) : '—' %></td></tr>
+              </tbody>
+            </table>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">سئو</h3></div>
+        <div class="card-body">
+          <div class="field"><label for="f_seot">عنوان سئو</label>
+            <input class="input" id="f_seot" name="seo_title" value="<%= p.seo_title || '' %>" maxlength="70"></div>
+          <div class="field"><label for="f_seod">توضیحات متا</label>
+            <textarea class="textarea" id="f_seod" name="seo_desc" rows="3" maxlength="200"><%= p.seo_desc || '' %></textarea></div>
+          <div class="text-2xs text-muted">صفحات ثابت در نقشه سایت و داده ساختاریافته <span class="mono" dir="ltr">WebPage</span> ثبت می‌شوند.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="text-sm">صفحات پیشنهادی</h3></div>
+        <div class="card-body chips">
+          <% ['درباره ما|about-us', 'قوانین و مقررات|terms', 'حریم خصوصی|privacy', 'تماس با ما|contact-us', 'سوالات متداول|faq', 'راهنمای خرید|buying-guide', 'شرایط بازگشت کالا|return-policy', 'فرصت‌های شغلی|careers'].forEach(function (s) {
+                const parts = s.split('|'); %>
+            <button class="chip" type="button" data-fill-title="<%= parts[0] %>" data-fill-slug="<%= parts[1] %>"><%= parts[0] %></button>
+          <% }) %>
+          <div class="text-2xs text-muted mt-10">با کلیک، عنوان و نامک پر می‌شود تا فقط متن را بنویسید.</div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<script>
+  document.querySelectorAll('[data-fill-title]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById('f_title').value = b.dataset.fillTitle;
+      document.getElementById('f_slug').value = b.dataset.fillSlug;
+    });
+  });
+</script>
+
+<%- include('../partials/panel-foot') %>

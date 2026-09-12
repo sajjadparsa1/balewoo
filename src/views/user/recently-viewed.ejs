@@ -1,0 +1,21 @@
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-12 mb-20 flex-wrap">
+  <div class="text-sm text-muted">کالاهایی که اخیراً بازدید کرده‌اید، بر اساس آخرین بازدید مرتب شده‌اند.</div>
+  <span class="badge badge-outline"><%= h.toPersianDigits(products.length) %> کالا</span>
+</div>
+
+<% if (products.length) { %>
+  <div class="products-grid large">
+    <% products.forEach(function (p) { %><%- include('../partials/product-card', { product: p }) %><% }) %>
+  </div>
+<% } else { %>
+  <div class="card"><div class="empty">
+    <svg><use href="#i-clock"/></svg>
+    <h4>بازدیدی ثبت نشده است</h4>
+    <p class="text-sm">به محض مشاهده محصولات، فهرست بازدیدهای اخیر شما اینجا ساخته می‌شود.</p>
+    <a class="btn btn-primary" href="/products">شروع گشت‌وگذار</a>
+  </div></div>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

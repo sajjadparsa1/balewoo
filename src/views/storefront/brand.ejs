@@ -1,0 +1,75 @@
+<% const q = query || {}; %>
+<%- include('../layouts/head', { bodyClass: 'page-brand' }) %>
+<%- include('../partials/store-header') %>
+
+<main id="main" data-spa-content>
+<div class="container">
+  <%- include('../partials/breadcrumb', { items: [{ name: 'برندها', url: '/brands' }, { name: brand.name }] }) %>
+
+  <section class="card mb-20">
+    <div class="card-body flex items-center gap-20 flex-wrap">
+      <div style="width:110px;height:110px;border-radius:var(--radius);background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none">
+        <% if (brand.logo) { %><img src="<%= brand.logo %>" alt="<%= brand.name %>" style="max-width:100%;max-height:100%;object-fit:contain">
+        <% } else { %><span class="bold text-xl"><%= brand.name.slice(0, 1) %></span><% } %>
+      </div>
+      <div class="grow">
+        <h1 style="font-size:1.3rem;margin-bottom:4px"><%= brand.name %></h1>
+        <% if (brand.name_en) { %><div class="text-sm text-muted" dir="ltr"><%= brand.name_en %></div><% } %>
+        <div class="flex gap-14 flex-wrap mt-10 text-xs text-muted">
+          <span class="flex items-center gap-4"><svg width="13" height="13" style="width:13px;height:13px"><use href="#i-box"/></svg> <%= h.toPersianDigits(brand.products_count || products.length) %> کالای فعال</span>
+          <a class="flex items-center gap-4 text-brand" href="/brand/<%= brand.slug %>?sort=bestselling">پرفروش‌ترین‌ها</a>
+          <a class="flex items-center gap-4 text-brand" href="/brand/<%= brand.slug %>?sort=cheapest">ارزان‌ترین‌ها</a>
+        </div>
+      </div>
+      <div class="flex gap-8">
+        <a class="btn btn-primary" href="/products?brand=<%= encodeURIComponent(brand.slug) %>">مشاهده همه محصولات</a>
+      </div>
+    </div>
+    <% if (brand.description) { %>
+      <div class="card-foot article-body text-sm"><%- brand.description %></div>
+    <% } %>
+  </section>
+
+  <div class="toolbar">
+    <div class="flex items-center gap-10"><h2 style="font-size:1rem;margin:0">محصولات <%= brand.name %></h2>
+      <span class="badge badge-outline"><%= h.toPersianDigits(pg.total) %> کالا</span></div>
+    <form method="get" action="/brand/<%= brand.slug %>" class="m-0 flex items-center gap-8">
+      <label class="text-sm text-muted" for="bSort">مرتب‌سازی:</label>
+      <select class="select" id="bSort" name="sort" onchange="this.form.submit()" style="width:auto">
+        <% [['newest','جدیدترین'],['popular','محبوب‌ترین'],['bestselling','پرفروش‌ترین'],['cheapest','ارزان‌ترین'],['expensive','گران‌ترین'],['discounted','بیشترین تخفیف']].forEach(function (o) { %>
+          <option value="<%= o[0] %>" <%= (q.sort || 'newest') === o[0] ? 'selected' : '' %>><%= o[1] %></option>
+        <% }) %>
+      </select>
+    </form>
+  </div>
+
+  <% if (products && products.length) { %>
+    <div class="products-grid large">
+      <% products.forEach(function (p) { %><%- include('../partials/product-card', { product: p }) %><% }) %>
+    </div>
+    <%- include('../partials/pagination', { pagination: pg, baseUrl: '/brand/' + brand.slug, extraQuery: { sort: q.sort || '' } }) %>
+  <% } else { %>
+    <div class="card"><div class="empty"><svg><use href="#i-box"/></svg><h4>محصولی برای این برند ثبت نشده است</h4>
+      <a class="btn btn-outline" href="/brands">مشاهده سایر برندها</a></div></div>
+  <% } %>
+
+  <% if (posts && posts.length) { %>
+    <section class="section">
+      <div class="section-head"><h2>مطالب مرتبط با <%= brand.name %></h2><a class="link-more" href="/blog">همه مطالب</a></div>
+      <div class="grid g-3">
+        <% posts.forEach(function (post) { %>
+          <article class="post-card">
+            <a class="cover" href="/blog/<%= post.slug %>"><img src="<%= post.cover || '/img/placeholder-product.svg' %>" alt="<%= post.title %>" loading="lazy"></a>
+            <div class="body">
+              <a href="/blog/<%= post.slug %>" class="bold line-2" style="font-size:.92rem;line-height:1.9"><%= post.title %></a>
+              <div class="meta"><span><%= h.formatJalali(post.created_at) %></span><span><%= h.toPersianDigits(post.views || 0) %> بازدید</span></div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+</div>
+</main>
+
+<%- include('../partials/store-footer') %>

@@ -1,0 +1,284 @@
+<%
+  const canManage = can('menus.manage');
+  const parents = items.filter(function (i) { return !i.parent_id; });
+  const childrenOf = function (id) { return items.filter(function (i) { return i.parent_id === id; }); };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="flex items-center justify-between gap-14 flex-wrap mb-20">
+  <h2 style="font-size:1.1rem;margin:0">منوساز <span class="badge badge-outline"><%= h.toPersianDigits(menus.length) %> منو</span></h2>
+  <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="menuModal"><svg><use href="#i-plus"/></svg> منوی جدید</button><% } %>
+</div>
+
+<% if (!menus.length) { %>
+  <section class="card"><div class="empty">
+    <span class="ic"><svg><use href="#i-menu"/></svg></span>
+    <h3>منویی ساخته نشده است</h3>
+    <p>یک منو بسازید و جایگاه آن را مشخص کنید (header برای منوی اصلی، footer برای پابرگ).</p>
+    <% if (canManage) { %><button class="btn btn-sm btn-primary" type="button" data-modal-open="menuModal"><svg><use href="#i-plus"/></svg> ساخت منو</button><% } %>
+  </div></section>
+<% } else { %>
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head">
+        <h3 class="text-sm flex items-center gap-10">
+          <%= current ? current.title : '—' %>
+          <% if (current) { %><span class="badge badge-outline mono text-2xs" dir="ltr"><%= current.location %></span>
+            <span class="badge <%= current.status === 'active' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= current.status === 'active' ? 'فعال' : 'غیرفعال' %></span><% } %>
+        </h3>
+        <div class="flex gap-6 flex-wrap">
+          <% menus.forEach(function (m) { %>
+            <a class="btn btn-sm <%= current && m.id === current.id ? 'btn-primary' : 'btn-ghost' %>" href="/admin/content/menus?id=<%= m.id %>"><%= m.title %></a>
+          <% }) %>
+        </div>
+      </div>
+      <div class="card-body">
+        <% if (!current) { %>
+          <div class="empty" style="padding:20px"><p class="text-sm">منویی انتخاب نشده است.</p></div>
+        <% } else { %>
+          <form method="post" action="/admin/content/menus" id="orderForm" class="m-0">
+            <input type="hidden" name="action" value="update-order">
+            <input type="hidden" name="menu_id" value="<%= current.id %>">
+            <input type="hidden" name="order" id="orderJson" value="{}">
+            <div id="parentInputs"></div>
+
+            <div class="flex items-center justify-between gap-10 mb-14 flex-wrap">
+              <div class="text-xs text-muted">آیتم‌ها را با کشیدن جابجا کنید؛ برای زیرمنو، ستون «والد» را انتخاب کنید.</div>
+              <div class="flex gap-8">
+                <% if (canManage) { %>
+                  <button class="btn btn-sm btn-outline" type="button" data-modal-open="itemModal" onclick="openItem(null)"><svg><use href="#i-plus"/></svg> افزودن آیتم</button>
+                  <button class="btn btn-sm btn-primary" type="submit" id="saveOrderBtn"><svg><use href="#i-save"/></svg> ذخیره ترتیب</button>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="menu-builder" id="menuList">
+              <% if (!items.length) { %>
+                <div class="empty" style="padding:24px"><p class="text-sm">این منو هنوز آیتمی ندارد.</p></div>
+              <% } %>
+              <% parents.forEach(function (it, idx) { %>
+                <div class="menu-node" data-id="<%= it.id %>" draggable="<%= canManage ? 'true' : 'false' %>">
+                  <div class="menu-row">
+                    <span class="menu-grip"><svg><use href="#i-menu"/></svg></span>
+                    <span class="mono text-2xs menu-idx"><%= h.toPersianDigits(idx + 1) %></span>
+                    <div class="grow min-0">
+                      <b class="text-sm block truncate"><% if (it.icon) { %><svg style="width:13px;height:13px;vertical-align:-2px"><use href="#i-<%= it.icon %>"/></svg> <% } %><%= it.title %></b>
+                      <span class="mono text-2xs text-muted" dir="ltr"><%= it.url || '#' %><% if (it.target === '_blank') { %> · باز شدن در تب جدید<% } %></span>
+                    </div>
+                    <select class="select input-sm menu-parent" data-id="<%= it.id %>" style="width:auto" <%= canManage ? '' : 'disabled' %>>
+                      <option value="">آیتم اصلی</option>
+                      <% parents.forEach(function (p2) { if (p2.id !== it.id) { %>
+                        <option value="<%= p2.id %>" <%= it.parent_id === p2.id ? 'selected' : '' %>>زیرمنوی «<%= p2.title %>»</option>
+                      <% } }) %>
+                    </select>
+                    <span class="badge <%= it.status === 'active' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= it.status === 'active' ? 'فعال' : 'مخفی' %></span>
+                    <% if (canManage) { %>
+                      <div class="flex gap-4">
+                        <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                                onclick='openItem(<%- JSON.stringify(it) %>)'><svg><use href="#i-edit"/></svg></button>
+                        <button class="btn btn-sm btn-ghost" type="submit" form="delItem_<%= it.id %>" title="حذف"
+                                data-confirm-click="آیتم «<%= it.title %>» حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                      </div>
+                    <% } %>
+                  </div>
+                  <% childrenOf(it.id).forEach(function (c) { %>
+                    <div class="menu-row child" data-id="<%= c.id %>">
+                      <span class="menu-grip" style="visibility:hidden"><svg><use href="#i-menu"/></svg></span>
+                      <span class="text-2xs text-muted">↳</span>
+                      <div class="grow min-0">
+                        <span class="text-xs block truncate"><% if (c.icon) { %><svg style="width:12px;height:12px;vertical-align:-2px"><use href="#i-<%= c.icon %>"/></svg> <% } %><%= c.title %></span>
+                        <span class="mono text-2xs text-muted" dir="ltr"><%= c.url || '#' %></span>
+                      </div>
+                      <span class="badge <%= c.status === 'active' ? 'badge-success' : 'badge-warning' %> text-2xs"><%= c.status === 'active' ? 'فعال' : 'مخفی' %></span>
+                      <% if (canManage) { %>
+                        <div class="flex gap-4">
+                          <button class="btn btn-sm btn-ghost" type="button" title="ویرایش"
+                                  onclick='openItem(<%- JSON.stringify(c) %>)'><svg><use href="#i-edit"/></svg></button>
+                          <button class="btn btn-sm btn-ghost" type="submit" form="delItem_<%= c.id %>" title="حذف"
+                                  data-confirm-click="آیتم «<%= c.title %>» حذف شود؟"><svg><use href="#i-trash"/></svg></button>
+                        </div>
+                      <% } %>
+                    </div>
+                  <% }) %>
+                </div>
+              <% }) %>
+            </div>
+          </form>
+
+          <% items.forEach(function (it) { %>
+            <form method="post" action="/admin/content/menus/items/<%= it.id %>/delete" id="delItem_<%= it.id %>" class="hidden"></form>
+          <% }) %>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">افزودن سریع از دسته‌بندی‌ها</h3></div>
+      <div class="card-body">
+        <% if (categories.length && canManage) { %>
+          <div class="chips" style="max-height:260px;overflow:auto">
+            <% categories.forEach(function (c) { %>
+              <button class="chip" type="button" data-quick="cat" data-title="<%= c.name %>" data-url="/products?cat=<%= c.slug %>">
+                <svg style="width:12px;height:12px"><use href="#i-layers"/></svg> <%= c.name %></button>
+            <% }) %>
+          </div>
+        <% } else { %><p class="text-xs text-muted m-0">دسته‌بندی فعالی وجود ندارد.</p><% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">افزودن سریع از صفحات</h3></div>
+      <div class="card-body">
+        <% if (pages.length && canManage) { %>
+          <div class="chips">
+            <% pages.forEach(function (p) { %>
+              <button class="chip" type="button" data-quick="page" data-title="<%= p.title %>" data-url="/page/<%= p.slug %>">
+                <svg style="width:12px;height:12px"><use href="#i-file"/></svg> <%= p.title %></button>
+            <% }) %>
+          </div>
+        <% } else { %><p class="text-xs text-muted m-0">صفحه‌ای ساخته نشده است.</p><% } %>
+        <div class="alert alert-info mt-14"><svg><use href="#i-info"/></svg><div class="body text-xs">
+          با کلیک روی هر دسته یا صفحه، فرم افزودن آیتم با عنوان و آدرس آماده پر می‌شود.
+        </div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">جایگاه‌های منو</h3></div>
+      <div class="card-body">
+        <table class="table-kv"><tbody>
+          <tr><th class="mono" dir="ltr">header</th><td class="text-xs">منوی اصلی بالای سایت و مگامنو</td></tr>
+          <tr><th class="mono" dir="ltr">footer</th><td class="text-xs">ستون‌های پابرگ</td></tr>
+          <tr><th class="mono" dir="ltr">mobile</th><td class="text-xs">منوی کشویی موبایل</td></tr>
+        </tbody></table>
+      </div>
+    </section>
+  </aside>
+</div>
+<% } %>
+
+<% if (canManage) { %>
+<div class="modal-backdrop" id="menuModal">
+  <div class="modal">
+    <div class="modal-head"><h3>ساخت منوی جدید</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/menus">
+      <input type="hidden" name="action" value="create-menu">
+      <div class="modal-body">
+        <div class="field"><label for="m_title">عنوان منو <i class="req">*</i></label>
+          <input class="input" id="m_title" name="title" required placeholder="منوی اصلی"></div>
+        <div class="field"><label for="m_loc">جایگاه (لاتین)</label>
+          <input class="input mono" id="m_loc" name="location" dir="ltr" value="header" placeholder="header">
+          <div class="help">header / footer / mobile — هر جایگاه فقط یک منو را نمایش می‌دهد.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ایجاد منو</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="itemModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="itemTitle">افزودن آیتم</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/admin/content/menus">
+      <input type="hidden" name="action" value="add-item">
+      <input type="hidden" name="menu_id" value="<%= current ? current.id : '' %>">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="it_title">عنوان <i class="req">*</i></label>
+            <input class="input" id="it_title" name="title" required></div>
+          <div class="field"><label for="it_url">آدرس</label>
+            <input class="input mono" id="it_url" name="url" dir="ltr" placeholder="/products?cat=mobile"></div>
+        </div>
+        <div class="grid g-3">
+          <div class="field"><label for="it_parent">والد (زیرمنو)</label>
+            <select class="select" id="it_parent" name="parent_id">
+              <option value="">آیتم اصلی</option>
+              <% parents.forEach(function (p) { %><option value="<%= p.id %>"><%= p.title %></option><% }) %>
+            </select></div>
+          <div class="field"><label for="it_target">نحوه باز شدن</label>
+            <select class="select" id="it_target" name="target">
+              <option value="_self">همان پنجره</option><option value="_blank">تب جدید</option>
+            </select></div>
+          <div class="field"><label for="it_sort">ترتیب</label>
+            <input class="input mono" id="it_sort" name="sort" dir="ltr" inputmode="numeric" value="<%= items.length + 1 %>"></div>
+        </div>
+        <div class="field"><label for="it_icon">آیکون (اختیاری)</label>
+          <input class="input mono" id="it_icon" name="icon" dir="ltr" placeholder="box">
+          <div class="help">نام آیکون از مجموعه آیکون‌های سایت، مثل <span class="mono" dir="ltr">box</span>، <span class="mono" dir="ltr">tag</span>، <span class="mono" dir="ltr">zap</span>.</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ذخیره آیتم</button></div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    const list = document.getElementById('menuList');
+    const form = document.getElementById('orderForm');
+    function openItemFn(it) {
+      document.getElementById('itemTitle').textContent = it ? 'ویرایش عنوان/آدرس (حذف و افزودن مجدد)' : 'افزودن آیتم';
+      document.getElementById('it_title').value = it ? it.title : '';
+      document.getElementById('it_url').value = it ? (it.url || '') : '';
+      document.getElementById('it_parent').value = it ? (it.parent_id || '') : '';
+      document.getElementById('it_target').value = it ? (it.target || '_self') : '_self';
+      document.getElementById('it_icon').value = it ? (it.icon || '') : '';
+      if (window.openModal) window.openModal('itemModal');
+    }
+    window.openItem = openItemFn;
+
+    document.querySelectorAll('[data-quick]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        openItemFn(null);
+        document.getElementById('it_title').value = b.dataset.title;
+        document.getElementById('it_url').value = b.dataset.url;
+      });
+    });
+
+    function sync() {
+      if (!list || !form) return;
+      const order = {}, box = document.getElementById('parentInputs');
+      box.innerHTML = '';
+      list.querySelectorAll('.menu-node').forEach(function (node, i) {
+        order[node.dataset.id] = i + 1;
+        const sel = node.querySelector('.menu-parent');
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'parents[' + node.dataset.id + ']';
+        inp.value = sel ? (sel.value || 0) : 0;
+        box.appendChild(inp);
+        const idx = node.querySelector('.menu-idx');
+        if (idx) idx.textContent = String(i + 1).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; });
+      });
+      form.querySelector('[name=order]').value = JSON.stringify(order);
+    }
+
+    let dragged = null;
+    if (list) {
+      list.addEventListener('dragstart', function (e) {
+        dragged = e.target.closest('.menu-node');
+        if (dragged) dragged.classList.add('dragging');
+      });
+      list.addEventListener('dragend', function () { if (dragged) dragged.classList.remove('dragging'); dragged = null; sync(); });
+      list.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        if (!dragged) return;
+        const nodes = Array.from(list.querySelectorAll('.menu-node:not(.dragging)'));
+        let after = null;
+        nodes.forEach(function (n) {
+          const box = n.getBoundingClientRect();
+          if (e.clientY > box.top + box.height / 2 && (!after || n === after)) after = n.nextElementSibling && n.nextElementSibling.classList.contains('menu-node') ? n.nextElementSibling : null;
+        });
+        const target = nodes.find(function (n) { const b = n.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+        if (target) list.insertBefore(dragged, target); else list.appendChild(dragged);
+      });
+      list.addEventListener('change', sync);
+      sync();
+      if (form) form.addEventListener('submit', sync);
+    }
+  })();
+</script>
+<% } %>
+
+<%- include('../partials/panel-foot') %>

@@ -1,0 +1,168 @@
+<%
+  const minWithdraw = parseInt(setting('min_seller_withdraw', '500000'), 10) || 500000;
+  const approved = accounts.filter(function (a) { return a.status === 'approved'; });
+  const wStatus = { pending: ['در انتظار پرداخت', 'badge-warning'], paid: ['واریز شده', 'badge-success'], rejected: ['رد شده', 'badge-danger'] };
+%>
+<%- include('../partials/panel-head') %>
+
+<div class="stat-cards mb-20">
+  <div class="stat-card success"><span class="ic"><svg><use href="#i-wallet"/></svg></span>
+    <div><div class="v mono"><%= h.fa(seller.wallet) %></div><div class="l">قابل برداشت (<%= site.currency %>)</div></div></div>
+  <div class="stat-card warning"><span class="ic"><svg><use href="#i-clock"/></svg></span>
+    <div><div class="v mono"><%= h.fa(due) %></div><div class="l">سررسید شده</div></div></div>
+  <div class="stat-card info"><span class="ic"><svg><use href="#i-hourglass"/></svg></span>
+    <div><div class="v mono"><%= h.fa(pending) %></div><div class="l">در انتظار سررسید</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-check"/></svg></span>
+    <div><div class="v mono"><%= h.fa(paid) %></div><div class="l">واریز شده</div></div></div>
+  <div class="stat-card danger"><span class="ic"><svg><use href="#i-percent"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(seller.commission) %>٪</div><div class="l">نرخ کمیسیون شما</div></div></div>
+  <div class="stat-card"><span class="ic"><svg><use href="#i-calendar"/></svg></span>
+    <div><div class="v mono"><%= h.toPersianDigits(seller.settlement_days) %> روز</div><div class="l">دوره تسویه</div></div></div>
+</div>
+
+<div class="grid g-panel">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">صورت‌حساب تسویه</h3>
+        <span class="text-xs text-muted">پس از تحویل سفارش و گذشت دوره <%= h.toPersianDigits(seller.settlement_days) %> روزه، مبلغ خالص قابل برداشت می‌شود.</span></div>
+      <% if (rows.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>تاریخ</th><th>سفارش</th><th>محصول</th><th>مبلغ قلم</th><th>کمیسیون</th><th>خالص</th><th>سررسید</th><th>وضعیت</th></tr></thead>
+            <tbody>
+              <% rows.forEach(function (s) { %>
+                <tr>
+                  <td class="text-2xs"><%= h.formatJalali(s.created_at) %></td>
+                  <td class="mono text-2xs" dir="ltr"><%= s.order_code || '—' %></td>
+                  <td class="text-xs"><%= h.truncate(s.title || '—', 36) %></td>
+                  <td class="mono text-xs"><%= h.fa(s.amount) %></td>
+                  <td class="mono text-xs text-danger">− <%= h.fa(s.commission) %></td>
+                  <td class="mono text-xs bold text-success"><%= h.fa(s.net) %></td>
+                  <td class="text-2xs"><%= s.due_at ? h.formatJalali(s.due_at) : '—' %></td>
+                  <td><span class="badge <%= s.status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= s.status === 'paid' ? 'واریز شده' : 'در انتظار' %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty"><svg><use href="#i-bank"/></svg>
+          <h4>صورت‌حسابی صادر نشده است</h4>
+          <p class="text-sm">پس از اولین فروش تحویل‌شده، ردیف‌های تسویه اینجا ساخته می‌شوند.</p></div>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">درخواست‌های برداشت</h3></div>
+      <% if (withdrawals.length) { %>
+        <div class="table-wrap">
+          <table class="data compact">
+            <thead><tr><th>شناسه</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th><th>پیگیری</th><th>یادداشت</th></tr></thead>
+            <tbody>
+              <% withdrawals.forEach(function (wd) { %>
+                <% const st = wStatus[wd.status] || [wd.status, 'badge-outline']; %>
+                <tr>
+                  <td class="mono text-2xs" dir="ltr">#<%= h.toPersianDigits(wd.id) %></td>
+                  <td class="text-2xs"><%= h.formatJalali(wd.created_at) %></td>
+                  <td class="mono text-xs bold"><%= h.fa(wd.amount) %></td>
+                  <td><span class="badge <%= st[1] %>"><%= st[0] %></span></td>
+                  <td class="mono text-2xs" dir="ltr"><%= wd.reference || '—' %></td>
+                  <td class="text-2xs text-muted"><%= wd.admin_note || '—' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:22px"><svg><use href="#i-bank"/></svg><p class="text-sm">درخواست برداشتی ثبت نکرده‌اید.</p></div>
+      <% } %>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">برداشت وجه</h3></div>
+      <div class="card-body">
+        <div class="summary-row total mb-14"><span>موجودی قابل برداشت</span><span class="mono"><%= h.fa(seller.wallet) %> <%= site.currency %></span></div>
+        <% if (!approved.length) { %>
+          <div class="alert alert-warning"><svg><use href="#i-alert"/></svg>
+            <div class="body">برای برداشت، ابتدا یک حساب بانکی ثبت کنید و منتظر تایید مدیریت بمانید.</div></div>
+        <% } else { %>
+          <form method="post" action="/seller/settlements/withdraw">
+            <div class="field"><label for="s_amount">مبلغ (<%= site.currency %>) <span class="req">*</span></label>
+              <input class="input mono" id="s_amount" name="amount" dir="ltr" inputmode="numeric" required data-money-input
+                     placeholder="حداقل <%= h.fa(minWithdraw) %>">
+              <div class="help">حداقل <%= h.fa(minWithdraw) %> — حداکثر <%= h.fa(seller.wallet) %></div></div>
+            <div class="field"><label for="s_account">حساب مقصد <span class="req">*</span></label>
+              <select class="select" id="s_account" name="bank_account_id" required>
+                <% approved.forEach(function (a) { %>
+                  <option value="<%= a.id %>"><%= a.bank_name %> — <%= a.owner_name %><% if (a.card_number) { %> (<%= h.toPersianDigits(String(a.card_number).slice(-6)) %>)<% } %></option>
+                <% }) %>
+              </select></div>
+            <button class="btn btn-primary btn-block" type="submit"><svg><use href="#i-bank"/></svg> ثبت درخواست برداشت</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">حساب‌های بانکی</h3>
+        <button class="btn btn-sm btn-ghost" type="button" data-modal-open="sellerBankModal"><svg><use href="#i-plus"/></svg> افزودن</button></div>
+      <div class="card-body stack" style="gap:10px">
+        <% if (accounts.length) { %>
+          <% accounts.forEach(function (a) { %>
+            <div class="flex items-start gap-10">
+              <span class="grow">
+                <b class="text-xs"><%= a.bank_name %> — <%= a.owner_name %></b>
+                <span class="text-2xs text-muted mono" style="display:block" dir="ltr"><%= h.toPersianDigits(a.card_number || a.iban || a.account_no || '') %></span>
+              </span>
+              <span class="badge <%= a.status === 'approved' ? 'badge-success' : a.status === 'rejected' ? 'badge-danger' : 'badge-warning' %>">
+                <%= a.status === 'approved' ? 'تایید شده' : a.status === 'rejected' ? 'رد شده' : 'در انتظار' %></span>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-xs text-muted m-0">حسابی ثبت نشده است.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h3 class="text-sm">نحوه تسویه</h3></div>
+      <div class="card-body text-xs text-muted" style="line-height:2.2">
+        ۱. سفارش تحویل مشتری می‌شود.<br>
+        ۲. پس از <%= h.toPersianDigits(seller.settlement_days) %> روز (مهلت مرجوعی)، مبلغ خالص سررسید می‌شود.<br>
+        ۳. کمیسیون فروشگاه (<%= h.toPersianDigits(seller.commission) %>٪) کسر می‌گردد.<br>
+        ۴. با ثبت درخواست برداشت، وجه به حساب تاییدشده شما واریز می‌شود.
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="modal-backdrop" id="sellerBankModal">
+  <div class="modal">
+    <div class="modal-head"><h3>افزودن حساب بانکی فروشگاه</h3><button class="btn btn-ghost btn-sm" data-modal-close aria-label="بستن"><svg><use href="#i-x"/></svg></button></div>
+    <form method="post" action="/seller/bank-accounts">
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label for="sb_name">صاحب حساب <span class="req">*</span></label>
+            <input class="input" id="sb_name" name="owner_name" value="<%= seller.type === 'legal' ? seller.shop_name : (user.name || '') %>" required></div>
+          <div class="field"><label for="sb_bank">نام بانک <span class="req">*</span></label>
+            <input class="input" id="sb_bank" name="bank_name" required placeholder="ملی / ملت / سامان / …"></div>
+        </div>
+        <div class="field"><label for="sb_card">شماره کارت</label>
+          <input class="input mono" id="sb_card" name="card_number" dir="ltr" inputmode="numeric" placeholder="6037XXXXXXXXXXXX"></div>
+        <div class="grid g-2">
+          <div class="field"><label for="sb_iban">شماره شبا</label>
+            <input class="input mono" id="sb_iban" name="iban" dir="ltr" placeholder="IR…"></div>
+          <div class="field"><label for="sb_no">شماره حساب</label>
+            <input class="input mono" id="sb_no" name="account_no" dir="ltr"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="is_default" value="1"> حساب پیش‌فرض</label>
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" type="button" data-modal-close>انصراف</button>
+        <button class="btn btn-primary" type="submit"><svg><use href="#i-save"/></svg> ثبت حساب</button></div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/panel-foot') %>
